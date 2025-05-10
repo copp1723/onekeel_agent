@@ -1,0 +1,120 @@
+Got it — here’s a clean, **Replit Agent–friendly ticket list** you can paste directly into your Replit agent or use as instructions for yourself or another AI developer.
+
+---
+
+## ✅ AgentFlow — Phase 3 Task List (Formatted for Replit Agent)
+
+Paste this in directly:
+
+---
+
+We are now entering Phase 3 of AgentFlow. Please implement the following tasks to complete the MVP:
+
+---
+
+### 📦 1. **Create a `task_logs` table in Supabase using Drizzle ORM**
+
+**File:** `src/shared/schema.ts`
+
+Add a new table definition:
+
+```ts
+import { pgTable, uuid, text, timestamp, jsonb } from 'drizzle-orm/pg-core';
+
+export const taskLogs = pgTable('task_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  user_input: text('user_input').notNull(),
+  tool: text('tool').notNull(),
+  status: text('status').notNull(), // 'success' or 'error'
+  output: jsonb('output'),
+  created_at: timestamp('created_at').defaultNow(),
+});
+```
+
+---
+
+### 📁 2. **Create a helper to log task executions**
+
+**File:** `src/shared/logger.ts`
+
+```ts
+import { db } from './db';
+import { taskLogs } from './schema';
+
+export async function logTask({ userInput, tool, status, output }) {
+  await db.insert(taskLogs).values({
+    user_input: userInput,
+    tool,
+    status,
+    output,
+  });
+}
+```
+
+---
+
+### 🔁 3. **Update `index.ts` to call logger after task execution**
+
+After executing a task, log it:
+
+```ts
+import { logTask } from './shared/logger';
+
+try {
+  const result = await Eko.execute(workflow);
+  await logTask({ userInput: task, tool: 'crawlWebsite', status: 'success', output: result });
+} catch (err) {
+  await logTask({ userInput: task, tool: 'crawlWebsite', status: 'error', output: { error: err.message } });
+}
+```
+
+---
+
+### 🌐 4. **Finalize the Express API POST endpoint**
+
+**File:** `src/api/server.ts`
+
+Implement a simple route:
+
+```ts
+app.post('/submit-task', async (req, res) => {
+  const { task } = req.body;
+  if (!task) return res.status(400).json({ error: 'Missing task' });
+
+  try {
+    const workflow = await eko.generate(task);
+    const result = await eko.execute(workflow);
+    await logTask({ userInput: task, tool: 'parsedTool', status: 'success', output: result });
+    res.json({ result });
+  } catch (error) {
+    await logTask({ userInput: task, tool: 'unknown', status: 'error', output: { error: error.message } });
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+---
+
+### 🧪 5. **Test POST Request via Replit Shell**
+
+Use curl or Postman:
+
+```bash
+curl -X POST http://localhost:3000/submit-task \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Crawl https://example.com and summarize"}'
+```
+
+---
+
+### 📝 6. **Update README with API usage**
+
+Add:
+
+* Example POST request
+* Expected JSON response
+* Notes on logged task data
+
+---
+
+Let me know when these are done and I’ll queue up **Phase 4: Tool chaining, error recovery, and optional UI layer.**
