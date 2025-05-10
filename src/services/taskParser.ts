@@ -3,6 +3,7 @@ import { Eko, LLMs } from '@eko-ai/eko';
 // Define the task types the agent can handle
 export enum TaskType {
   WebCrawling = 'web_crawling',
+  WebContentExtraction = 'web_content_extraction',
   FlightStatus = 'flight_status',
   DealerLogin = 'dealer_login',
   VehicleData = 'vehicle_data',
@@ -27,7 +28,25 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   // In a more complex system, you would use the LLM for this
   const taskLower = task.toLowerCase();
   
-  if (taskLower.includes('crawl') || taskLower.includes('scrape') || taskLower.includes('extract')) {
+  // Extract clean content tasks
+  if ((taskLower.includes('extract') && taskLower.includes('clean content')) || 
+      (taskLower.includes('get') && taskLower.includes('article text')) ||
+      (taskLower.includes('extract') && taskLower.includes('readable'))) {
+    // This is a content extraction task
+    const urlMatch = task.match(/https?:\/\/[^\s]+/);
+    const url = urlMatch ? urlMatch[0] : '';
+    
+    return {
+      type: TaskType.WebContentExtraction,
+      parameters: {
+        url
+      },
+      original: task
+    };
+  }
+  // Regular web crawling tasks
+  else if (taskLower.includes('crawl') || taskLower.includes('scrape') || 
+      (taskLower.includes('extract') && !taskLower.includes('clean content'))) {
     // This is likely a web crawling task
     const urlMatch = task.match(/https?:\/\/[^\s]+/);
     const url = urlMatch ? urlMatch[0] : '';
