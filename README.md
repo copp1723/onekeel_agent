@@ -136,12 +136,18 @@ With the Phase 2 extensions, the agent supports multiple tools and task types:
    "Crawl https://example.com and extract all product information"
    ```
 
-2. **Flight Status Checks**:
+2. **Web Content Extraction**:
+   ```
+   "Extract clean content from https://example.com"
+   "Get the article text from https://news.example.com/article"
+   ```
+
+3. **Flight Status Checks**:
    ```
    "Check the status of flight UA123 for today"
    ```
 
-3. **Dealer Credential Management**:
+4. **Dealer Credential Management**:
    ```
    "Login to the dealer portal for dealer ABC123"
    ```
