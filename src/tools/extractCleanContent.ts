@@ -1,4 +1,4 @@
-import { Tool } from '@eko-ai/eko';
+import { Eko } from '@eko-ai/eko';
 import { spawn } from 'child_process';
 import path from 'path';
 
@@ -7,11 +7,19 @@ interface ExtractCleanContentArgs {
   url: string;
 }
 
+// Tool interface based on Eko
+export interface EkoTool {
+  name: string;
+  description: string;
+  parameters: any;
+  handler: (args: any) => Promise<any>;
+}
+
 /**
  * Creates an extractCleanContent tool that uses Python's trafilatura to extract clean text from webpages
  * @returns A tool object that can be registered with Eko
  */
-export function extractCleanContent(): Tool {
+export function extractCleanContent(): EkoTool {
   return {
     name: 'extractCleanContent',
     description: 'Extract clean, readable text content from a webpage by removing ads, navigation, and other non-content elements.',

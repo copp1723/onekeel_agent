@@ -84,7 +84,10 @@ app.post('/submit-task', async (req, res) => {
     const taskId = crypto.randomUUID();
     
     // Determine task type
-    const taskType = task.toLowerCase().includes('crawl') ? 'web_crawling' : 
+    const taskType = task.toLowerCase().includes('extract clean content') || 
+                    (task.toLowerCase().includes('get') && task.toLowerCase().includes('article text')) ||
+                    (task.toLowerCase().includes('extract') && task.toLowerCase().includes('readable')) ? 'web_content_extraction' :
+                    task.toLowerCase().includes('crawl') ? 'web_crawling' : 
                     task.toLowerCase().includes('flight') ? 'flight_status' : 'unknown';
     
     // Process the task immediately with mocked response
@@ -96,7 +99,55 @@ app.post('/submit-task', async (req, res) => {
     };
     
     // Add relevant data based on task type
-    if (taskType === 'web_crawling') {
+    if (taskType === 'web_content_extraction') {
+      // Extract the URL from the task
+      const urlMatch = task.match(/https?:\/\/[^\s]+/);
+      const url = urlMatch ? urlMatch[0] : 'https://example.com';
+
+      // Call the Python script to get actual content (if it exists)
+      try {
+        const { spawn } = await import('child_process');
+        const python = spawn('python3', ['src/tools/extract_content.py', url]);
+        
+        let scriptOutput = '';
+        python.stdout.on('data', (data) => {
+          scriptOutput += data.toString();
+        });
+        
+        // Wait for script to finish
+        await new Promise((resolve) => {
+          python.on('close', (code) => {
+            resolve();
+          });
+        });
+        
+        // Parse the output
+        const extractionResult = JSON.parse(scriptOutput);
+        
+        if (extractionResult.content) {
+          result.data = {
+            "content": extractionResult.content,
+            "url": url,
+            "extracted_with": "trafilatura"
+          };
+        } else {
+          result.data = {
+            "content": "This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.",
+            "url": url,
+            "extracted_with": "trafilatura",
+            "note": "Example content used because extraction failed"
+          };
+        }
+      } catch (error) {
+        result.data = {
+          "content": "This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.",
+          "url": url,
+          "extracted_with": "trafilatura",
+          "note": "Example content used because of an error"
+        };
+      }
+    } 
+    else if (taskType === 'web_crawling') {
       result.data = {
         "top_posts": [
           {
@@ -177,8 +228,11 @@ async function processTask(taskId, taskText) {
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Determine task type
-    const taskType = taskText.toLowerCase().includes('crawl') ? 'web_crawling' : 
-                     taskText.toLowerCase().includes('flight') ? 'flight_status' : 'unknown';
+    const taskType = taskText.toLowerCase().includes('extract clean content') || 
+                    (taskText.toLowerCase().includes('get') && taskText.toLowerCase().includes('article text')) ||
+                    (taskText.toLowerCase().includes('extract') && taskText.toLowerCase().includes('readable')) ? 'web_content_extraction' :
+                    taskText.toLowerCase().includes('crawl') ? 'web_crawling' : 
+                    taskText.toLowerCase().includes('flight') ? 'flight_status' : 'unknown';
     
     // Create result based on task type
     let result = {
@@ -188,7 +242,55 @@ async function processTask(taskId, taskText) {
       data: {}
     };
     
-    if (taskType === 'web_crawling') {
+    if (taskType === 'web_content_extraction') {
+      // Extract the URL from the task
+      const urlMatch = taskText.match(/https?:\/\/[^\s]+/);
+      const url = urlMatch ? urlMatch[0] : 'https://example.com';
+
+      // Call the Python script to get actual content (if it exists)
+      try {
+        const { spawn } = await import('child_process');
+        const python = spawn('python3', ['src/tools/extract_content.py', url]);
+        
+        let scriptOutput = '';
+        python.stdout.on('data', (data) => {
+          scriptOutput += data.toString();
+        });
+        
+        // Wait for script to finish
+        await new Promise((resolve) => {
+          python.on('close', (code) => {
+            resolve();
+          });
+        });
+        
+        // Parse the output
+        const extractionResult = JSON.parse(scriptOutput);
+        
+        if (extractionResult.content) {
+          result.data = {
+            "content": extractionResult.content,
+            "url": url,
+            "extracted_with": "trafilatura"
+          };
+        } else {
+          result.data = {
+            "content": "This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.",
+            "url": url,
+            "extracted_with": "trafilatura",
+            "note": "Example content used because extraction failed"
+          };
+        }
+      } catch (error) {
+        result.data = {
+          "content": "This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.",
+          "url": url,
+          "extracted_with": "trafilatura",
+          "note": "Example content used because of an error"
+        };
+      }
+    }
+    else if (taskType === 'web_crawling') {
       result.data = {
         "top_posts": [
           {
