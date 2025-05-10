@@ -106,6 +106,17 @@ curl http://localhost:5000/api/tasks/{task_id}
 curl http://localhost:5000/api/tasks
 ```
 
+### Simplified Server (No Database Dependencies)
+
+A simplified version of the server is also available that doesn't require any database connections:
+
+```bash
+# Run the simplified server
+node dist/index.js
+```
+
+This version provides all the same API endpoints but stores data in memory instead of a database.
+
 ## Usage
 
 ### Basic Usage (Phase 1)
@@ -196,6 +207,7 @@ All task executions are logged to the database with the following information:
 - `src/shared/db.ts` - Database connection and Drizzle ORM setup
 - `src/shared/logger.ts` - Task logging utilities for DB persistence
 - `/submit-task` endpoint - Direct task execution with immediate response
+- `dist/index.js` - Simplified server with no database dependencies
 
 ### Database Schemas
 - `api_keys` - Secure storage for API keys
