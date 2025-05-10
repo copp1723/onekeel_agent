@@ -22,6 +22,7 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node dist/index.js"
+waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "npm install dotenv axios drizzle-orm postgres fellou-eko typescript ts-node && npx tsc && node dist/index.js"]
