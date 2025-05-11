@@ -392,7 +392,7 @@ app.post('/submit-task', async (req: Request, res: Response) => {
       error: error.message || 'Task execution failed' 
     });
   }
-}) as RequestHandler);
+});
 
 // Process a task asynchronously
 async function processTask(taskId: string, taskText: string, userId?: string): Promise<void> {

@@ -322,7 +322,6 @@ app.post('/submit-task', async (req, res) => {
         });
     }
 });
-;
 // Process a task asynchronously
 async function processTask(taskId, taskText, userId) {
     try {
