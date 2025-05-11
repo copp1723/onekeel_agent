@@ -14,25 +14,12 @@ import { TaskType } from '../types.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
 import { executePlan } from '../agent/executePlan.js';
 import { registerAuthRoutes } from '../server/routes/index.js';
-// Helper function to wrap route handlers and fix TypeScript compatibility issues
-function routeHandler(handler) {
-    return (req, res, next) => {
-        try {
-            const result = handler(req, res, next);
-            if (result instanceof Promise) {
-                result.catch((error) => {
-                    console.error('Route handler error:', error);
-                    if (!res.headersSent) {
-                        res.status(500).json({
-                            error: 'Internal server error',
-                            message: error instanceof Error ? error.message : String(error)
-                        });
-                    }
-                });
-            }
-            return result;
-        }
-        catch (error) {
+// Import from utils instead of redefining
+import { routeHandler } from '../utils/routeHandler.js';
+try {
+    const result = handler(req, res, next);
+    if (result instanceof Promise) {
+        result.catch((error) => {
             console.error('Route handler error:', error);
             if (!res.headersSent) {
                 res.status(500).json({
@@ -40,9 +27,20 @@ function routeHandler(handler) {
                     message: error instanceof Error ? error.message : String(error)
                 });
             }
-        }
-    };
+        });
+    }
+    return result;
 }
+catch (error) {
+    console.error('Route handler error:', error);
+    if (!res.headersSent) {
+        res.status(500).json({
+            error: 'Internal server error',
+            message: error instanceof Error ? error.message : String(error)
+        });
+    }
+}
+;
 // Load environment variables
 dotenv.config();
 // Initialize Express app
@@ -113,7 +111,7 @@ tasksRouter.get('/user', (async (req, res, _next) => {
 // Register tasks GET endpoints
 app.use('/api/tasks', tasksRouter);
 // Unified task submission endpoint for both sync and async operations
-app.post('/submit-task', async (req, res) => {
+app.post('/submit-task', routeHandler(async (req, res) => {
     const { task } = req.body;
     if (!task || typeof task !== 'string') {
         res.status(400).json({ error: 'Task is required and must be a string' });
@@ -359,7 +357,7 @@ app.post('/submit-task', async (req, res) => {
         });
         return;
     }
-});
+}));
 // Process a task asynchronously
 async function processTask(taskId, taskText, userId) {
     try {
