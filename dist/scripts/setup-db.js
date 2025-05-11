@@ -46,6 +46,28 @@ async function setupDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+        // Create the plans table if it doesn't exist
+        await db.execute(sql `
+      CREATE TABLE IF NOT EXISTS plans (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        task TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+        // Create the steps table if it doesn't exist
+        await db.execute(sql `
+      CREATE TABLE IF NOT EXISTS steps (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        plan_id UUID NOT NULL REFERENCES plans(id),
+        step_index INTEGER NOT NULL,
+        tool TEXT NOT NULL,
+        input JSON NOT NULL,
+        output JSON,
+        status TEXT DEFAULT 'pending',
+        error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
         console.log('Database tables set up successfully');
         // Check if we need to insert a default Firecrawl key
         // This is just to check if any key exists - insert your real key manually

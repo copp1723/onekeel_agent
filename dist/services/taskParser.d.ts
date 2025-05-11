@@ -1,14 +1,21 @@
+import { ExecutionPlan } from '../agent/executePlan.js';
 export declare enum TaskType {
     WebCrawling = "web_crawling",
+    WebContentExtraction = "web_content_extraction",
+    SummarizeText = "summarize_text",
     FlightStatus = "flight_status",
     DealerLogin = "dealer_login",
     VehicleData = "vehicle_data",
+    MultiStep = "multi_step",
     Unknown = "unknown"
 }
 export interface ParsedTask {
     type: TaskType;
     parameters: Record<string, any>;
     original: string;
+    plan?: ExecutionPlan;
+    error?: string;
+    planId?: string;
 }
 /**
  * Uses an LLM to parse a natural language task into a structured format

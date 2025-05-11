@@ -4,9 +4,12 @@ import crypto from 'crypto';
 import { Eko } from '@eko-ai/eko';
 import { crawlWebsite } from '../tools/crawlWebsite.js';
 import { checkFlightStatus } from '../tools/checkFlightStatus.js';
+import { extractCleanContent } from '../tools/extractCleanContent.js';
+import { summarizeText } from '../tools/summarizeText.js';
 import { getApiKey } from '../services/supabase.js';
 import { parseTask, TaskType } from '../services/taskParser.js';
 import { logTask } from '../shared/logger.js';
+import { executePlan } from '../agent/executePlan.js';
 // Load environment variables
 dotenv.config();
 // Initialize Express app
@@ -17,38 +20,7 @@ app.use(express.json());
 const taskLogs = {};
 // Create router for tasks API
 const tasksRouter = Router();
-// Endpoint to submit a new task
-tasksRouter.post('/', async function (req, res) {
-    try {
-        const { task } = req.body;
-        if (!task || typeof task !== 'string') {
-            return res.status(400).json({ error: 'Task is required and must be a string' });
-        }
-        // Generate a unique ID for this task
-        const taskId = crypto.randomUUID();
-        // Log the new task
-        taskLogs[taskId] = {
-            id: taskId,
-            task,
-            taskType: 'unknown', // Will be updated after parsing
-            status: 'pending',
-            createdAt: new Date().toISOString()
-        };
-        // Return the task ID immediately so client can poll for status
-        res.status(202).json({ taskId, message: 'Task accepted and processing' });
-        // Process the task asynchronously
-        processTask(taskId, task).catch(error => {
-            console.error(`Error processing task ${taskId}:`, error);
-            taskLogs[taskId].status = 'failed';
-            taskLogs[taskId].error = error.message;
-        });
-    }
-    catch (error) {
-        console.error('Error submitting task:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-// Endpoint to get task status and results
+// Get a task status endpoint
 tasksRouter.get('/:taskId', function (req, res) {
     const { taskId } = req.params;
     if (!taskLogs[taskId]) {
@@ -56,22 +28,71 @@ tasksRouter.get('/:taskId', function (req, res) {
     }
     res.status(200).json(taskLogs[taskId]);
 });
-// Endpoint to list all tasks
+// List all tasks endpoint
 tasksRouter.get('/', function (_req, res) {
     const tasks = Object.values(taskLogs);
     res.status(200).json(tasks);
 });
-// Register tasks router
+// Register tasks GET endpoints
 app.use('/api/tasks', tasksRouter);
-// Create a router for direct task submission
-const submitTaskRouter = Router();
-// Handler for direct task submission using generate/execute
-submitTaskRouter.post('/', async function (req, res) {
-    try {
-        const { task } = req.body;
-        if (!task || typeof task !== 'string') {
-            return res.status(400).json({ error: 'Task is required and must be a string' });
+// Unified task submission endpoint for both sync and async operations
+app.post(['/submit-task', '/api/tasks'], async (req, res) => {
+    const { task } = req.body;
+    if (!task || typeof task !== 'string') {
+        return res.status(400).json({ error: 'Task is required and must be a string' });
+    }
+    // Get the Eko API key for validation (used in both async and sync paths)
+    const ekoApiKey = process.env.EKO_API_KEY;
+    if (!ekoApiKey) {
+        return res.status(500).json({ error: 'API key not available' });
+    }
+    // For the async API, validate the task before accepting it
+    const isAsync = req.path === '/api/tasks';
+    if (isAsync) {
+        try {
+            // Parse the task first to see if it's valid
+            const parsedTask = await parseTask(task, ekoApiKey);
+            // Check if the task parsing resulted in an error
+            if (parsedTask.error) {
+                console.error("❌ Task parser validation error:", parsedTask.error);
+                // Return a 400 Bad Request with the specific error message
+                return res.status(400).json({
+                    error: parsedTask.error
+                });
+            }
+            // Generate a unique ID for this task
+            const taskId = crypto.randomUUID();
+            console.log(`Task submitted: ${taskId} - ${task}`);
+            // Log the new task
+            taskLogs[taskId] = {
+                id: taskId,
+                task,
+                taskType: parsedTask.type, // Set the detected type immediately
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+            // Process the task asynchronously
+            processTask(taskId, task).catch(error => {
+                console.error(`Error processing task ${taskId}:`, error);
+                taskLogs[taskId].status = 'failed';
+                taskLogs[taskId].error = error.message;
+                taskLogs[taskId].completedAt = new Date().toISOString();
+            });
+            // Return the task ID immediately
+            return res.status(201).json({
+                id: taskId,
+                message: 'Task submitted successfully'
+            });
         }
+        catch (error) {
+            console.error("Error during task validation:", error);
+            return res.status(500).json({
+                error: error.message || "Error validating task"
+            });
+        }
+    }
+    // For synchronous execution (submit-task), execute immediately 
+    try {
         // Get the Eko API key
         const ekoApiKey = process.env.EKO_API_KEY;
         if (!ekoApiKey) {
@@ -79,79 +100,191 @@ submitTaskRouter.post('/', async function (req, res) {
         }
         // Get the Firecrawl API key for web crawling tasks
         const firecrawlApiKey = await getApiKey('firecrawl') || 'demo_firecrawl_key';
-        // Configure LLMs
-        const llms = {
-            default: {
-                provider: "openai",
-                model: "gpt-4o-mini",
-                apiKey: ekoApiKey,
+        // Parse the task to determine what type it is
+        const parsedTask = await parseTask(task, ekoApiKey);
+        const taskId = crypto.randomUUID();
+        console.log(`Task executed directly: ${taskId} - ${parsedTask.type}`);
+        console.log('Task text:', task);
+        console.log('Parsed task:', JSON.stringify(parsedTask, null, 2));
+        // Check if there was a parsing error
+        if (parsedTask.error) {
+            console.error(`❌ Task parser error (${taskId}):`, parsedTask.error);
+            console.log("Returning 400 Bad Request with error message");
+            return res.status(400).json({ success: false, error: parsedTask.error });
+        }
+        // Create tools map
+        const toolsMap = {};
+        // Register all available tools
+        const crawlTool = crawlWebsite(firecrawlApiKey);
+        const flightTool = checkFlightStatus();
+        const extractTool = extractCleanContent();
+        const summarizeTool = summarizeText(ekoApiKey);
+        toolsMap['crawlWebsite'] = crawlTool;
+        toolsMap['checkFlightStatus'] = flightTool;
+        toolsMap['extractCleanContent'] = extractTool;
+        toolsMap['summarizeText'] = summarizeTool;
+        let result;
+        let toolUsed = 'unknown';
+        // Handle multi-step execution
+        if (parsedTask.type === TaskType.MultiStep && parsedTask.plan) {
+            // Execute the plan using the execution engine
+            const executionResult = await executePlan(parsedTask.plan, toolsMap);
+            result = {
+                type: TaskType.MultiStep,
+                timestamp: new Date().toISOString(),
+                message: "Task executed with simulated Eko Agent",
+                data: executionResult.finalOutput
+            };
+            // Record the tools used
+            toolUsed = parsedTask.plan.steps.map(step => step.tool).join(',');
+        }
+        // Handle direct tool execution for specific task types
+        else if (parsedTask.type === TaskType.WebContentExtraction) {
+            result = {
+                type: TaskType.WebContentExtraction,
+                timestamp: new Date().toISOString(),
+                message: "Task executed with simulated Eko Agent",
+                data: await extractTool.handler(parsedTask.parameters)
+            };
+            toolUsed = 'extractCleanContent';
+        }
+        else if (parsedTask.type === TaskType.SummarizeText) {
+            result = {
+                type: TaskType.SummarizeText,
+                timestamp: new Date().toISOString(),
+                message: "Task executed with simulated Eko Agent",
+                data: await summarizeTool.handler(parsedTask.parameters)
+            };
+            toolUsed = 'summarizeText';
+        }
+        else if (parsedTask.type === TaskType.WebCrawling) {
+            result = {
+                type: TaskType.WebCrawling,
+                timestamp: new Date().toISOString(),
+                message: "Task executed with simulated Eko Agent",
+                data: await crawlTool.handler(parsedTask.parameters)
+            };
+            toolUsed = 'crawlWebsite';
+        }
+        else if (parsedTask.type === TaskType.FlightStatus) {
+            result = {
+                type: TaskType.FlightStatus,
+                timestamp: new Date().toISOString(),
+                message: "Task executed with simulated Eko Agent",
+                data: await flightTool.handler(parsedTask.parameters)
+            };
+            toolUsed = 'checkFlightStatus';
+        }
+        // For testing purposes, check if the task is about summarizing content
+        else if ((task.toLowerCase().includes('summarize') || task.toLowerCase().includes('summary'))) {
+            console.log("Detected summarize keyword in:", task);
+            // Check if it also has a URL
+            if (task.match(/https?:\/\/[^\s]+/)) {
+                console.log("Also found URL in task");
+                const urlMatch = task.match(/https?:\/\/[^\s]+/);
+                const url = urlMatch ? urlMatch[0] : '';
+                console.log(`Creating multi-step plan manually for task: "${task}"`);
+                // Create a multi-step plan
+                const plan = {
+                    steps: [
+                        {
+                            tool: 'extractCleanContent',
+                            input: { url }
+                        },
+                        {
+                            tool: 'summarizeText',
+                            input: { text: '{{step0.output.content}}' }
+                        }
+                    ]
+                };
+                // Execute the plan
+                console.log('Executing manually created plan');
+                const executionResult = await executePlan(plan, toolsMap);
+                result = {
+                    type: 'multi_step',
+                    timestamp: new Date().toISOString(),
+                    message: "Task executed with multi-step execution",
+                    data: executionResult.finalOutput
+                };
+                toolUsed = 'extractCleanContent,summarizeText';
             }
-        };
-        // Initialize Eko agent with all available tools
-        const eko = new Eko({
-            llms,
-            tools: [
-                crawlWebsite(firecrawlApiKey),
-                checkFlightStatus()
-            ]
+            else {
+                console.log("No URL found in summarize task");
+                result = {
+                    type: 'error',
+                    timestamp: new Date().toISOString(),
+                    message: "Cannot summarize without a URL",
+                    data: { error: "Please provide a URL to summarize content from" }
+                };
+            }
+        }
+        else {
+            result = {
+                type: parsedTask.type,
+                timestamp: new Date().toISOString(),
+                message: "Task received but not implemented",
+                data: { message: "Task type not supported yet" }
+            };
+        }
+        // Log the task execution
+        await logTask({
+            userInput: task,
+            tool: toolUsed,
+            status: 'success',
+            output: result
         });
-        try {
-            // Generate and execute the workflow
-            console.log(`Generating workflow for task: "${task}"`);
-            const workflow = await eko.generate(task);
-            console.log('Executing workflow...');
-            const result = await eko.execute(workflow);
-            // Determine which tool was used based on result or workflow analysis
-            // This is a simplistic approach; in a real system we could extract this from the workflow
-            const toolUsed = task.toLowerCase().includes('crawl') ? 'crawlWebsite' :
-                task.toLowerCase().includes('flight') ? 'checkFlightStatus' : 'unknown';
-            // Log successful task execution to database
-            await logTask({
-                userInput: task,
-                tool: toolUsed,
-                status: 'success',
-                output: result
-            });
-            // Return the result to the client
-            return res.status(200).json({ success: true, result });
-        }
-        catch (error) {
-            console.error('Error executing task:', error);
-            // Log failed task execution to database
-            await logTask({
-                userInput: task,
-                tool: 'unknown', // We couldn't determine the tool since execution failed
-                status: 'error',
-                output: { error: error.message || String(error) }
-            });
-            return res.status(500).json({
-                success: false,
-                error: error.message || 'Unknown error during task execution'
-            });
-        }
+        // Return the immediate result
+        return res.status(200).json({ success: true, result });
     }
     catch (error) {
-        console.error('Error in submit-task endpoint:', error);
+        console.error('Error executing task:', error);
+        // Log the error
+        await logTask({
+            userInput: task,
+            tool: 'unknown',
+            status: 'error',
+            output: { error: error.message || String(error) }
+        });
         return res.status(500).json({
             success: false,
-            error: error.message || 'Internal server error'
+            error: error.message || 'Task execution failed'
         });
     }
 });
-// Register submit-task router
-app.use('/submit-task', submitTaskRouter);
 // Process a task asynchronously
 async function processTask(taskId, taskText) {
     try {
+        console.log(`Processing task: ${taskId}`);
         // Update task status
         taskLogs[taskId].status = 'processing';
-        // Get the Eko API key from Supabase
+        // Get the Eko API key 
         const ekoApiKey = process.env.EKO_API_KEY;
         if (!ekoApiKey) {
             throw new Error('Eko API key not available');
         }
-        // Parse the task to determine the appropriate action
+        // We may have already parsed the task during validation,
+        // but we'll parse it again here for consistency since the processing function
+        // could be called independently
         const parsedTask = await parseTask(taskText, ekoApiKey);
+        // If parsing returned an error, fail the task immediately
+        if (parsedTask.error) {
+            console.error(`❌ Task parsing error (${taskId}):`, parsedTask.error);
+            taskLogs[taskId].status = 'failed';
+            taskLogs[taskId].error = parsedTask.error;
+            taskLogs[taskId].completedAt = new Date().toISOString();
+            // Log the error
+            await logTask({
+                userInput: taskText,
+                tool: 'parser',
+                status: 'error',
+                output: { error: parsedTask.error }
+            });
+            return; // Exit early as we can't process this task
+        }
+        // Log the parsed task for debugging
+        console.log(`Parsed task (${taskId}):`, JSON.stringify(parsedTask, null, 2));
+        // Update the task type in the logs
+        taskLogs[taskId].taskType = parsedTask.type;
         taskLogs[taskId].taskType = parsedTask.type;
         // Get the Firecrawl API key if needed
         let firecrawlApiKey = null;
@@ -170,21 +303,109 @@ async function processTask(taskId, taskText) {
                 apiKey: ekoApiKey,
             }
         };
-        // Collect tools based on the task type
+        // Collect tools based on the task type and prepare a tools map for plan execution
         const tools = [];
-        if (parsedTask.type === TaskType.WebCrawling && firecrawlApiKey) {
-            tools.push(crawlWebsite(firecrawlApiKey));
+        const toolsMap = {};
+        // Register all available tools
+        if (firecrawlApiKey) {
+            const crawlTool = crawlWebsite(firecrawlApiKey);
+            tools.push(crawlTool);
+            toolsMap['crawlWebsite'] = crawlTool;
         }
-        if (parsedTask.type === TaskType.FlightStatus) {
-            tools.push(checkFlightStatus());
-        }
+        const flightTool = checkFlightStatus();
+        tools.push(flightTool);
+        toolsMap['checkFlightStatus'] = flightTool;
+        const extractTool = extractCleanContent();
+        tools.push(extractTool);
+        toolsMap['extractCleanContent'] = extractTool;
+        const summarizeTool = summarizeText(ekoApiKey);
+        tools.push(summarizeTool);
+        toolsMap['summarizeText'] = summarizeTool;
         // Initialize Eko agent with the appropriate tools
         const eko = new Eko({
             llms,
             tools
         });
-        // Execute the task
-        const result = await eko.run(taskText);
+        let result;
+        let toolUsed = parsedTask.type;
+        // Handle multi-step tasks with execution plan
+        if (parsedTask.type === TaskType.MultiStep && parsedTask.plan) {
+            console.log(`Executing multi-step plan for task: "${taskText}"`);
+            console.log('Plan:', JSON.stringify(parsedTask.plan, null, 2));
+            // Execute the plan using our execution engine
+            const executionResult = await executePlan(parsedTask.plan, toolsMap);
+            // Use the final output as the result
+            result = {
+                type: TaskType.MultiStep,
+                timestamp: new Date().toISOString(),
+                message: "Task processed with multi-step execution",
+                data: executionResult.finalOutput,
+                steps: executionResult.stepResults.map((step, index) => ({
+                    step: index,
+                    tool: parsedTask.plan?.steps[index].tool,
+                    success: !step.error,
+                    error: step.error,
+                    output: step.output ? (typeof step.output === 'object' ? step.output : { value: step.output }) : null
+                }))
+            };
+            // Record all tools used in the sequence
+            toolUsed = parsedTask.plan.steps.map(step => step.tool).join(',');
+        }
+        // Handle single-step tasks with the appropriate tool
+        else if (parsedTask.type === TaskType.WebContentExtraction) {
+            result = {
+                type: TaskType.WebContentExtraction,
+                timestamp: new Date().toISOString(),
+                message: "Task processed with simulated agent",
+                data: await extractTool.handler(parsedTask.parameters)
+            };
+            toolUsed = 'extractCleanContent';
+        }
+        else if (parsedTask.type === TaskType.SummarizeText) {
+            result = {
+                type: TaskType.SummarizeText,
+                timestamp: new Date().toISOString(),
+                message: "Task processed with simulated agent",
+                data: await summarizeTool.handler(parsedTask.parameters)
+            };
+            toolUsed = 'summarizeText';
+        }
+        else if (parsedTask.type === TaskType.WebCrawling) {
+            result = {
+                type: TaskType.WebCrawling,
+                timestamp: new Date().toISOString(),
+                message: "Task processed with simulated agent",
+                data: await crawlTool.handler(parsedTask.parameters)
+            };
+            toolUsed = 'crawlWebsite';
+        }
+        else if (parsedTask.type === TaskType.FlightStatus) {
+            result = {
+                type: TaskType.FlightStatus,
+                timestamp: new Date().toISOString(),
+                message: "Task processed with simulated agent",
+                data: await flightTool.handler(parsedTask.parameters)
+            };
+            toolUsed = 'checkFlightStatus';
+        }
+        else if (parsedTask.type === TaskType.Unknown) {
+            // Handle unknown task type with possible error message
+            result = {
+                type: TaskType.Unknown,
+                timestamp: new Date().toISOString(),
+                message: "Task processed with simulated agent",
+                data: {
+                    message: parsedTask.error || "Task type not supported yet"
+                }
+            };
+            toolUsed = 'unknown';
+        }
+        else {
+            // For other tasks, use the Eko agent
+            result = await eko.run(taskText);
+        }
+        // Update task status and also store what tool was used
+        taskLogs[taskId].taskType = typeof toolUsed === 'string' ? toolUsed : String(toolUsed);
         // Update task status and store result
         taskLogs[taskId].status = 'completed';
         taskLogs[taskId].result = result;
@@ -211,9 +432,60 @@ async function processTask(taskId, taskText) {
         });
     }
 }
+// Test endpoint for parser
+app.post('/test-parser', async (req, res) => {
+    const { task } = req.body;
+    if (!task || typeof task !== 'string') {
+        return res.status(400).json({ error: 'Task is required and must be a string' });
+    }
+    try {
+        // Get the API key
+        const ekoApiKey = process.env.EKO_API_KEY;
+        if (!ekoApiKey) {
+            return res.status(500).json({ error: 'API key not available' });
+        }
+        // Parse the task
+        console.log('TEST PARSER - Task:', task);
+        const parsedTask = await parseTask(task, ekoApiKey);
+        // Return the parsed result including any errors
+        return res.status(200).json({
+            task,
+            parsed: parsedTask,
+            hasError: !!parsedTask.error
+        });
+    }
+    catch (error) {
+        console.error('Error in test parser:', error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+// Health check endpoint
+app.get('/health', (_req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: Date.now(),
+        version: '1.0.0',
+        features: {
+            webCrawling: true,
+            flightStatus: true,
+            contentExtraction: true,
+            multiStepExecution: true,
+            summarization: true
+        }
+    });
+});
 // Start the server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`API server running on port ${PORT}`);
+const server = app.listen(PORT, () => {
+    console.log(`AI Agent API server running on port ${PORT}`);
+    console.log('Available endpoints:');
+    console.log('  POST /api/tasks - Submit a new task');
+    console.log('  GET /api/tasks/:taskId - Get task status');
+    console.log('  GET /api/tasks - List all tasks');
+    console.log('  POST /submit-task - Execute tasks directly');
+    console.log('  GET /health - Health check endpoint');
 });
+// Export for testing and external use
+export { app, server };
 //# sourceMappingURL=server.js.map
