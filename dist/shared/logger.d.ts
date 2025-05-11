@@ -14,7 +14,7 @@ export declare function logTask({ userInput, tool, status, output, userId }: {
     tool: string;
     status: 'success' | 'error';
     output: any;
-    userId?: string;
+    userId: string | undefined;
 }): Promise<void>;
 /**
  * Retrieves task logs, optionally filtered by user ID

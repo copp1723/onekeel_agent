@@ -34,7 +34,7 @@ export async function logTask({
   tool: string; 
   status: 'success' | 'error'; 
   output: any;
-  userId?: string;
+  userId: string | undefined;
 }) {
   // Always log to memory first as a fallback
   memoryLogs.push({
@@ -96,8 +96,8 @@ export async function getTaskLogs(userId?: string) {
     // Add userId filter if provided, but handle if user_id column doesn't exist
     if (userId) {
       try {
-        query = query.where(eq(taskLogs.userId, userId));
-        const dbLogs = await query;
+        const filteredQuery = query.where(eq(taskLogs.userId, userId));
+        const dbLogs = await filteredQuery;
         return dbLogs;
       } catch (error: unknown) {
         // If user_id column doesn't exist, retrieve all logs

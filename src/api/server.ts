@@ -597,7 +597,8 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
       userInput: taskText,
       tool: parsedTask.type,
       status: 'success',
-      output: result
+      output: result,
+      userId: userId
     });
     
   } catch (error: any) {
@@ -611,7 +612,8 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
       userInput: taskText,
       tool: taskLogs[taskId].taskType || 'unknown',
       status: 'error',
-      output: { error: error.message || String(error) }
+      output: { error: error.message || String(error) },
+      userId: userId
     });
   }
 }
