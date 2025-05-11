@@ -19,7 +19,10 @@ if (process.env.PGHOST && process.env.PGPORT && process.env.PGUSER &&
 
 // Create a postgres client with the connection string
 console.log(`Connecting to database: ${connectionString.replace(/:[^:]+@/, ':***@')}`);
-const client = postgres(connectionString);
+// Add SSL configuration for secure connection
+const client = postgres(connectionString, {
+  ssl: { rejectUnauthorized: false } // Allow self-signed certificates
+});
 
 // Export the Drizzle DB instance
 export const db = drizzle(client);

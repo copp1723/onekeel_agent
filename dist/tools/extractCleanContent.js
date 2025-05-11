@@ -1,5 +1,9 @@
 import { spawn } from 'child_process';
 import path from 'path';
+import { fileURLToPath } from 'url';
+// Get the directory name using ES module approach
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 /**
  * Creates an extractCleanContent tool that uses Python's trafilatura to extract clean text from webpages
  * @returns A tool object that can be registered with Eko
