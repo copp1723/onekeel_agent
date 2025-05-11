@@ -1,0 +1,73 @@
+Here’s exactly what to paste into **Replit Agent** to wire up your multi‑step execution engine in the server’s `processTask` flow.
+
+---
+
+### 📋 Replit Agent – Integrate Multi‑Step Execution in Server
+
+Please update `src/api/server.ts` so that incoming tasks go through the `executePlan` engine when they’re multi‑step. Follow these edits:
+
+````text
+1. At top of file, add imports:
+   ```ts
+   import { parseTask } from '../services/taskParser';
+   import { executePlan } from '../agent/executePlan';
+   import { logTask } from '../shared/logger';
+````
+
+2. Replace your existing task handler (both `/submit-task` and `/api/tasks` routes) with this unified logic:
+
+   ```ts
+   app.post(['/submit-task', '/api/tasks'], async (req, res) => {
+     const { task } = req.body;
+     if (!task) return res.status(400).json({ error: 'Missing task' });
+
+     // 1) Parse into plan (could be a single-step or multi-step)
+     const plan = await parseTask(task);
+
+     // 2) Persist initial plan log (optional)
+     // await logTask({ userInput: task, tool: 'planCreated', status: 'pending', output: plan });
+
+     try {
+       // 3) Execute plan (handles single or multi-step)
+       const result = await executePlan(plan);
+
+       // 4) Log success
+       await logTask({ userInput: task, tool: plan.steps ? 'multiStep' : plan.tool, status: 'success', output: result });
+
+       return res.json({ result });
+     } catch (err) {
+       // 5) Log failure
+       await logTask({
+         userInput: task,
+         tool: plan.steps ? 'multiStepError' : plan.tool,
+         status: 'error',
+         output: { error: err.message },
+       });
+       return res.status(500).json({ error: err.message });
+     }
+   });
+   ```
+
+3. Remove any old single‑tool `.generate()` / `.execute()` calls—this new handler delegates everything to your `executePlan` engine.
+
+4. **Restart** the server:
+
+   ```bash
+   npm run build && npm run start
+   ```
+
+Once done, test with both single- and multi-step tasks:
+
+```bash
+# Single-step (crawl or extract):
+curl -X POST http://localhost:5000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Crawl https://example.com"}'
+
+# Multi-step (extract + summarize):
+curl -X POST http://localhost:5000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Summarize the content of https://example.com"}'
+```
+
+Let me know when the new multi‑step flow is live and tested!
