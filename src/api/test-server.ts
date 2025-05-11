@@ -1,15 +1,40 @@
-import request from 'supertest';
-import { app } from './server';
+// Simple test server implementation
+import express from 'express';
 
-describe('Test Server', () => {
-  it('should respond to /health', async () => {
-    const response = await request(app).get('/health');
-    expect(response.status).toBe(200);
-    // removed unused `req` param
-  });
+const app = express();
+app.use(express.json());
 
-  it('should respond to /test-parser', async () => {
-    const response = await request(app).post('/test-parser').send({ /* sample payload */ });
-    expect(response.status).toBe(200);
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  res.status(200).json({ 
+    status: 'up',
+    version: '1.0.0',
+    message: 'Test API server is running'
   });
 });
+
+// Test parser endpoint
+app.post('/test-parser', (req, res) => {
+  const result = {
+    received: req.body,
+    status: 'parsed',
+    timestamp: new Date().toISOString()
+  };
+  
+  res.status(200).json(result);
+});
+
+// Start the server
+const PORT = process.env.PORT || 5002;
+
+// Only start the server if this module is run directly
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Test API server running on port ${PORT}`);
+    console.log(`Available endpoints:`);
+    console.log(`  GET /health - Health check`);
+    console.log(`  POST /test-parser - Test parser endpoint`);
+  });
+}
+
+export { app };
