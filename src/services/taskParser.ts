@@ -1,5 +1,7 @@
 import { Eko, LLMs } from '@eko-ai/eko';
 import { ExecutionPlan, PlanStep } from '../agent/executePlan.js';
+import { db } from '../shared/db.js';
+import { plans } from '../shared/schema.js';
 
 // Define the task types the agent can handle
 export enum TaskType {
@@ -121,31 +123,70 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
     
     if (url) {
       // Create a complete multi-step plan with detailed configuration
-      const multiStepPlan = {
-        type: TaskType.MultiStep,
-        parameters: { url },
-        original: task,
-        plan: {
-          steps: [
-            {
-              tool: 'extractCleanContent',
-              input: { 
-                url,
-                fallbackMessage: 'Could not extract content from the provided URL'
+      try {
+        // First, create a plan entry in the database
+        const [planRecord] = await db.insert(plans).values({
+          task: task
+        }).returning({ id: plans.id });
+        
+        const planId = planRecord.id;
+        console.log(`Created plan record with ID: ${planId}`);
+        
+        const multiStepPlan = {
+          type: TaskType.MultiStep,
+          parameters: { url },
+          original: task,
+          planId: planId,
+          plan: {
+            planId: planId,
+            taskText: task,
+            steps: [
+              {
+                tool: 'extractCleanContent',
+                input: { 
+                  url,
+                  fallbackMessage: 'Could not extract content from the provided URL'
+                }
+              },
+              {
+                tool: 'summarizeText',
+                input: { 
+                  text: '{{step0.output.content}}', 
+                  maxLength: 300,
+                  format: 'paragraph',
+                  fallbackBehavior: 'passthrough' // Pass through original content if summarization fails
+                }
               }
-            },
-            {
-              tool: 'summarizeText',
-              input: { 
-                text: '{{step0.output.content}}', 
-                maxLength: 300,
-                format: 'paragraph',
-                fallbackBehavior: 'passthrough' // Pass through original content if summarization fails
+            ]
+          }
+        };
+      } catch (error) {
+        console.error('Error creating plan record:', error);
+        const multiStepPlan = {
+          type: TaskType.MultiStep,
+          parameters: { url },
+          original: task,
+          plan: {
+            steps: [
+              {
+                tool: 'extractCleanContent',
+                input: { 
+                  url,
+                  fallbackMessage: 'Could not extract content from the provided URL'
+                }
+              },
+              {
+                tool: 'summarizeText',
+                input: { 
+                  text: '{{step0.output.content}}', 
+                  maxLength: 300,
+                  format: 'paragraph',
+                  fallbackBehavior: 'passthrough' // Pass through original content if summarization fails
+                }
               }
-            }
-          ]
-        }
-      };
+            ]
+          }
+        };
       
       console.log('Generated multi-step plan:', JSON.stringify(multiStepPlan, null, 2));
       return multiStepPlan;
