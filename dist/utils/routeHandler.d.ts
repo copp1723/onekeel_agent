@@ -1,6 +1,10 @@
-import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import { Request as ExpressRequest, Response, NextFunction } from 'express';
+export type RouteHandler = (req: ExpressRequest, res: Response, next?: NextFunction) => Promise<any> | any;
 /**
- * Wraps Express route handlers to fix TypeScript compatibility issues
- * and provide consistent error handling for async routes.
+ * Helper function to wrap Express route handlers and provide consistent error handling
+ * This also fixes TypeScript type compatibility issues with Express route handlers
+ *
+ * @param handler - Express route handler function
+ * @returns Wrapped route handler with consistent error handling
  */
-export declare const routeHandler: <P = any, ResBody = any, ReqBody = any>(handler: (req: Request<P, ResBody, ReqBody>, res: Response<ResBody>, next: NextFunction) => Promise<void> | void) => RequestHandler;
+export declare function routeHandler(handler: RouteHandler): (req: ExpressRequest, res: Response, next: NextFunction) => any;
