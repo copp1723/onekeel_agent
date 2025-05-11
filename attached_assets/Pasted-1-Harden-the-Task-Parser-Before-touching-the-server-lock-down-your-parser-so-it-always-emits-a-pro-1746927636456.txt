@@ -1,0 +1,67 @@
+1. Harden the Task Parser
+Before touching the server, lock down your parser so it always emits a proper MultiStep plan when a task needs extraction + summarization.
+
+In src/services/taskParser.ts:
+
+Review and expand your keyword patterns: e.g.
+
+/\bextract\b/i, /\bsummariz(e|ation)\b/i, /\bget.*content\b/i
+
+Ensure you catch variants like “Summarize content from,” “Extract and summarize,” etc.
+
+Add a unit‑test file (e.g. tests/taskParser.test.ts) with a matrix of sample tasks → expected plan objects.
+
+Run npm run test or your build script to confirm all parser tests pass.
+
+Rebuild and inspect dist/services/taskParser.js to verify your compiled code includes the new patterns and correctly sets plan.steps.
+
+2. Integrate the Multi‑Step Plan in the Server
+Now wire that plan into your API so any parsed multi‑step plan goes through executePlan.
+
+In src/api/server.ts (or index.ts):
+
+Import your parseTask and executePlan functions.
+
+Replace the single‑tool branch in your /api/tasks and /submit-task handlers with logic:
+
+ts
+Copy
+Edit
+const plan = await parseTask(task);
+const result = plan.steps
+  ? await executePlan(plan)
+  : await Eko.tools[plan.tool]({ input: plan.input });
+Add logging immediately after parseTask to echo out the plan object—so you can visually confirm the server saw a multi‑step plan.
+
+Rebuild, restart, and hit the endpoint with both:
+
+A single‑step task (“Crawl X”)
+
+A multi‑step task (“Summarize content of X”)
+
+Watch your server logs:
+
+Confirm you see your debug log of the plan object.
+
+Confirm executePlan runs and returns the chained results.
+
+3. Full End‑to‑End Test & Validation
+Now that both parser and server are aligned:
+
+Run a battery of curl tests covering:
+
+Extraction only
+
+Summarization only (if supported)
+
+Extract + Summarize
+
+Error cases (invalid URL / unsupported domain)
+
+Inspect your task_logs (or step_logs) table for each run:
+
+Ensure each plan and step is recorded with correct inputs, outputs, and statuses.
+
+Update your README examples with a real plan dump (JSON) and final output.
+
+By doing 1) parser hardening, 2) server integration, then 3) full testing, you’ll have a rock‑solid multi‑step agent flow—no bandaids, no workarounds, just a robust system. Let me know when you’ve completed these, and we can move on to new tools or UI with full confidence in your core engine.
