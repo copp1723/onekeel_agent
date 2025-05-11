@@ -1,12 +1,11 @@
 /**
  * CRM Report Fetching Tool
- * Uses the following methods in order of preference:
+ * Uses hybridIngestAndRunFlow to fetch reports through:
  * 1. Email ingestion - Fetch reports from scheduled emails
  * 2. Playwright automation - Use browser automation as fallback
  */
-import { runFlow } from './runFlow.js';
 import * as fs from 'fs';
-import { tryFetchReportFromEmail } from './ingestScheduledReport.js';
+import { hybridIngestAndRunFlow } from './hybridIngestAndRunFlow.js';
 /**
  * Fetches a CRM report from the specified platform
  * @param options - Options for fetching the report
@@ -43,15 +42,6 @@ export async function fetchCRMReport(options) {
             'vauto': 'VAUTO'
         };
         const normalizedPlatform = platformMap[platform.toLowerCase()];
-        // STEP 1: Try to fetch the report from scheduled emails first
-        console.log(`Attempting to fetch report from emails for ${normalizedPlatform}...`);
-        const emailReportPath = await tryFetchReportFromEmail(normalizedPlatform);
-        if (emailReportPath) {
-            console.log(`✅ CRM report found in email. File path: ${emailReportPath}`);
-            return emailReportPath;
-        }
-        console.log(`No report found in emails. Falling back to browser automation...`);
-        // STEP 2: Fall back to browser automation if email ingestion fails
         // Get environment variables based on platform
         const envVars = {};
         // Define required environment variables for each platform
@@ -64,9 +54,12 @@ export async function fetchCRMReport(options) {
         for (const varName of requiredVars) {
             checkAndAssignEnvVar(envVars, varName);
         }
-        // Run the flow for the specified platform
-        const filePath = await runFlow(normalizedPlatform, envVars);
-        console.log(`✅ CRM report fetched successfully using browser automation. File path: ${filePath}`);
+        // Set download directory
+        envVars.DOWNLOAD_DIR = process.env.DOWNLOAD_DIR || './downloads';
+        // Use the hybrid orchestrator to fetch the report using the optimal method
+        console.log(`Starting hybrid report ingestion for ${normalizedPlatform}...`);
+        const filePath = await hybridIngestAndRunFlow(normalizedPlatform, envVars);
+        console.log(`✅ CRM report fetched successfully. File path: ${filePath}`);
         return filePath;
     }
     catch (error) {

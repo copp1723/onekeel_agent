@@ -1,0 +1,63 @@
+🎟 Ticket #8: Implement Hybrid Ingestion Logic (hybridIngestAndRunFlow.ts)
+
+Context
+AgentFlow must first attempt email‑based CRM report ingestion (via ingestScheduledReport). If no report is found (or email ingestion fails with a “no report” error), it should seamlessly fall back to the Playwright‑driven runFlow browser automation. We need a single entrypoint that orchestrates both paths, logs which route was taken, and returns the downloaded file path.
+
+⸻
+
+📋 Requirements
+	1.	Orchestrator Function
+	•	Create src/agents/hybridIngestAndRunFlow.ts exporting:
+
+export async function hybridIngestAndRunFlow(
+  platform: string,
+  envVars: EnvVars
+): Promise<string>;
+
+
+	•	Inside:
+	1.	Call ingestScheduledReport(platform, envVars.DOWNLOAD_DIR).
+	2.	If it resolves with a non-null path → email path taken.
+	3.	If it throws ReportNotFoundError (or returns null) → call runFlow(platform, envVars).
+	4.	Propagate any other errors immediately.
+
+	2.	Logging
+	•	Use shared logger to record:
+	•	Start time of orchestration.
+	•	Which path was taken (email vs. browser).
+	•	End time and total duration.
+	•	Log error details when falling back or on fatal failure.
+	3.	Return Value
+	•	Always return the first successfully downloaded file path (string).
+	•	Do not swallow fatal errors (e.g., IMAP auth issues, Playwright failures); bubble them up.
+	4.	Typing & Tests
+	•	Fully type the function under strict TS.
+	•	Unit tests in src/agents/hybridIngestAndRunFlow.test.ts, mocking:
+	•	ingestScheduledReport to throw ReportNotFoundError → expect runFlow to be called.
+	•	ingestScheduledReport to return a path → expect runFlow not to be called.
+	•	Both functions to throw unexpected errors → expect error propagation.
+	5.	Integration
+	•	Update fetchCRMReport.ts (or wherever you centralize ingestion) to call this orchestrator instead of directly calling runFlow.
+	•	Ensure CI includes the new tests and TS check.
+
+⸻
+
+✅ Acceptance Criteria
+	•	hybridIngestAndRunFlow.ts compiles cleanly under --strict TS.
+	•	Correctly orchestrates email-first then browser fallback logic.
+	•	Logs path choice and timing details.
+	•	Returns valid file path in both success scenarios.
+	•	Propagates fatal errors without suppressing.
+	•	Unit tests cover all branches with ≥ 80% coverage.
+	•	CI passes (TS + tests).
+
+⸻
+
+📌 Metadata
+	•	Assignees: AgentFlow Dev Team
+	•	Labels: feature typescript crm-ingestion hybrid-logic
+	•	Branch: feature/hybrid-ingest-and-runflow
+
+⸻
+
+Once this ticket is merged, we’ll deep‑dive review Tickets #7 and #8 together before moving on to any remaining polish or sample‑file fixes. Let me know when you’re ready for that review.
