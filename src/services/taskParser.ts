@@ -313,17 +313,45 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
       original: task
     };
   }
-  else if (taskLower.includes('dealer') && 
-           (taskLower.includes('login') || taskLower.includes('credentials'))) {
-    // This is likely a dealer login task
-    // Extract dealer ID - basic implementation
-    const dealerIdMatch = task.match(/dealer[:\s]+(\w+)/i);
+  else if ((taskLower.includes('dealer') || taskLower.includes('dealership')) && 
+           (taskLower.includes('login') || taskLower.includes('credentials') || 
+            taskLower.includes('log in') || taskLower.includes('sign in'))) {
+    // This is a dealer login task
+    console.log('Detected dealer login task');
+    
+    // Enhanced dealer ID extraction with multiple patterns
+    const dealerIdMatch = task.match(/dealer(?:ship)?\s+id\s*[:=]?\s*([a-zA-Z0-9_-]+)/i) || 
+                          task.match(/(?:^|\s)id\s*[:=]?\s*([a-zA-Z0-9_-]+)/i) ||
+                          task.match(/dealer[:\s]+(\w+)/i);
+    
     const dealerId = dealerIdMatch ? dealerIdMatch[1] : '';
+    
+    // Extract optional site URL if present
+    const siteUrlMatch = task.match(/(?:site|url|website)[:\s]+\s*(https?:\/\/[^\s]+)/i);
+    let siteUrl = '';
+    
+    if (siteUrlMatch) {
+      siteUrl = siteUrlMatch[1].trim();
+      siteUrl = siteUrl.replace(/[.,;:!?)]+$/, '');
+      console.log('Site URL detected:', siteUrl);
+    }
+    
+    if (!dealerId) {
+      return {
+        type: TaskType.Unknown,
+        parameters: {},
+        original: task,
+        error: 'No valid dealer ID detected. Please include a dealer ID in your request.'
+      };
+    }
+    
+    console.log('Dealer ID detected:', dealerId);
     
     return {
       type: TaskType.DealerLogin,
       parameters: {
-        dealerId
+        dealerId,
+        ...(siteUrl ? { siteUrl } : {})
       },
       original: task
     };
