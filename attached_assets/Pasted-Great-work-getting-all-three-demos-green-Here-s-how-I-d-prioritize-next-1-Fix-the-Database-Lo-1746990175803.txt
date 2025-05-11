@@ -1,0 +1,71 @@
+Great work getting all three demos green! Here’s how I’d prioritize next:
+
+⸻
+
+1. Fix the Database Logging Issue
+
+Why first? Without correct logging, you can’t track executions or surface errors in production.
+
+Ticket:
+	•	Path: src/services/dbLogger.ts (or wherever you write to the steps/plans tables)
+	•	Problem: Column user_id doesn’t exist. Your code is probably using snake_case while the DB uses camelCase (or vice versa).
+	•	Action:
+	1.	Inspect your table schema:
+
+\d+ steps;
+
+
+	2.	Either alter the table to add user_id (and migrate existing data), or update your INSERT/UPDATE statements to use the correct column name (e.g. userId).
+	3.	Add a quick smoke script (scripts/test-db-logging.js) that writes a dummy plan+step and reads it back.
+
+Acceptance: Logs create and query without “UndefinedColumn” errors.
+
+⸻
+
+2. Add Env‑Var Support for Credentials
+
+Why next? To swap in live creds for VinSolutions/VAUTO without code changes—and make your demos truly end‑to‑end.
+
+Ticket:
+	•	Path:
+	•	Update src/agents/emailIngest.ts and src/agents/runFlow.ts to process.env.VIN_SOLUTIONS_USERNAME &
+process.env.VIN_SOLUTIONS_PASSWORD (and VAUTO vars).
+	•	Add a .env.example listing:
+
+VIN_SOLUTIONS_USERNAME=
+VIN_SOLUTIONS_PASSWORD=
+OTP_EMAIL_USER=
+OTP_EMAIL_PASS=
+VAUTO_USERNAME=
+VAUTO_PASSWORD=
+
+
+	•	Action:
+	1.	Wire those env vars in your Playwright → JSON interpolation.
+	2.	Validate at startup that none are blank (throw early).
+
+Acceptance: App refuses to start if any required CRM credential is missing, and your demos “just work” once they’re set.
+
+⸻
+
+3. Implement a Sample Data Provider
+
+Why? So you and CI can run the report flows even without real credentials.
+
+Ticket:
+	•	Path: src/agents/sampleData.ts
+	•	Action:
+	1.	Export a function getSampleReport(dealerId: string): string that returns a static CSV/JSON stub.
+	2.	In runFlow(), if you detect env var USE_SAMPLE_DATA === 'true', skip Playwright and call getSampleReport().
+
+Acceptance: With USE_SAMPLE_DATA=true, /submit-task returns the stub data immediately—no login required.
+
+⸻
+
+4. Clean Up Remaining TypeScript Warnings
+
+Finally, polish the TS errors so your codebase is 100% type‑safe.
+
+⸻
+
+Pick which to tackle first—my recommendation is to start with the DB logging fix, since persistence underpins everything else. Then move on to env‑var support so you can switch between real and sample data seamlessly. Let me know if you’d rather reorder!
