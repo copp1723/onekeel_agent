@@ -7,6 +7,7 @@ import { checkFlightStatus } from '../tools/checkFlightStatus.js';
 import { extractCleanContent } from '../tools/extractCleanContent.js';
 import { summarizeText } from '../tools/summarizeText.js';
 import { dealerLogin } from '../tools/dealerLogin.js';
+import { fetchCRMReportTool } from '../tools/fetchCRMReport.js';
 import { getApiKey } from '../services/supabase.js';
 import { parseTask, TaskType } from '../services/taskParser.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
@@ -381,9 +382,9 @@ async function processTask(taskId, taskText, userId) {
         const dealerLoginTool = dealerLogin();
         tools.push(dealerLoginTool);
         toolsMap['dealerLogin'] = dealerLoginTool;
-        const fetchCRMReportTool = fetchCRMReport();
-        tools.push(fetchCRMReportTool);
-        toolsMap['fetchCRMReport'] = fetchCRMReportTool;
+        const crmReportTool = fetchCRMReportTool();
+        tools.push(crmReportTool);
+        toolsMap['fetchCRMReport'] = crmReportTool;
         // Initialize Eko agent with the appropriate tools
         const eko = new Eko({
             llms,
@@ -477,7 +478,7 @@ async function processTask(taskId, taskText, userId) {
                 type: TaskType.FetchCRMReport,
                 timestamp: new Date().toISOString(),
                 message: "Task processed with CRM report extraction agent",
-                data: await fetchCRMReportTool.handler(crmReportParams)
+                data: await crmReportTool.handler(crmReportParams)
             };
             toolUsed = 'fetchCRMReport';
         }
