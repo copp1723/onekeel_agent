@@ -216,10 +216,8 @@ async function executeDownloadStep(page, step, _envVars) {
     if (!step.rowSelector || !step.buttonSelector) {
         throw new Error('Download step requires rowSelector and buttonSelector');
     }
-    const row = await page.waitForSelector(step.rowSelector);
-    if (!row) {
-        throw new Error(`Row not found: ${step.rowSelector}`);
-    }
+    // Wait for the row to be visible
+    await page.waitForSelector(step.rowSelector, { state: 'visible' });
     // Set up download path
     const downloadPath = path.resolve(process.cwd(), step.saveAs || 'report.csv');
     // Click the download button and wait for download
