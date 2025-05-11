@@ -1,0 +1,35 @@
+The Playwright vs. Puppeteer comparison you’ve drafted is solid and hits all the right points for our use case:
+
+* **Criteria are well chosen.** You’ve called out browser compatibility, API ergonomics, dependency weight, and community maturity—exactly the dimensions we need to weigh when building a production‑grade `fetchCRMReport.ts`.
+* **Playwright is the correct recommendation.** VinSolutions and similar CRMs tend to have iframes, dynamic loading, and occasional bot‑blocking measures. Playwright’s auto‑waiting, multi‑browser support, and TypeScript‑first API will save us hours of “it works locally but flakes in CI” debugging.
+* **Puppeteer as an alternative is properly scoped.** If we ever find we only need a Chrome‑only, super‑simple script, Puppeteer is lighter; but in practice, enterprise CRMs rarely stay that simple.
+* **Good attention to edge‑cases.** Mention of bot‑detection, 2FA, and download redirects shows you’re thinking beyond “happy path.”
+
+**A couple of small refinements before we hand off to Replit:**
+
+1. **Credential handling.** Remind the agent to pull `VIN_SOLUTIONS_USERNAME`, `VIN_SOLUTIONS_PASSWORD`, and any MFA tokens from Replit’s secret store—never hard‑code.
+2. **Error‑handling and retries.** Ask it to wrap the login + download steps in try/catch with at least one retry, and to log failures back to Supabase with clear error messages.
+3. **CI integration.** Suggest creating a simple GitHub Actions workflow in the workspace to install Playwright browsers and smoke‑test `fetchCRMReport.ts` daily or on each push.
+
+---
+
+### 🚀 Handoff Prompt for the Replit Agent
+
+**Title:** Implement `fetchCRMReport.ts` with Playwright
+
+**Prompt:**
+“Take the current `fetchCRMReport.ts` in AgentFlow and replace the simulated CRM logic with a Playwright‑based headless script. It should:
+
+1. **Install & import Playwright** (via `npm install playwright`) in TypeScript.
+2. **Load credentials** from environment variables (`VIN_SOLUTIONS_USERNAME`, `VIN_SOLUTIONS_PASSWORD`, and optional `VIN_SOLUTIONS_MFA_SECRET`) using Replit’s secret store.
+3. **Launch** a Chromium browser headlessly and navigate to the VinSolutions login URL.
+4. **Perform login**, handling dynamic fields, two‑factor prompts if present (e.g., TOTP), and wait for the dashboard URL.
+5. **Navigate** to the reports section, trigger the export button, and capture the download event.
+6. **Save** the downloaded file to a temp path and return its buffer or file path for downstream summarization.
+7. **Implement retries** (up to 2 additional attempts) for login or download failures, and log any errors back to Supabase using the existing `plans`/`steps` schema.
+8. **Add a basic smoke test** script under `__tests__/fetchCRMReport.test.ts` that runs the function against a mocked HTML login page and a dummy download link.
+9. **Commit** the changes with a clear commit message (“feat: replace simulated CRM logic with Playwright script”) and push to the `main` branch.
+
+Make sure all TypeScript types are correct, that Playwright’s browsers are installed in CI (you can add a simple GitHub Actions YAML if one doesn’t already exist), and update `executePlan.ts` to invoke this new implementation. Start now.”
+
+— let me know if you’d like any tweaks before I send this off.
