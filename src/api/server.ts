@@ -4,9 +4,12 @@ import crypto from 'crypto';
 import { Eko, LLMs } from '@eko-ai/eko';
 import { crawlWebsite } from '../tools/crawlWebsite.js';
 import { checkFlightStatus } from '../tools/checkFlightStatus.js';
+import { extractCleanContent } from '../tools/extractCleanContent.js';
+import { summarizeText } from '../tools/summarizeText.js';
 import { getApiKey } from '../services/supabase.js';
 import { parseTask, ParsedTask, TaskType } from '../services/taskParser.js';
 import { logTask } from '../shared/logger.js';
+import { executePlan, PlanStep } from '../agent/executePlan.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,15 +37,38 @@ const taskLogs: Record<string, TaskLog> = {};
 // Create router for tasks API
 const tasksRouter = Router();
 
-// Endpoint to submit a new task
-tasksRouter.post('/', async function(req: Request, res: Response) {
-  try {
-    const { task } = req.body;
-    
-    if (!task || typeof task !== 'string') {
-      return res.status(400).json({ error: 'Task is required and must be a string' });
-    }
-    
+// Get a task status endpoint
+tasksRouter.get('/:taskId', function(req: Request, res: Response) {
+  const { taskId } = req.params;
+  
+  if (!taskLogs[taskId]) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+  
+  res.status(200).json(taskLogs[taskId]);
+});
+
+// List all tasks endpoint
+tasksRouter.get('/', function(_req: Request, res: Response) {
+  const tasks = Object.values(taskLogs);
+  res.status(200).json(tasks);
+});
+
+// Register tasks GET endpoints
+app.use('/api/tasks', tasksRouter);
+
+// Unified task submission endpoint for both sync and async operations
+app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => {
+  const { task } = req.body;
+  
+  if (!task || typeof task !== 'string') {
+    return res.status(400).json({ error: 'Task is required and must be a string' });
+  }
+  
+  // For the async API, return a task ID immediately
+  const isAsync = req.path === '/api/tasks';
+  
+  if (isAsync) {
     // Generate a unique ID for this task
     const taskId = crypto.randomUUID();
     
@@ -55,54 +81,23 @@ tasksRouter.post('/', async function(req: Request, res: Response) {
       createdAt: new Date().toISOString()
     };
     
-    // Return the task ID immediately so client can poll for status
-    res.status(202).json({ taskId, message: 'Task accepted and processing' });
-    
     // Process the task asynchronously
     processTask(taskId, task).catch(error => {
       console.error(`Error processing task ${taskId}:`, error);
       taskLogs[taskId].status = 'failed';
       taskLogs[taskId].error = error.message;
+      taskLogs[taskId].completedAt = new Date().toISOString();
     });
     
-  } catch (error) {
-    console.error('Error submitting task:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    // Return the task ID immediately
+    return res.status(202).json({ 
+      id: taskId, 
+      message: 'Task submitted successfully' 
+    });
   }
-});
 
-// Endpoint to get task status and results
-tasksRouter.get('/:taskId', function(req: Request, res: Response) {
-  const { taskId } = req.params;
-  
-  if (!taskLogs[taskId]) {
-    return res.status(404).json({ error: 'Task not found' });
-  }
-  
-  res.status(200).json(taskLogs[taskId]);
-});
-
-// Endpoint to list all tasks
-tasksRouter.get('/', function(_req: Request, res: Response) {
-  const tasks = Object.values(taskLogs);
-  res.status(200).json(tasks);
-});
-
-// Register tasks router
-app.use('/api/tasks', tasksRouter);
-
-// Create a router for direct task submission
-const submitTaskRouter = Router();
-
-// Handler for direct task submission using generate/execute
-submitTaskRouter.post('/', async function(req: Request, res: Response) {
+  // For synchronous execution (submit-task), execute immediately 
   try {
-    const { task } = req.body;
-    
-    if (!task || typeof task !== 'string') {
-      return res.status(400).json({ error: 'Task is required and must be a string' });
-    }
-    
     // Get the Eko API key
     const ekoApiKey = process.env.EKO_API_KEY;
     if (!ekoApiKey) {
@@ -112,76 +107,116 @@ submitTaskRouter.post('/', async function(req: Request, res: Response) {
     // Get the Firecrawl API key for web crawling tasks
     const firecrawlApiKey = await getApiKey('firecrawl') || 'demo_firecrawl_key';
     
-    // Configure LLMs
-    const llms: LLMs = {
-      default: {
-        provider: "openai",
-        model: "gpt-4o-mini",
-        apiKey: ekoApiKey,
-      }
-    };
+    // Parse the task to determine what type it is
+    const parsedTask = await parseTask(task, ekoApiKey);
+    console.log(`Task executed directly: ${crypto.randomUUID()} - ${parsedTask.type}`);
     
-    // Initialize Eko agent with all available tools
-    const eko = new Eko({ 
-      llms,
-      tools: [
-        crawlWebsite(firecrawlApiKey),
-        checkFlightStatus()
-      ]
-    });
+    // Create tools map
+    const toolsMap: Record<string, any> = {};
     
-    try {
-      // Generate and execute the workflow
-      console.log(`Generating workflow for task: "${task}"`);
-      const workflow = await eko.generate(task);
+    // Register all available tools
+    const crawlTool = crawlWebsite(firecrawlApiKey);
+    const flightTool = checkFlightStatus();
+    const extractTool = extractCleanContent();
+    const summarizeTool = summarizeText(ekoApiKey);
+    
+    toolsMap['crawlWebsite'] = crawlTool;
+    toolsMap['checkFlightStatus'] = flightTool;
+    toolsMap['extractCleanContent'] = extractTool;
+    toolsMap['summarizeText'] = summarizeTool;
+    
+    let result;
+    let toolUsed = 'unknown';
+    
+    // Handle multi-step execution
+    if (parsedTask.type === TaskType.MultiStep && parsedTask.plan) {
+      // Execute the plan using the execution engine
+      const executionResult = await executePlan(parsedTask.plan, toolsMap);
       
-      console.log('Executing workflow...');
-      const result = await eko.execute(workflow);
+      result = {
+        type: TaskType.MultiStep,
+        timestamp: new Date().toISOString(),
+        message: "Task executed with simulated Eko Agent",
+        data: executionResult.finalOutput
+      };
       
-      // Determine which tool was used based on result or workflow analysis
-      // This is a simplistic approach; in a real system we could extract this from the workflow
-      const toolUsed = task.toLowerCase().includes('crawl') ? 'crawlWebsite' : 
-                      task.toLowerCase().includes('flight') ? 'checkFlightStatus' : 'unknown';
-      
-      // Log successful task execution to database
-      await logTask({
-        userInput: task,
-        tool: toolUsed,
-        status: 'success',
-        output: result
-      });
-      
-      // Return the result to the client
-      return res.status(200).json({ success: true, result });
-      
-    } catch (error: any) {
-      console.error('Error executing task:', error);
-      
-      // Log failed task execution to database
-      await logTask({
-        userInput: task,
-        tool: 'unknown', // We couldn't determine the tool since execution failed
-        status: 'error',
-        output: { error: error.message || String(error) }
-      });
-      
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message || 'Unknown error during task execution' 
-      });
+      // Record the tools used
+      toolUsed = parsedTask.plan.steps.map(step => step.tool).join(',');
+    }
+    // Handle direct tool execution for specific task types
+    else if (parsedTask.type === TaskType.WebContentExtraction) {
+      result = {
+        type: TaskType.WebContentExtraction,
+        timestamp: new Date().toISOString(),
+        message: "Task executed with simulated Eko Agent",
+        data: await extractTool.handler(parsedTask.parameters)
+      };
+      toolUsed = 'extractCleanContent';
+    }
+    else if (parsedTask.type === TaskType.SummarizeText) {
+      result = {
+        type: TaskType.SummarizeText,
+        timestamp: new Date().toISOString(),
+        message: "Task executed with simulated Eko Agent",
+        data: await summarizeTool.handler(parsedTask.parameters)
+      };
+      toolUsed = 'summarizeText';
+    }
+    else if (parsedTask.type === TaskType.WebCrawling) {
+      result = {
+        type: TaskType.WebCrawling,
+        timestamp: new Date().toISOString(),
+        message: "Task executed with simulated Eko Agent",
+        data: await crawlTool.handler(parsedTask.parameters)
+      };
+      toolUsed = 'crawlWebsite';
+    }
+    else if (parsedTask.type === TaskType.FlightStatus) {
+      result = {
+        type: TaskType.FlightStatus,
+        timestamp: new Date().toISOString(),
+        message: "Task executed with simulated Eko Agent",
+        data: await flightTool.handler(parsedTask.parameters)
+      };
+      toolUsed = 'checkFlightStatus';
+    }
+    else {
+      result = {
+        type: parsedTask.type,
+        timestamp: new Date().toISOString(),
+        message: "Task received but not implemented",
+        data: { error: "Task type not implemented" }
+      };
     }
     
+    // Log the task execution
+    await logTask({
+      userInput: task,
+      tool: toolUsed,
+      status: 'success',
+      output: result
+    });
+    
+    // Return the immediate result
+    return res.status(200).json({ success: true, result });
+    
   } catch (error: any) {
-    console.error('Error in submit-task endpoint:', error);
+    console.error('Error executing task:', error);
+    
+    // Log the error
+    await logTask({
+      userInput: task,
+      tool: 'unknown',
+      status: 'error',
+      output: { error: error.message || String(error) }
+    });
+    
     return res.status(500).json({ 
       success: false, 
-      error: error.message || 'Internal server error' 
+      error: error.message || 'Task execution failed' 
     });
   }
 });
-
-// Register submit-task router
-app.use('/submit-task', submitTaskRouter);
 
 // Process a task asynchronously
 async function processTask(taskId: string, taskText: string): Promise<void> {
@@ -218,15 +253,28 @@ async function processTask(taskId: string, taskText: string): Promise<void> {
       }
     };
     
-    // Collect tools based on the task type
+    // Collect tools based on the task type and prepare a tools map for plan execution
     const tools = [];
+    const toolsMap: Record<string, any> = {};
     
-    if (parsedTask.type === TaskType.WebCrawling && firecrawlApiKey) {
-      tools.push(crawlWebsite(firecrawlApiKey));
+    // Register all available tools
+    if (firecrawlApiKey) {
+      const crawlTool = crawlWebsite(firecrawlApiKey);
+      tools.push(crawlTool);
+      toolsMap['crawlWebsite'] = crawlTool;
     }
-    if (parsedTask.type === TaskType.FlightStatus) {
-      tools.push(checkFlightStatus());
-    }
+    
+    const flightTool = checkFlightStatus();
+    tools.push(flightTool);
+    toolsMap['checkFlightStatus'] = flightTool;
+    
+    const extractTool = extractCleanContent();
+    tools.push(extractTool);
+    toolsMap['extractCleanContent'] = extractTool;
+    
+    const summarizeTool = summarizeText(ekoApiKey);
+    tools.push(summarizeTool);
+    toolsMap['summarizeText'] = summarizeTool;
     
     // Initialize Eko agent with the appropriate tools
     const eko = new Eko({ 
@@ -234,8 +282,79 @@ async function processTask(taskId: string, taskText: string): Promise<void> {
       tools
     });
     
-    // Execute the task
-    const result = await eko.run(taskText);
+    let result;
+    let toolUsed = parsedTask.type;
+    
+    // Handle multi-step tasks with execution plan
+    if (parsedTask.type === TaskType.MultiStep && parsedTask.plan) {
+      console.log(`Executing multi-step plan for task: "${taskText}"`);
+      console.log('Plan:', JSON.stringify(parsedTask.plan, null, 2));
+      
+      // Execute the plan using our execution engine
+      const executionResult = await executePlan(parsedTask.plan, toolsMap);
+      
+      // Use the final output as the result
+      result = {
+        type: TaskType.MultiStep,
+        timestamp: new Date().toISOString(),
+        message: "Task processed with multi-step execution",
+        data: executionResult.finalOutput,
+        steps: executionResult.stepResults.map((step, index) => ({
+          step: index,
+          tool: parsedTask.plan?.steps[index].tool,
+          success: !step.error,
+          error: step.error,
+          output: step.output ? (typeof step.output === 'object' ? step.output : { value: step.output }) : null
+        }))
+      };
+      
+      // Record all tools used in the sequence
+      toolUsed = parsedTask.plan.steps.map(step => step.tool).join(',');
+    } 
+    // Handle single-step tasks with the appropriate tool
+    else if (parsedTask.type === TaskType.WebContentExtraction) {
+      result = {
+        type: TaskType.WebContentExtraction,
+        timestamp: new Date().toISOString(),
+        message: "Task processed with simulated agent",
+        data: await extractTool.handler(parsedTask.parameters)
+      };
+      toolUsed = 'extractCleanContent';
+    } 
+    else if (parsedTask.type === TaskType.SummarizeText) {
+      result = {
+        type: TaskType.SummarizeText,
+        timestamp: new Date().toISOString(),
+        message: "Task processed with simulated agent",
+        data: await summarizeTool.handler(parsedTask.parameters)
+      };
+      toolUsed = 'summarizeText';
+    }
+    else if (parsedTask.type === TaskType.WebCrawling) {
+      result = {
+        type: TaskType.WebCrawling,
+        timestamp: new Date().toISOString(),
+        message: "Task processed with simulated agent",
+        data: await crawlTool.handler(parsedTask.parameters)
+      };
+      toolUsed = 'crawlWebsite';
+    }
+    else if (parsedTask.type === TaskType.FlightStatus) {
+      result = {
+        type: TaskType.FlightStatus,
+        timestamp: new Date().toISOString(),
+        message: "Task processed with simulated agent",
+        data: await flightTool.handler(parsedTask.parameters)
+      };
+      toolUsed = 'checkFlightStatus';
+    }
+    else {
+      // For other tasks, use the Eko agent
+      result = await eko.run(taskText);
+    }
+    
+    // Update task status and also store what tool was used
+    taskLogs[taskId].taskType = typeof toolUsed === 'string' ? toolUsed : String(toolUsed);
     
     // Update task status and store result
     taskLogs[taskId].status = 'completed';
@@ -266,8 +385,31 @@ async function processTask(taskId: string, taskText: string): Promise<void> {
   }
 }
 
+// Health check endpoint
+app.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    version: '1.0.0',
+    features: {
+      webCrawling: true,
+      flightStatus: true,
+      contentExtraction: true,
+      multiStepExecution: true,
+      summarization: true
+    }
+  });
+});
+
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`API server running on port ${PORT}`);
+  console.log(`AI Agent API server running on port ${PORT}`);
+  console.log('Available endpoints:');
+  console.log('  POST /api/tasks - Submit a new task');
+  console.log('  GET /api/tasks/:taskId - Get task status');
+  console.log('  GET /api/tasks - List all tasks');
+  console.log('  POST /submit-task - Execute tasks directly');
+  console.log('  GET /health - Health check endpoint');
 });
