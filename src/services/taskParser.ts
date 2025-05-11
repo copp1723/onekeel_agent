@@ -35,14 +35,19 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   const taskHash = require('crypto').createHash('md5').update(task).digest('hex').substring(0, 8);
   
   console.log(`[${taskHash}] 🔎 Task parser analyzing: ${task}`);
-  console.log(`[${taskHash}] Keywords:`, 
-    'summarize:', taskLower.includes('summarize'),
-    'summary:', taskLower.includes('summary'),
-    'content:', taskLower.includes('content'),
-    'from:', taskLower.includes('from'),
-    'of:', taskLower.includes('of'),
-    'text:', taskLower.includes('text')
-  );
+  console.log(`[${taskHash}] Task lowercase: "${taskLower}"`);
+  
+  // Log keyword detection more clearly
+  const hasKeywords = {
+    'summarize': taskLower.includes('summarize'),
+    'summary': taskLower.includes('summary'),
+    'content': taskLower.includes('content'),
+    'from': taskLower.includes('from'),
+    'of': taskLower.includes('of'),
+    'text': taskLower.includes('text')
+  };
+  
+  console.log(`[${taskHash}] Detected keywords:`, JSON.stringify(hasKeywords, null, 2));
   
   // Improved pattern matching for multi-step tasks
   // Define regex patterns for more precise matching
