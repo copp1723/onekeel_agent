@@ -16,12 +16,8 @@ interface AuthRequest extends ExpressRequest {
   logout(callback: (err?: any) => void): void;
 }
 
-// Type declaration for connect-pg-simple
-declare module 'connect-pg-simple' {
-  import session from 'express-session';
-  function PgStore(options: any): session.Store;
-  export = PgStore;
-}
+// Type for PgStore creator function
+type PgStoreFactory = (options: any) => session.Store;
 
 // Check for required environment variables
 if (!process.env.REPLIT_DOMAINS) {
@@ -42,7 +38,7 @@ const getOidcConfig = memoize(
 // Create and configure session middleware
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
+  const pgStore = connectPg(session) as PgStoreFactory;
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
@@ -153,21 +149,21 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: any, cb: (err: any, user: any) => void) => cb(null, user));
   passport.deserializeUser((user: any, cb: (err: any, user: any) => void) => cb(null, user));
 
-  app.get("/api/login", (req: AuthRequest, res: ExpressResponse, next: NextFunction): void => {
+  app.get("/api/login", (req: AuthRequest, res: ExpressResponse, next: NextFunction) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
-  app.get("/api/callback", (req: AuthRequest, res: ExpressResponse, next: NextFunction): void => {
+  app.get("/api/callback", (req: AuthRequest, res: ExpressResponse, next: NextFunction) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
   });
 
-  app.get("/api/logout", (req: AuthRequest, res: ExpressResponse): void => {
+  app.get("/api/logout", (req: AuthRequest, res: ExpressResponse) => {
     if (req.logout) {
       req.logout(() => {
         res.redirect(
