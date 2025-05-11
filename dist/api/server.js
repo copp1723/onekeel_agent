@@ -41,7 +41,7 @@ const taskLogs = {};
 // Create router for tasks API
 const tasksRouter = Router();
 // Get a task status endpoint
-tasksRouter.get('/:taskId', ((req, res, next) => {
+tasksRouter.get('/:taskId', ((req, res, _next) => {
     const { taskId } = req.params;
     if (!taskLogs[taskId]) {
         return res.status(404).json({ error: 'Task not found' });
@@ -49,7 +49,7 @@ tasksRouter.get('/:taskId', ((req, res, next) => {
     res.status(200).json(taskLogs[taskId]);
 }));
 // List all tasks endpoint
-tasksRouter.get('/', ((req, res, next) => {
+tasksRouter.get('/', ((req, res, _next) => {
     // Get user ID from the authenticated user (if available)
     const userId = req.user?.claims?.sub;
     // Use in-memory task logs for compatibility with existing code
@@ -64,7 +64,7 @@ tasksRouter.get('/', ((req, res, next) => {
     res.status(200).json(tasks);
 }));
 // List user's tasks from the database
-tasksRouter.get('/user', (async (req, res, next) => {
+tasksRouter.get('/user', (async (req, res, _next) => {
     try {
         // Get user ID from the authenticated user (required)
         const userId = req.user?.claims?.sub;

@@ -1,7 +1,7 @@
 import express, { Request as ExpressRequest, Response, Router, RequestHandler, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { Eko, LLMs, type EkoConfig } from '@eko-ai/eko';
+import { Eko, LLMs } from '@eko-ai/eko';
 import { crawlWebsite } from '../tools/crawlWebsite.js';
 import { checkFlightStatus } from '../tools/checkFlightStatus.js';
 import { extractCleanContent } from '../tools/extractCleanContent.js';
@@ -73,7 +73,7 @@ const taskLogs: Record<string, TaskLog> = {};
 const tasksRouter = Router();
 
 // Get a task status endpoint
-tasksRouter.get('/:taskId', ((req: Request, res: Response, next: NextFunction) => {
+tasksRouter.get('/:taskId', ((req: Request, res: Response, _next: NextFunction) => {
   const { taskId } = req.params;
   
   if (!taskLogs[taskId]) {
@@ -84,7 +84,7 @@ tasksRouter.get('/:taskId', ((req: Request, res: Response, next: NextFunction) =
 }) as RequestHandler);
 
 // List all tasks endpoint
-tasksRouter.get('/', ((req: Request, res: Response, next: NextFunction) => {
+tasksRouter.get('/', ((req: Request, res: Response, _next: NextFunction) => {
   // Get user ID from the authenticated user (if available)
   const userId = req.user?.claims?.sub;
   
@@ -103,7 +103,7 @@ tasksRouter.get('/', ((req: Request, res: Response, next: NextFunction) => {
 }) as RequestHandler);
 
 // List user's tasks from the database
-tasksRouter.get('/user', (async (req: Request, res: Response, next: NextFunction) => {
+tasksRouter.get('/user', (async (req: Request, res: Response, _next: NextFunction) => {
   try {
     // Get user ID from the authenticated user (required)
     const userId = req.user?.claims?.sub;
