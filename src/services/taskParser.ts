@@ -32,16 +32,32 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   // In a more complex system, you would use the LLM for this
   const taskLower = task.toLowerCase();
   
+  console.log('Parsing task:', task);
+  console.log('Task keywords:', 
+    'summarize:', taskLower.includes('summarize'),
+    'summary:', taskLower.includes('summary'),
+    'content:', taskLower.includes('content'),
+    'from:', taskLower.includes('from'),
+    'of:', taskLower.includes('of'),
+    'text:', taskLower.includes('text')
+  );
+  
   // Check for multi-step tasks that involve extracting content and then summarizing
   // This also catches common variations like "summarize content of URL" or "get summary of URL"
   if ((taskLower.includes('extract') && taskLower.includes('content') && 
        (taskLower.includes('summarize') || taskLower.includes('summary'))) ||
       ((taskLower.includes('summarize') || taskLower.includes('summary')) && 
        (taskLower.includes('content of') || taskLower.includes('content from') || 
-        taskLower.includes('from') || taskLower.includes('of') || taskLower.includes('text')))) {
+        taskLower.includes('from') || taskLower.includes('of') || taskLower.includes('text') ||
+        taskLower.includes('website') || taskLower.includes('page') || taskLower.includes('article') ||
+        taskLower.includes('url')))) {
+    
+    console.log('Detected potential multi-step task pattern');
     
     const urlMatch = task.match(/https?:\/\/[^\s]+/);
     const url = urlMatch ? urlMatch[0] : '';
+    
+    console.log('URL detected:', url || 'None');
     
     if (url) {
       // Create a multi-step plan
