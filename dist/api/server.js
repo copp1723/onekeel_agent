@@ -84,7 +84,7 @@ tasksRouter.get('/user', (async (req, res, _next) => {
 // Register tasks GET endpoints
 app.use('/api/tasks', tasksRouter);
 // Unified task submission endpoint for both sync and async operations
-app.post(['/submit-task', '/api/tasks'], async (req, res) => {
+app.post('/submit-task', async (req, res) => {
     const { task } = req.body;
     if (!task || typeof task !== 'string') {
         return res.status(400).json({ error: 'Task is required and must be a string' });
@@ -322,6 +322,7 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
         });
     }
 });
+;
 // Process a task asynchronously
 async function processTask(taskId, taskText, userId) {
     try {
