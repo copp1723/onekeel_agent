@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
-import { apiKeys, taskLogs, dealerCredentials, plans, steps } from '../shared/schema.js';
+import { apiKeys, taskLogs, dealerCredentials, plans, steps, users, sessions } from '../shared/schema.js';
 import crypto from 'crypto';
 
 // Load environment variables
@@ -22,6 +22,33 @@ async function setupDatabase() {
   const db = drizzle(client);
   
   try {
+    // Create the users table if it doesn't exist (needed for Replit auth)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR PRIMARY KEY NOT NULL,
+        email VARCHAR UNIQUE,
+        first_name VARCHAR,
+        last_name VARCHAR,
+        profile_image_url VARCHAR,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Create the sessions table if it doesn't exist (needed for Replit auth)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid VARCHAR PRIMARY KEY,
+        sess JSONB NOT NULL,
+        expire TIMESTAMP NOT NULL
+      );
+    `);
+    
+    // Create an index on the expire column for sessions
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS IDX_session_expire ON sessions (expire);
+    `);
+    
     // Create the api_keys table if it doesn't exist
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS api_keys (
@@ -46,6 +73,7 @@ async function setupDatabase() {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS task_logs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id VARCHAR REFERENCES users(id),
         user_input TEXT NOT NULL,
         tool TEXT NOT NULL,
         status TEXT NOT NULL,
@@ -53,6 +81,24 @@ async function setupDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    
+    // Check if the user_id column exists in task_logs, if not, add it
+    try {
+      await db.execute(sql`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'task_logs' AND column_name = 'user_id'
+          ) THEN
+            ALTER TABLE task_logs ADD COLUMN user_id VARCHAR REFERENCES users(id);
+          END IF;
+        END $$;
+      `);
+      console.log('Ensured user_id column exists in task_logs table');
+    } catch (error) {
+      console.warn('Could not add user_id column to task_logs table:', error);
+    }
     
     // Create the plans table if it doesn't exist
     await db.execute(sql`
