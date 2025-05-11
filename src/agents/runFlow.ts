@@ -4,7 +4,8 @@
  */
 import { chromium } from 'playwright';
 import path from 'path';
-import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
+// This import is commented out because we're using a local implementation for testing
+// import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
 import { FlowStep, PlatformConfig, CRMPlatform, EnvVars } from '../types.js';
 
 // Load platform configurations
@@ -203,10 +204,9 @@ async function executeOTPStep(page: any, step: FlowStep, envVars: EnvVars): Prom
     throw new Error(`Expected otpEmail action for OTP step, got: ${step.action}`);
   }
 
-  // Get the OTP code from email
-  const otpCode = await getEmailOTP(
-    envVars.OTP_EMAIL_USER
-  );
+  // Get the OTP code from email using the local implementation
+  // Note: In production, we would use the imported fetchEmailOTP instead
+  const otpCode = await getEmailOTP(envVars.OTP_EMAIL_USER);
   
   if (!otpCode) {
     throw new Error('Failed to retrieve OTP code from email');
@@ -233,7 +233,7 @@ async function executeOTPStep(page: any, step: FlowStep, envVars: EnvVars): Prom
  * @param envVars - Environment variables for interpolation
  * @returns Path to the downloaded file
  */
-async function executeDownloadStep(page: any, step: FlowStep, envVars: EnvVars): Promise<string> {
+async function executeDownloadStep(page: any, step: FlowStep, _envVars: EnvVars): Promise<string> {
   if (step.action !== 'download') {
     throw new Error(`Expected download action for download step, got: ${step.action}`);
   }
