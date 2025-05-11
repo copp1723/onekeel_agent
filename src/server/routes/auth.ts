@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { isAuthenticated } from '../replitAuth';
-import { storage } from '../storage';
+import { isAuthenticated } from '../replitAuth.js';
+import { storage } from '../storage.js';
 
 const authRouter = Router();
 

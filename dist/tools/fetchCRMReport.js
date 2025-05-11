@@ -1,191 +1,72 @@
-import { storage } from '../server/storage';
 /**
- * Creates a fetchCRMReport tool that simulates retrieving a sales report from a dealer CRM
+ * Tool for fetching CRM reports from various platforms
+ * Uses the config-driven Playwright runner for automation
+ */
+import { fetchCRMReport, parseCRMReport } from '../agents/fetchCRMReport.js';
+/**
+ * Creates a fetchCRMReport tool that extracts reports from CRM platforms
  * @returns A tool object that can be registered with Eko
  */
-export function fetchCRMReport() {
+export function fetchCRMReportTool() {
     return {
         name: 'fetchCRMReport',
-        description: 'Retrieve a sales report from a dealer CRM system',
+        description: 'Fetches CRM reports from various dealer platforms like VinSolutions, VAUTO',
         parameters: {
             type: 'object',
             properties: {
                 site: {
                     type: 'string',
-                    description: 'The CRM site to fetch the report from (e.g., vinsolutions, dealersocket)'
+                    description: 'CRM platform name (VinSolutions, VAUTO)',
                 },
                 dealerId: {
                     type: 'string',
-                    description: 'Optional unique identifier for the dealer'
+                    description: 'Dealer ID for the report',
                 },
-                userId: {
+                reportType: {
                     type: 'string',
-                    description: 'User ID for credential lookup'
+                    description: 'Optional specific report type to fetch',
                 },
-                date: {
+                dateRange: {
                     type: 'string',
-                    description: 'Optional date to retrieve report for (YYYY-MM-DD format)'
-                }
+                    description: 'Optional date range for the report (e.g., "yesterday", "last week")',
+                },
             },
-            required: ['site']
+            required: ['site', 'dealerId'],
         },
         handler: async (args) => {
+            const { site, dealerId, reportType, dateRange } = args;
             try {
-                const { site, userId, dealerId = 'unknown' } = args;
-                // Default to yesterday's date if not specified
-                const reportDate = args.date || getYesterdayDate();
-                // Verify we have a user ID for credential lookup
-                if (!userId) {
-                    return {
-                        success: false,
-                        message: 'Authentication required: Please log in to access CRM data',
-                        error: 'No user ID provided for credential lookup'
-                    };
-                }
-                // Prepare site key for credential lookup - normalize to lowercase
-                const normalizedSite = site.toLowerCase();
-                const siteKey = normalizedSite.startsWith('dealer:') ? normalizedSite : `dealer:${normalizedSite}`;
-                console.log(`Looking up credentials for site: ${siteKey}`);
-                // Get credentials from secure storage
-                const credentials = await storage.getCredential(userId, siteKey);
-                if (!credentials) {
-                    // If no credentials found with the formatted key, try with just the site name
-                    const fallbackCredentials = await storage.getCredential(userId, site);
-                    if (!fallbackCredentials) {
-                        return {
-                            success: false,
-                            message: `No stored credentials found for ${site}`,
-                            error: 'Credentials not found. Please store your CRM credentials first.'
-                        };
-                    }
-                }
-                console.log(`Found credentials for ${site}, proceeding with report fetch`);
-                // In a real implementation, we would call the actual CRM API here
-                // For example:
-                /*
-                const apiEndpoint = getCRMApiEndpoint(site);
-                const reportResponse = await axios.post(
-                  `${apiEndpoint}/reports/dailySales`,
-                  { date: reportDate },
-                  {
-                    headers: {
-                      'Authorization': `Bearer ${accessToken}`,
-                      'Content-Type': 'application/json'
-                    }
-                  }
-                );
-                const reportData = reportResponse.data;
-                */
-                // Simulate API latency
-                await new Promise(resolve => setTimeout(resolve, 1200));
-                // This is a SIMULATION ONLY - in production, we would fetch actual data
-                // Return structure-only data with clear PLACEHOLDER values
-                // When credentials are available, this would be replaced with real API calls
-                // Fetch report data
-                const reportData = await getStructuredReportData(site, reportDate);
-                // Calculate summary stats
-                const summaryStats = calculateSummaryStats(reportData);
+                console.log(`Fetching CRM report for dealer ${dealerId} from ${site}...`);
+                // Use the fetchCRMReport function with the provided arguments
+                const filePath = await fetchCRMReport({
+                    platform: site,
+                    dealerId,
+                    reportType,
+                    dateRange
+                });
+                // Parse the CSV/Excel report
+                const parsedReport = await parseCRMReport(filePath);
+                // Return the parsed data
                 return {
                     success: true,
-                    message: `Successfully retrieved sales report from ${site} for ${reportDate}`,
+                    message: `Successfully fetched CRM report from ${site}`,
                     dealerId,
-                    dealerName: getDealerName(site),
-                    reportDate,
-                    deals: reportData,
-                    summaryStats
+                    reportFile: filePath,
+                    reportData: parsedReport
                 };
             }
             catch (error) {
-                console.error('Error fetching CRM report:', error);
+                console.error(`Error fetching CRM report:`, error);
                 return {
                     success: false,
-                    message: 'Failed to retrieve CRM report',
-                    error: error.message || String(error)
+                    message: `Failed to fetch CRM report: ${error.message}`,
+                    dealerId,
+                    error: error.message
                 };
             }
         }
     };
 }
-/**
- * Get yesterday's date in YYYY-MM-DD format
- */
-function getYesterdayDate() {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
-}
-/**
- * Get a friendly dealer name based on the site
- */
-function getDealerName(site) {
-    const siteMap = {
-        'vinsolutions': 'VinSolutions CRM',
-        'dealersocket': 'DealerSocket CRM',
-        'elead': 'eLead CRM',
-        'cdk': 'CDK Global'
-    };
-    const normalizedSite = site.toLowerCase();
-    for (const [key, value] of Object.entries(siteMap)) {
-        if (normalizedSite.includes(key)) {
-            return value;
-        }
-    }
-    return 'Dealer CRM';
-}
-/**
- * Get structured report data for testing
- * In production, this would be replaced with actual API calls
- */
-async function getStructuredReportData(site, date) {
-    // IMPORTANT: This function returns STRUCTURE ONLY with placeholder values
-    // It's designed to be replaced with real API calls in production
-    // Define structural placeholders (not realistic data)
-    const structuralData = [
-        {
-            saleDate: date,
-            repName: "PLACEHOLDER_REP_1",
-            vehicle: "PLACEHOLDER_VEHICLE_1",
-            price: 0,
-            grossProfit: 0,
-            vin: "PLACEHOLDER_VIN_1"
-        },
-        {
-            saleDate: date,
-            repName: "PLACEHOLDER_REP_2",
-            vehicle: "PLACEHOLDER_VEHICLE_2",
-            price: 0,
-            grossProfit: 0,
-            vin: "PLACEHOLDER_VIN_2"
-        }
-    ];
-    return structuralData;
-}
-/**
- * Calculate summary statistics from report data
- */
-function calculateSummaryStats(deals) {
-    // Calculate basic stats
-    const totalSales = deals.length;
-    const totalRevenue = deals.reduce((sum, deal) => sum + deal.price, 0);
-    const totalGrossProfit = deals.reduce((sum, deal) => sum + deal.grossProfit, 0);
-    // Find top rep (most sales)
-    const repCounts = {};
-    deals.forEach(deal => {
-        repCounts[deal.repName] = (repCounts[deal.repName] || 0) + 1;
-    });
-    let topRep = '';
-    let maxSales = 0;
-    Object.entries(repCounts).forEach(([rep, count]) => {
-        if (count > maxSales) {
-            maxSales = count;
-            topRep = rep;
-        }
-    });
-    return {
-        totalSales,
-        totalRevenue,
-        totalGrossProfit,
-        topRep: topRep || undefined
-    };
-}
+// Export as default for simpler imports
+export default fetchCRMReportTool;
 //# sourceMappingURL=fetchCRMReport.js.map

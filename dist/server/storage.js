@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import * as CryptoJS from "crypto-js";
-import { db } from "../shared/db";
-import { users, credentials, updatedTaskLogs as taskLogs } from "../shared/schema";
+import { db } from '../shared/db.js';
+import { users, credentials, updatedTaskLogs as taskLogs } from '../shared/schema.js';
 // Database implementation of storage operations
 export class DatabaseStorage {
     encryptionKey;

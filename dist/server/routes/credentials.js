@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { storage } from '../storage';
-import { isAuthenticated } from '../replitAuth';
+import { storage } from '../storage.js';
+import { isAuthenticated } from '../replitAuth.js';
 const credentialsRouter = Router();
 // Middleware to ensure routes are protected
 credentialsRouter.use(isAuthenticated);

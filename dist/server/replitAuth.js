@@ -4,8 +4,8 @@ import passport from "passport";
 import session from "express-session";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
-import { db } from "../shared/db";
-import { users } from "../shared/schema";
+import { db } from '../shared/db.js';
+import { users } from '../shared/schema.js';
 // Check for required environment variables
 if (!process.env.REPLIT_DOMAINS) {
     console.warn("Environment variable REPLIT_DOMAINS not provided, auth will be limited");
