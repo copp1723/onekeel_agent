@@ -2,11 +2,14 @@
  * Generic config-driven Playwright automation engine
  * Executes multi-step flows defined in platform configurations
  */
-import * as playwright from 'playwright';
-const { chromium } = playwright;
+// Update import to use specific structures from playwright-core
+import { chromium } from 'playwright-core';
 import path from 'path';
-// Load platform configurations
-import config from '../../configs/platforms.json' assert { type: 'json' };
+// Load platform configurations using dynamic import
+// This works with Node16 module system
+const config = await import('../../configs/platforms.json', {
+    assert: { type: 'json' }
+}).then(module => module.default);
 // Maximum number of retries for flow execution
 const MAX_RETRIES = 1;
 // Note: The function below has been replaced by direct validation in runFlow

@@ -8,9 +8,14 @@ import passport from "passport";
 import * as client from "openid-client";
 // Define a class to use as fallback
 class MockStrategy {
-    constructor(options, verify) {
+    // Using _unused prefix to indicate these are stored but intentionally not used
+    _unusedOptions;
+    _unusedVerify;
+    constructor(_options, _verify) {
         console.error("WARNING: Using mock OpenID strategy - authentication will not work");
-        // Store options and verify callback but don't use them
+        // Store options and verify callback but don't use them in mock implementation
+        this._unusedOptions = _options;
+        this._unusedVerify = _verify;
     }
 }
 // Define our strategy variable

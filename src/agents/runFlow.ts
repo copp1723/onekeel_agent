@@ -2,17 +2,19 @@
  * Generic config-driven Playwright automation engine
  * Executes multi-step flows defined in platform configurations
  */
-import * as playwright from 'playwright';
-const { chromium } = playwright;
-type Browser = playwright.Browser;
-type Page = playwright.Page;
+// Update import to use specific structures from playwright-core
+import { chromium } from 'playwright-core';
+import type { Browser, Page } from 'playwright-core';
 import path from 'path';
 // This import is commented out because we're using a local implementation for testing
 // import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
 import { FlowStep, EnvVars } from '../types.js';
 
-// Load platform configurations
-import config from '../../configs/platforms.json' assert { type: 'json' };
+// Load platform configurations using dynamic import
+// This works with Node16 module system
+const config = await import('../../configs/platforms.json', { 
+  assert: { type: 'json' } 
+}).then(module => module.default);
 
 // Maximum number of retries for flow execution
 const MAX_RETRIES = 1;
