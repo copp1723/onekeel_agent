@@ -6,6 +6,7 @@ import { crawlWebsite } from '../tools/crawlWebsite.js';
 import { checkFlightStatus } from '../tools/checkFlightStatus.js';
 import { extractCleanContent } from '../tools/extractCleanContent.js';
 import { summarizeText } from '../tools/summarizeText.js';
+import { dealerLogin } from '../tools/dealerLogin.js';
 import { getApiKey } from '../services/supabase.js';
 import { parseTask, ParsedTask, TaskType } from '../services/taskParser.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
@@ -454,6 +455,10 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
     tools.push(summarizeTool);
     toolsMap['summarizeText'] = summarizeTool;
     
+    const dealerLoginTool = dealerLogin();
+    tools.push(dealerLoginTool);
+    toolsMap['dealerLogin'] = dealerLoginTool;
+    
     // Initialize Eko agent with the appropriate tools
     const eko = new Eko({ 
       llms,
@@ -525,6 +530,22 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
         data: await flightTool.handler(parsedTask.parameters)
       };
       toolUsed = 'checkFlightStatus';
+    }
+    else if (parsedTask.type === TaskType.DealerLogin) {
+      // For dealer login tasks, we need to include the user ID in the parameters
+      // so the dealerLogin tool can access their stored credentials
+      const dealerLoginParams = {
+        ...parsedTask.parameters,
+        userId: userId // Pass the user ID for credential lookup
+      };
+      
+      result = {
+        type: TaskType.DealerLogin,
+        timestamp: new Date().toISOString(),
+        message: "Task processed with dealer login agent",
+        data: await dealerLoginTool.handler(dealerLoginParams)
+      };
+      toolUsed = 'dealerLogin';
     }
     else if (parsedTask.type === TaskType.Unknown) {
       // Handle unknown task type with possible error message
