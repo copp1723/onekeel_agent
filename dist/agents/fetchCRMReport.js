@@ -48,7 +48,8 @@ export async function fetchCRMReport(options) {
     }
     catch (error) {
         console.error(`Error fetching CRM report from ${platform}:`, error);
-        throw new Error(`Failed to fetch CRM report: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to fetch CRM report: ${errorMessage}`);
     }
 }
 /**
@@ -99,7 +100,8 @@ export async function parseCRMReport(filePath) {
     }
     catch (error) {
         console.error(`Error parsing CRM report:`, error);
-        throw new Error(`Failed to parse CRM report: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to parse CRM report: ${errorMessage}`);
     }
 }
 //# sourceMappingURL=fetchCRMReport.js.map

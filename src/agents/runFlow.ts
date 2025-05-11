@@ -3,31 +3,12 @@
  * Executes multi-step flows defined in platform configurations
  */
 import { chromium } from 'playwright';
-import fs from 'fs';
 import path from 'path';
-import { getEmailOTP } from '../utils/emailOTP.js';
+import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
+import { FlowStep, PlatformConfig, CRMPlatform, EnvVars } from '../types.js';
 
 // Load platform configurations
 import config from '../../configs/platforms.json' assert { type: 'json' };
-
-// TypeScript interfaces for flow steps
-export interface FlowStep {
-  action: string;
-  selector?: string;
-  value?: string;
-  args?: string[];
-  rowSelector?: string;
-  buttonSelector?: string;
-  saveAs?: string;
-  clickAfter?: string;
-}
-
-interface PlatformConfig {
-  loginSteps: FlowStep[];
-  otpStep?: FlowStep;
-  navigationSteps: FlowStep[];
-  downloadSteps: FlowStep[];
-}
 
 /**
  * Validates that all required environment variables are present

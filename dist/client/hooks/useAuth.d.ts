@@ -6,12 +6,12 @@ export declare function useAuth(): {
         user: any;
         isAuthenticated: boolean;
         isLoading: boolean;
-        error?: undefined;
+        error?: never;
     } | {
-        user: any;
+        user: null;
         isAuthenticated: boolean;
         isLoading: boolean;
-        error: any;
+        error: unknown;
     }>;
     login: () => void;
     logout: () => void;

@@ -1,8 +1,4 @@
 /**
- * Sample Data Provider
- * Provides sample data for testing CRM report flows without real credentials
- */
-/**
  * Returns a sample CSV report for the specified dealer ID
  * Used when USE_SAMPLE_DATA environment variable is set to 'true'
  * @param dealerId - Dealer ID to include in the sample data
@@ -14,7 +10,7 @@ export function getSampleReport(dealerId, platform = 'VinSolutions') {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const formattedDate = yesterday.toISOString().split('T')[0]; // YYYY-MM-DD format
-    if (platform.toLowerCase() === 'vinsolutions') {
+    if (platform === 'VinSolutions') {
         // Sample VinSolutions sales report
         return `Date,DealerID,SalesRep,Customer,VIN,Vehicle,SalePrice,TradeIn,Profit
 ${formattedDate},${dealerId},John Smith,Customer 1,1HGCM82633A123456,2023 Honda Accord,32500,Yes,3200

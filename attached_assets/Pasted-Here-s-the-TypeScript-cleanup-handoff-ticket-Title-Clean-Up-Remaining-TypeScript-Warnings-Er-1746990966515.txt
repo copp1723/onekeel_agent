@@ -1,0 +1,101 @@
+Here’s the TypeScript cleanup handoff ticket:
+
+⸻
+
+Title: Clean Up Remaining TypeScript Warnings & Errors
+
+⸻
+
+Overview
+
+Ensure the entire codebase compiles under strict TypeScript settings with zero warnings or errors. This will improve type safety, developer DX, and guarantee a reliable build pipeline.
+
+⸻
+
+✅ Tasks to Complete
+	1.	Enable Strict Compiler Options
+	•	File: tsconfig.json
+	•	Set:
+
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+
+
+	2.	Run a Zero‑Emit Type Check
+	•	In CI or locally, execute:
+
+npx tsc --noEmit
+
+
+	•	Capture the list of all errors/warnings.
+
+	3.	Fix Implicit any Issues
+	•	Identify any parameters or variables flagged as any.
+	•	Add explicit types or interfaces (e.g. for FlowStep, EnvVars, HTTP request/response bodies).
+	4.	Remove Unused Locals & Parameters
+	•	Delete or comment out variables, imports, or function parameters that aren’t referenced anywhere.
+	5.	Annotate All Exports & Functions
+	•	Ensure every exported function and class has an explicit return type.
+	•	E.g.:
+
+export async function runFlow(
+  platform: string,
+  envVars: Record<string,string>
+): Promise<string> { … }
+
+
+	6.	Normalize Import Paths & Extensions
+	•	Verify all import statements use correct file extensions (.js or .ts as appropriate).
+	•	Fix any casing mismatches or relative path errors.
+	7.	Define & Use Shared Interfaces
+	•	File: src/types.ts (create if needed)
+	•	Define:
+
+export interface FlowStep {
+  action: string;
+  selector?: string;
+  args?: string[];
+  rowSelector?: string;
+  buttonSelector?: string;
+  saveAs?: string;
+  clickAfter?: string;
+}
+export type EnvVars = Record<string,string>;
+
+
+	•	Replace inline type literals across the codebase with these shared interfaces.
+
+	8.	Fix Any Remaining TS Errors
+	•	Iterate until npx tsc --noEmit returns clean.
+	•	Pay special attention to JSON imports (add "resolveJsonModule": true if needed).
+
+⸻
+
+📁 Impacted Files
+
+tsconfig.json
+src/agents/runFlow.ts
+src/agents/fetchCRMReport.ts
+src/agents/emailIngest.ts
+src/api/*.ts
+src/types.ts (new)
+
+
+⸻
+
+✅ Acceptance Criteria
+	•	npx tsc --noEmit completes with zero errors or warnings.
+	•	Local npm run build still outputs dist/ folder and npm start runs unchanged.
+	•	CI (and Replit) builds succeed without modifying the run command.
+
+⸻
+
+Let me know when the code compiles cleanly under these strict settings.

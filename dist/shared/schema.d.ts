@@ -498,7 +498,7 @@ export declare const users: import("drizzle-orm/pg-core").PgTableWithColumns<{
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: number;
+            length: number | undefined;
         }>;
         email: import("drizzle-orm/pg-core").PgColumn<{
             name: "email";
@@ -517,7 +517,7 @@ export declare const users: import("drizzle-orm/pg-core").PgTableWithColumns<{
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: number;
+            length: number | undefined;
         }>;
         firstName: import("drizzle-orm/pg-core").PgColumn<{
             name: "first_name";
@@ -536,7 +536,7 @@ export declare const users: import("drizzle-orm/pg-core").PgTableWithColumns<{
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: number;
+            length: number | undefined;
         }>;
         lastName: import("drizzle-orm/pg-core").PgColumn<{
             name: "last_name";
@@ -555,7 +555,7 @@ export declare const users: import("drizzle-orm/pg-core").PgTableWithColumns<{
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: number;
+            length: number | undefined;
         }>;
         profileImageUrl: import("drizzle-orm/pg-core").PgColumn<{
             name: "profile_image_url";
@@ -574,7 +574,7 @@ export declare const users: import("drizzle-orm/pg-core").PgTableWithColumns<{
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: number;
+            length: number | undefined;
         }>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
@@ -634,7 +634,7 @@ export declare const sessions: import("drizzle-orm/pg-core").PgTableWithColumns<
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: number;
+            length: number | undefined;
         }>;
         sess: import("drizzle-orm/pg-core").PgColumn<{
             name: "sess";
@@ -711,7 +711,7 @@ export declare const credentials: import("drizzle-orm/pg-core").PgTableWithColum
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: number;
+            length: number | undefined;
         }>;
         site: import("drizzle-orm/pg-core").PgColumn<{
             name: "site";
@@ -826,7 +826,7 @@ export declare const updatedTaskLogs: import("drizzle-orm/pg-core").PgTableWithC
             identity: undefined;
             generated: undefined;
         }, {}, {
-            length: number;
+            length: number | undefined;
         }>;
         userInput: import("drizzle-orm/pg-core").PgColumn<{
             name: "user_input";

@@ -23,12 +23,12 @@ export declare function logTask({ userInput, tool, status, output, userId }: {
  */
 export declare function getTaskLogs(userId?: string): Promise<{
     id: string;
-    userId: string;
+    userId: string | null;
     userInput: string;
     tool: string;
     status: string;
     output: unknown;
-    createdAt: Date;
+    createdAt: Date | null;
 }[] | {
     userInput: string;
     tool: string;
