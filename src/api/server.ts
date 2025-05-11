@@ -10,6 +10,8 @@ import { getApiKey } from '../services/supabase.js';
 import { parseTask, ParsedTask, TaskType } from '../services/taskParser.js';
 import { logTask } from '../shared/logger.js';
 import { executePlan, PlanStep } from '../agent/executePlan.js';
+import { registerAuthRoutes } from '../server/routes/index.js';
+import { storage } from '../server/storage.js';
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +22,16 @@ app.use(express.json());
 
 // Serve static files from the public directory
 app.use(express.static('public'));
+
+// Configure and register authentication routes
+(async () => {
+  try {
+    await registerAuthRoutes(app);
+    console.log('Authentication routes registered successfully');
+  } catch (error) {
+    console.error('Failed to register authentication routes:', error);
+  }
+})();
 
 // Serve the index.html file for the root route
 app.get('/', (_req: Request, res: Response) => {
