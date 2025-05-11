@@ -1,0 +1,46 @@
+/* Additional custom styles */
+.prose {
+  line-height: 1.6;
+  color: #374151;
+}
+
+.prose p {
+  margin-bottom: 1rem;
+}
+
+.prose pre {
+  background-color: #f3f4f6;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+
+/* Success and error icons */
+.success-icon {
+  color: #10b981;
+}
+
+.error-icon {
+  color: #ef4444;
+}
+
+/* Loading animation enhancement */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Additional spacing for better readability */
+.result-content {
+  white-space: pre-wrap;
+  max-height: 500px;
+  overflow-y: auto;
+}
