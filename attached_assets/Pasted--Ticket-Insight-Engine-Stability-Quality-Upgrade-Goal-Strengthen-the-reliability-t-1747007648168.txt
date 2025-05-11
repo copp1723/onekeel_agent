@@ -1,0 +1,79 @@
+## 🎟 Ticket: Insight Engine Stability & Quality Upgrade
+
+### 🎯 Goal
+
+Strengthen the reliability, traceability, and insight quality of the AI-powered reporting pipeline by improving logging, output tracking, and system observability. This will support production use and future enhancements like scheduling, multi-agent orchestration, and customer trust.
+
+---
+
+## 📦 Components to Improve
+
+### 1. 📄 Insight Run Metadata Logging
+
+Add a new logging block to `generateInsightsFromCSV.ts` or `fetchAndAnalyzeCRMReport.ts` that logs:
+
+* Platform (e.g. VinSolutions)
+* Input file name / timestamp
+* Prompt intent and prompt version
+* Insight generation runtime duration
+* Output summary (titles or truncated text)
+* Any errors encountered
+
+Log destination: `logger.info()` and optional `logs/insight_runs.log`
+
+### 2. 📂 Output Snapshotting
+
+Add logic to write every LLM-generated insight to a file under:
+
+```ts
+/results/{platform}/{date}/{filename}.json
+```
+
+Benefits:
+
+* Track changes across runs
+* Debug insight regressions
+* Compare prompt versions
+
+### 3. 🔖 Prompt Version Tracking
+
+Update each prompt in `src/prompts/` to export a `promptVersion` string:
+
+```ts
+export const promptVersion = 'v1.0.0';
+```
+
+Log and snapshot this alongside the output to track LLM drift or improvements.
+
+### 4. 🚦 Insight Quality Check (Optional LLM Scoring)
+
+Create a scoring function that:
+
+* Calls OpenAI with a rubric: "Is this insight specific, actionable, and clearly explained?"
+* Tags each output with a `score: 0–10` and `feedback: string`
+* Logs this data in the output file or prints in the console
+
+Helps benchmark future prompt iterations.
+
+---
+
+## ✅ Acceptance Criteria
+
+* [ ] Each insight run logs metadata to the console and/or a file
+* [ ] Each output JSON is saved to a structured `/results/` directory
+* [ ] Each prompt includes a version string
+* [ ] (Optional) Insights are scored post-generation with AI feedback
+* [ ] No breaking changes to current test scripts or pipelines
+
+---
+
+## 💡 Why It Matters
+
+This ticket makes the application more:
+
+* **Stable**: Logs allow debugging and runtime tracing
+* **Reliable**: Snapshots prove what was generated and when
+* **Trustworthy**: Version tracking and quality scoring surface bad prompt behavior early
+* **Scalable**: Enables multi-run comparisons, regression testing, and deeper analytics
+
+This bridges the gap between MVP output and production-grade system readiness.

@@ -5,15 +5,21 @@
  * It provides a centralized way to access system prompts and prompt routing logic.
  */
 
-// Export specific prompts
-export { automotiveAnalystSystemPrompt } from './automotiveAnalystPrompt.js';
+// Export specific prompts with their versions
+export { 
+  automotiveAnalystSystemPrompt, 
+  promptVersion as automotiveAnalystPromptVersion 
+} from './automotiveAnalystPrompt.js';
 
 // Export prompt router functionality
 export { 
   getPromptByIntent,
+  getPromptTextByIntent,
   getAvailableIntents,
   isValidIntent,
-  type PromptIntent
+  routerVersion,
+  type PromptIntent,
+  type PromptInfo
 } from './promptRouter.js';
 
 /**
