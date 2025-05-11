@@ -16,12 +16,12 @@ export interface ParsedTask {
 }
 
 /**
- * Uses an LLM to parse a natural language task into a structured format
+ * Parses a natural language task into a structured format using rule-based patterns
  * @param task - The natural language task description
- * @param ekoApiKey - The Eko API key for the LLM call
+ * @param _ekoApiKey - The Eko API key (unused in this implementation, but kept for API compatibility)
  * @returns The parsed task with type and parameters
  */
-export async function parseTask(task: string, ekoApiKey: string): Promise<ParsedTask> {
+export async function parseTask(task: string, _ekoApiKey: string): Promise<ParsedTask> {
   // For a simple implementation, we'll use a rule-based approach
   // In a more complex system, you would use the LLM for this
   console.log('⚠️ FIXED taskParser.ts loaded! ⚠️'); // Confirm this file is used - ALWAYS LOOK FOR THIS LOG
