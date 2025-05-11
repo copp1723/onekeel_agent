@@ -48,8 +48,9 @@ export function extractCleanContent(): EkoTool {
         // Make sure the URL has a protocol
         const url = args.url.startsWith('http') ? args.url : `https://${args.url}`;
         
-        // Get the path to the Python script (relative to the current file)
-        const scriptPath = path.resolve(__dirname, 'extract_content.py');
+        // Get the path to the Python script in the src directory
+        // In production, __dirname points to dist/tools, so we need to go up to the root and back to src/tools
+        const scriptPath = join(process.cwd(), 'src', 'tools', 'extract_content.py');
         
         // Execute the Python script
         const result = await runPythonScript(scriptPath, [url]);
