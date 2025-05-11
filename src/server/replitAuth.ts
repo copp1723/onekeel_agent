@@ -3,23 +3,24 @@ import { Strategy, type VerifyFunction } from "openid-client/passport";
 
 import passport from "passport";
 import session from "express-session";
-import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
+import type { Express, Request as ExpressRequest, Response as ExpressResponse, NextFunction, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { db } from '../shared/db.js';
 import { users } from '../shared/schema.js';
 
-// Define the User interface to replace Express.User
-declare global {
-  namespace Express {
-    interface User {
-      claims?: any;
-      access_token?: string;
-      refresh_token?: string;
-      expires_at?: number;
-      [key: string]: any;
-    }
-  }
+// Define custom Request interface with user property
+interface AuthRequest extends ExpressRequest {
+  user?: any;
+  isAuthenticated(): boolean;
+  logout(callback: (err?: any) => void): void;
+}
+
+// Type declaration for connect-pg-simple
+declare module 'connect-pg-simple' {
+  import session from 'express-session';
+  function PgStore(options: any): session.Store;
+  export = PgStore;
 }
 
 // Check for required environment variables
@@ -149,44 +150,50 @@ export async function setupAuth(app: Express) {
     passport.use(strategy);
   }
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  passport.serializeUser((user: any, cb: (err: any, user: any) => void) => cb(null, user));
+  passport.deserializeUser((user: any, cb: (err: any, user: any) => void) => cb(null, user));
 
-  app.get("/api/login", (req, res, next) => {
+  app.get("/api/login", (req: AuthRequest, res: ExpressResponse, next: NextFunction) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
-  app.get("/api/callback", (req, res, next) => {
+  app.get("/api/callback", (req: AuthRequest, res: ExpressResponse, next: NextFunction) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
   });
 
-  app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
-    });
+  app.get("/api/logout", (req: AuthRequest, res: ExpressResponse) => {
+    if (req.logout) {
+      req.logout(() => {
+        res.redirect(
+          client.buildEndSessionUrl(config, {
+            client_id: process.env.REPL_ID!,
+            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          }).href
+        );
+      });
+    } else {
+      // Fallback for Express 4.x
+      (req as any).logout();
+      res.redirect("/");
+    }
   });
 }
 
 // Authentication middleware for protected routes
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
+export const isAuthenticated: RequestHandler = async (req: AuthRequest, res: ExpressResponse, next: NextFunction) => {
   // Skip auth check in dev mode if env vars are missing
   if (!process.env.REPLIT_DOMAINS) {
     console.warn("Auth check bypassed in dev mode");
     return next();
   }
 
-  const user = req.user as any;
+  const user = req.user;
 
   if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });

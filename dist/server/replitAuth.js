@@ -123,12 +123,19 @@ export async function setupAuth(app) {
         })(req, res, next);
     });
     app.get("/api/logout", (req, res) => {
-        req.logout(() => {
-            res.redirect(client.buildEndSessionUrl(config, {
-                client_id: process.env.REPL_ID,
-                post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-            }).href);
-        });
+        if (req.logout) {
+            req.logout(() => {
+                res.redirect(client.buildEndSessionUrl(config, {
+                    client_id: process.env.REPL_ID,
+                    post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+                }).href);
+            });
+        }
+        else {
+            // Fallback for Express 4.x
+            req.logout();
+            res.redirect("/");
+        }
     });
 }
 // Authentication middleware for protected routes
