@@ -14,6 +14,7 @@ import { TaskType } from '../types.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
 import { executePlan } from '../agent/executePlan.js';
 import { registerAuthRoutes } from '../server/routes/index.js';
+import { routeHandler } from '../utils/routeHandler.js';
 import type { CrawlWebsiteArgs, CheckFlightStatusArgs } from '../types.js';
 
 // Extend Express Request to include auth user
@@ -48,9 +49,9 @@ app.use(express.static('public'));
 })();
 
 // Serve the index.html file for the root route
-app.get('/', (_req: Request, res: Response) => {
+app.get('/', routeHandler((_req: Request, res: Response) => {
   res.sendFile('index.html', { root: './public' });
-});
+}));
 
 // Task logs for tracking execution
 interface TaskLog {
@@ -675,7 +676,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
 }
 
 // Test endpoint for parser
-app.post('/test-parser', async (req: Request, res: Response) => {
+app.post('/test-parser', routeHandler(async (req: Request, res: Response) => {
   const { task } = req.body;
   
   if (!task || typeof task !== 'string') {
@@ -707,10 +708,10 @@ app.post('/test-parser', async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
     return;
   }
-});
+}));
 
 // Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', routeHandler((_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
     uptime: process.uptime(),
@@ -724,7 +725,7 @@ app.get('/health', (_req: Request, res: Response) => {
       summarization: true
     }
   });
-});
+}));
 
 // Start the server
 const port = Number(process.env.PORT) || 5000;
