@@ -18,6 +18,7 @@ import { routeHandler } from '../utils/routeHandler.js';
 import type { CrawlWebsiteArgs, CheckFlightStatusArgs } from '../types.js';
 
 // Extend Express Request to include auth user
+// Enhanced Request interface to satisfy both strict checks and express-session types
 interface Request extends ExpressRequest {
   user?: {
     claims?: {
@@ -25,7 +26,12 @@ interface Request extends ExpressRequest {
       [key: string]: any;
     };
     [key: string]: any;
-  };
+  } | undefined;
+  
+  // Make these compatible with routeHandler
+  params?: any;
+  body?: any;
+  query?: any;
 }
 
 // Load environment variables
