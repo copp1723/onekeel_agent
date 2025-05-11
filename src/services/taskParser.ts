@@ -149,7 +149,7 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
         type: TaskType.Unknown,
         parameters: {},
         original: task,
-        error: 'Could not find a valid URL in the task. Please provide a URL to extract and summarize content from.'
+        error: 'No valid URL detected in task. Please include a URL.'
       };
     }
   }
@@ -186,7 +186,7 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
         type: TaskType.Unknown,
         parameters: {},
         original: task,
-        error: 'Could not find a valid URL to extract content from. Please provide a URL.'
+        error: 'No valid URL detected in task. Please include a URL.'
       };
     }
   }
@@ -241,7 +241,7 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
         type: TaskType.Unknown,
         parameters: {},
         original: task,
-        error: 'Could not find a valid URL to crawl or extract data from. Please provide a URL.'
+        error: 'No valid URL detected in task. Please include a URL.'
       };
     }
   } 
