@@ -42,26 +42,78 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
     'text:', taskLower.includes('text')
   );
   
-  // Check for multi-step tasks that involve extracting content and then summarizing
-  // This also catches common variations like "summarize content of URL" or "get summary of URL"
-  if ((taskLower.includes('extract') && taskLower.includes('content') && 
-       (taskLower.includes('summarize') || taskLower.includes('summary'))) ||
-      ((taskLower.includes('summarize') || taskLower.includes('summary')) && 
-       (taskLower.includes('content of') || taskLower.includes('content from') || 
-        taskLower.includes('from') || taskLower.includes('of') || taskLower.includes('text') ||
-        taskLower.includes('website') || taskLower.includes('page') || taskLower.includes('article') ||
-        taskLower.includes('url')))) {
+  // Improved pattern matching for multi-step tasks
+  // Define regex patterns for more precise matching
+  const extractPatterns = [
+    /\bextract\b/i,
+    /\bget\s+.*\bcontent\b/i,
+    /\bpull\s+.*\bcontent\b/i,
+    /\bfetch\s+.*\btext\b/i,
+    /\bextract\s+.*\btext\b/i,
+  ];
+  
+  const summarizePatterns = [
+    /\bsummariz(e|ation)\b/i,
+    /\bsummary\b/i,
+    /\bsummarise\b/i,
+    /\bcondense\b/i,
+    /\btl;dr\b/i,
+  ];
+  
+  const sourcePatterns = [
+    /\bcontent\s+of\b/i,
+    /\bcontent\s+from\b/i,
+    /\bfrom\b/i,
+    /\bof\b/i,
+    /\btext\b/i,
+    /\bwebsite\b/i,
+    /\bpage\b/i,
+    /\barticle\b/i,
+    /\burl\b/i,
+    /\blink\b/i,
+    /\bweb\b/i,
+  ];
+  
+  // Check if task matches extract AND summarize patterns
+  const hasExtractPattern = extractPatterns.some(pattern => pattern.test(taskLower));
+  const hasSummarizePattern = summarizePatterns.some(pattern => pattern.test(taskLower));
+  const hasSourcePattern = sourcePatterns.some(pattern => pattern.test(taskLower));
+  
+  // Multi-step task detection logic with detailed logging
+  const isMultiStepExtractAndSummarize = hasExtractPattern && hasSummarizePattern;
+  const isMultiStepSummarizeContent = hasSummarizePattern && hasSourcePattern;
+  
+  console.log('Task patterns:', {
+    extractPattern: hasExtractPattern,
+    summarizePattern: hasSummarizePattern,
+    sourcePattern: hasSourcePattern,
+    isMultiStepExtractAndSummarize,
+    isMultiStepSummarizeContent
+  });
+  
+  if (isMultiStepExtractAndSummarize || isMultiStepSummarizeContent) {
     
     console.log('Detected potential multi-step task pattern');
     
-    const urlMatch = task.match(/https?:\/\/[^\s]+/);
-    const url = urlMatch ? urlMatch[0] : '';
+    // Enhanced URL extraction
+    // Match both http/https URLs and domain-only references
+    const strictUrlMatch = task.match(/https?:\/\/[^\s'"`)]+/);
+    const domainMatch = !strictUrlMatch ? task.match(/\b([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/i) : null;
+    
+    let url = '';
+    if (strictUrlMatch) {
+      url = strictUrlMatch[0];
+      // Strip trailing punctuation that might be part of the match
+      url = url.replace(/[.,;:!?)]+$/, '');
+    } else if (domainMatch) {
+      url = 'https://' + domainMatch[0];
+    }
     
     console.log('URL detected:', url || 'None');
     
     if (url) {
-      // Create a multi-step plan
-      return {
+      // Create a complete multi-step plan with detailed configuration
+      const multiStepPlan = {
         type: TaskType.MultiStep,
         parameters: { url },
         original: task,
@@ -69,15 +121,26 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
           steps: [
             {
               tool: 'extractCleanContent',
-              input: { url }
+              input: { 
+                url,
+                fallbackMessage: 'Could not extract content from the provided URL'
+              }
             },
             {
               tool: 'summarizeText',
-              input: { text: '{{step0.output.content}}', maxLength: 300 }
+              input: { 
+                text: '{{step0.output.content}}', 
+                maxLength: 300,
+                format: 'paragraph',
+                fallbackBehavior: 'passthrough' // Pass through original content if summarization fails
+              }
             }
           ]
         }
       };
+      
+      console.log('Generated multi-step plan:', JSON.stringify(multiStepPlan, null, 2));
+      return multiStepPlan;
     }
   }
   
