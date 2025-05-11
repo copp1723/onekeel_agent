@@ -226,16 +226,16 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
     if (url) {
       return {
         type: TaskType.WebCrawling,
-      parameters: {
-        url,
-        // Extract other potential parameters - for a full implementation,
-        // you'd use the LLM to extract these more intelligently
-        selector: taskLower.includes('selector') ? 'auto-detect' : undefined,
-        depth: taskLower.includes('depth') ? 1 : undefined,
-        extractFields: []
-      },
-      original: task
-    };
+        parameters: {
+          url,
+          // Extract other potential parameters - for a full implementation,
+          // you'd use the LLM to extract these more intelligently
+          selector: taskLower.includes('selector') ? 'auto-detect' : undefined,
+          depth: taskLower.includes('depth') ? 1 : undefined,
+          extractFields: []
+        },
+        original: task
+      };
     } else {
       return {
         type: TaskType.Unknown,
