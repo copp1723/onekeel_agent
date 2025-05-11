@@ -2,7 +2,7 @@
  * Sample Data Provider
  * Provides sample data for testing CRM report flows without real credentials
  */
-import { CRMPlatform, FlowStep, PlatformConfig } from '../types.js';
+import { CRMPlatform, PlatformConfig } from '../types.js';
 
 /**
  * Returns a sample platform configuration for testing
