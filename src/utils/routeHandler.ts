@@ -22,7 +22,7 @@ type AnyRequest = Request & {
 export function routeHandler<P = any>(handler: (req: AnyRequest, res: Response, next?: NextFunction) => any): RequestHandler<P> {
   return (req, res, next) => {
     try {
-      const result = handler(req as Request, res, next);
+      const result = handler(req as AnyRequest, res, next);
       if (result instanceof Promise) {
         result.catch((error: Error) => {
           console.error('Route handler error:', error);
