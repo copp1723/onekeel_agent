@@ -17,6 +17,7 @@ A flexible AI agent backend using Fellou Eko that executes various tasks includi
 - ✅ LLM-powered task parsing and intent recognition
 - ✅ REST API endpoint for task submission and tracking
 - ✅ Task logging and status tracking
+- ✅ Multi-step task execution (extract-then-summarize)
 
 ## Prerequisites
 
