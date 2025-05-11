@@ -1,12 +1,15 @@
 import { Eko, LLMs } from '@eko-ai/eko';
+import { ExecutionPlan, PlanStep } from '../agent/executePlan.js';
 
 // Define the task types the agent can handle
 export enum TaskType {
   WebCrawling = 'web_crawling',
   WebContentExtraction = 'web_content_extraction',
+  SummarizeText = 'summarize_text',
   FlightStatus = 'flight_status',
   DealerLogin = 'dealer_login',
   VehicleData = 'vehicle_data',
+  MultiStep = 'multi_step',
   Unknown = 'unknown'
 }
 
@@ -15,6 +18,7 @@ export interface ParsedTask {
   type: TaskType;
   parameters: Record<string, any>;
   original: string;
+  plan?: ExecutionPlan; // For multi-step tasks
 }
 
 /**
@@ -28,6 +32,36 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   // In a more complex system, you would use the LLM for this
   const taskLower = task.toLowerCase();
   
+  // Check for multi-step tasks that involve extracting content and then summarizing
+  if ((taskLower.includes('extract') && taskLower.includes('content') && 
+       (taskLower.includes('summarize') || taskLower.includes('summary'))) ||
+      (taskLower.includes('summarize') && taskLower.includes('content of'))) {
+    
+    const urlMatch = task.match(/https?:\/\/[^\s]+/);
+    const url = urlMatch ? urlMatch[0] : '';
+    
+    if (url) {
+      // Create a multi-step plan
+      return {
+        type: TaskType.MultiStep,
+        parameters: { url },
+        original: task,
+        plan: {
+          steps: [
+            {
+              tool: 'extractCleanContent',
+              input: { url }
+            },
+            {
+              tool: 'summarizeText',
+              input: { text: '{{step0.output.content}}' }
+            }
+          ]
+        }
+      };
+    }
+  }
+  
   // Extract clean content tasks
   if ((taskLower.includes('extract') && taskLower.includes('clean content')) || 
       (taskLower.includes('get') && taskLower.includes('article text')) ||
@@ -40,6 +74,19 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
       type: TaskType.WebContentExtraction,
       parameters: {
         url
+      },
+      original: task
+    };
+  }
+  // Summarize text task
+  else if (taskLower.includes('summarize') && taskLower.includes('text')) {
+    // This is a summarization task
+    const text = task.replace(/summarize\s+text[:\s]*/i, '').trim();
+    
+    return {
+      type: TaskType.SummarizeText,
+      parameters: {
+        text
       },
       original: task
     };
@@ -144,16 +191,37 @@ export async function parseTaskWithLLM(task: string, ekoApiKey: string): Promise
     const parsingPrompt = `
       You are a task parsing agent. Your job is to categorize user tasks and extract relevant parameters.
       
+      Available tools:
+      - extractCleanContent - Extracts clean text content from a URL
+      - summarizeText - Summarizes text content
+      - checkFlightStatus - Checks status of a flight
+      - crawlWebsite - Crawls and extracts data from websites
+      
       Task categories:
       1. web_crawling - For tasks about crawling websites, scraping data
-      2. flight_status - For checking flight status
-      3. dealer_login - For dealer login related tasks
-      4. vehicle_data - For extracting vehicle information
-      5. unknown - For tasks that don't fit the above categories
+      2. web_content_extraction - For extracting clean content from websites
+      3. summarize_text - For summarizing text content
+      4. flight_status - For checking flight status
+      5. dealer_login - For dealer login related tasks
+      6. vehicle_data - For extracting vehicle information
+      7. multi_step - For tasks that require multiple steps
+      8. unknown - For tasks that don't fit the above categories
       
-      For the following task, return a JSON object with:
+      For multi-step tasks, create an execution plan with the tools needed in sequence.
+      
+      For simple tasks, return a JSON with:
       - type: One of the task categories above
       - parameters: Key parameters needed for the task
+
+      For multi-step tasks, return a JSON with:
+      - type: "multi_step"
+      - parameters: Key parameters needed for the main task
+      - plan: {
+          steps: [
+            { tool: "toolName", input: { param1: "value1", param2: "value2" } },
+            { tool: "toolName2", input: { param1: "{{step0.output.fieldName}}" } }
+          ]
+        }
       
       Task: "${task}"
       
@@ -168,6 +236,17 @@ export async function parseTaskWithLLM(task: string, ekoApiKey: string): Promise
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0]);
+        
+        // Check if this is a multi-step task with a plan
+        if (parsed.type === 'multi_step' && parsed.plan && parsed.plan.steps) {
+          return {
+            type: TaskType.MultiStep,
+            parameters: parsed.parameters || {},
+            original: task,
+            plan: parsed.plan as ExecutionPlan
+          };
+        }
+        
         return {
           type: parsed.type as TaskType,
           parameters: parsed.parameters || {},

@@ -1,0 +1,78 @@
+Excellent choice. Multi-step task routing is the **most powerful thing you can add right now** — it turns AgentFlow from a tool executor into a real agent that can **think through** and **orchestrate** multi-action tasks.
+
+---
+
+## 🔧 What This Will Add
+
+AgentFlow will now be able to:
+
+> *“Extract content from this site and summarize it.”*
+
+Or:
+
+> *“Crawl this competitor’s pricing page, then tell me what changed from last week.”*
+
+It will:
+
+1. Parse the task
+2. Decide which tools to run (and in what order)
+3. Run them step-by-step
+4. Return a final output
+
+---
+
+## 📋 Copy-Paste Instructions for Replit Agent
+
+Paste this to your Replit Agent to begin building multi-step routing:
+
+---
+
+### Replit Agent — Add Multi-Step Routing with Intelligent Tool Chaining
+
+Please add support for **multi-step task execution**. This should allow AgentFlow to handle complex instructions that require more than one tool.
+
+#### ✅ Step 1: Update the Task Parser
+
+* Detect when a task contains **multiple actions** or needs to be broken into substeps.
+* Output a plan like:
+
+```ts
+{
+  steps: [
+    { tool: "extractCleanContent", input: { url: "https://example.com" } },
+    { tool: "summarizeText", input: { text: "{{step0.output}}" } }
+  ]
+}
+```
+
+* Each step should be run in order, passing outputs into inputs as needed.
+
+#### ✅ Step 2: Add Execution Engine
+
+* In a new file (e.g. `src/agent/executePlan.ts`), implement logic to:
+
+  * Loop through each step
+  * Execute the registered tool with its input
+  * Store output and make it available to future steps (e.g., `{{step0.output}}` templating)
+  * Return the final output (or all outputs)
+
+#### ✅ Step 3: Modify the Agent Flow
+
+* In `index.ts`, when a task is received:
+
+  * Run `taskParser.parse(task)` to get a multi-step plan
+  * Pass that plan to `executePlan()`
+  * Return the result to the user
+
+#### ✅ Step 4: Add a `summarizeText` tool
+
+* Simple tool that accepts a text input and uses OpenAI to summarize it.
+* This will be used as the second step after extracting content.
+
+#### ✅ Step 5: Add a test plan
+
+* Example task:
+  *“Summarize the content of [https://example.com”](https://example.com”)*
+* This should trigger: extractCleanContent → summarizeText
+
+Let me know when it’s complete — I’ll help you test fallback chaining and prep for more advanced flows like conditional steps or memory.
