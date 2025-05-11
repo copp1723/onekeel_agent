@@ -282,6 +282,13 @@ async function processTask(taskId: string, taskText: string): Promise<void> {
     
     // Parse the task to determine the appropriate action
     const parsedTask = await parseTask(taskText, ekoApiKey);
+    console.log(`Parsed task (${taskId}):`, JSON.stringify(parsedTask, null, 2));
+    
+    // Log if error is present
+    if (parsedTask.error) {
+      console.log(`Task parsing error (${taskId}):`, parsedTask.error);
+    }
+    
     taskLogs[taskId].taskType = parsedTask.type;
     
     // Get the Firecrawl API key if needed
@@ -398,7 +405,18 @@ async function processTask(taskId: string, taskText: string): Promise<void> {
       };
       toolUsed = 'checkFlightStatus';
     }
-    else {
+    else if (parsedTask.type === TaskType.Unknown) {
+      // Handle unknown task type with possible error message
+      result = {
+        type: TaskType.Unknown,
+        timestamp: new Date().toISOString(),
+        message: "Task processed with simulated agent",
+        data: {
+          message: parsedTask.error || "Task type not supported yet"
+        }
+      };
+      toolUsed = 'unknown';
+    } else {
       // For other tasks, use the Eko agent
       result = await eko.run(taskText);
     }
