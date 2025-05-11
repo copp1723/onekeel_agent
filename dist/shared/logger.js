@@ -1,5 +1,6 @@
 import { db } from './db.js';
-import { taskLogs } from './schema.js';
+import { updatedTaskLogs as taskLogs } from './schema.js';
+import { eq } from 'drizzle-orm';
 // In-memory fallback storage for when DB is not available
 const memoryLogs = [];
 /**
@@ -10,15 +11,17 @@ const memoryLogs = [];
  * @param params.tool - The tool used to execute the task
  * @param params.status - The execution status ('success' or 'error')
  * @param params.output - The task output or error information
+ * @param params.userId - Optional user ID for authenticated tasks
  * @returns Promise that resolves when the log entry is created
  */
-export async function logTask({ userInput, tool, status, output }) {
+export async function logTask({ userInput, tool, status, output, userId }) {
     // Always log to memory first as a fallback
     memoryLogs.push({
         userInput,
         tool,
         status,
         output,
+        userId,
         timestamp: new Date().toISOString()
     });
     try {
@@ -28,6 +31,7 @@ export async function logTask({ userInput, tool, status, output }) {
             tool,
             status,
             output,
+            userId
         });
         console.log(`Task logged to database: ${tool} - ${status}`);
     }
@@ -38,17 +42,27 @@ export async function logTask({ userInput, tool, status, output }) {
     }
 }
 /**
- * Retrieves all task logs (from memory if database not available)
+ * Retrieves task logs, optionally filtered by user ID
+ * @param userId - Optional user ID to filter logs
+ * @returns Array of task logs, either from database or memory
  */
-export async function getTaskLogs() {
+export async function getTaskLogs(userId) {
     try {
         // Try database first
-        const dbLogs = await db.select().from(taskLogs);
+        let query = db.select().from(taskLogs);
+        // Add userId filter if provided
+        if (userId) {
+            query = query.where(eq(taskLogs.userId, userId));
+        }
+        const dbLogs = await query;
         return dbLogs;
     }
     catch (error) {
         console.error('Failed to retrieve logs from database:', error);
-        // Fall back to memory logs
+        // Fall back to memory logs, filtering by userId if provided
+        if (userId) {
+            return memoryLogs.filter(log => log.userId === userId);
+        }
         return memoryLogs;
     }
 }

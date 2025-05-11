@@ -6,6 +6,7 @@ export declare enum TaskType {
     FlightStatus = "flight_status",
     DealerLogin = "dealer_login",
     VehicleData = "vehicle_data",
+    FetchCRMReport = "fetch_crm_report",
     MultiStep = "multi_step",
     Unknown = "unknown"
 }

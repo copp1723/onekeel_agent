@@ -7,18 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-// Define task types directly to avoid import issues
-const TaskType = {
-  WebCrawling: 'web_crawling',
-  WebContentExtraction: 'web_content_extraction',
-  SummarizeText: 'summarize_text',
-  FlightStatus: 'flight_status',
-  DealerLogin: 'dealer_login',
-  VehicleData: 'vehicle_data',
-  FetchCRMReport: 'fetch_crm_report',
-  MultiStep: 'multi_step',
-  Unknown: 'unknown'
-};
+
+// Import our enhanced task parser
+import { parseTaskDirect, TaskType } from '../services/taskParser-fix.js';
 
 // Create the Express app
 const app = express();
@@ -45,6 +36,9 @@ app.post('/submit-task', async (req, res) => {
   
   // Process the task asynchronously
   processTaskDirect(taskId, task)
+    .then(result => {
+      console.log(`Task processed: ${taskId} - ${result.type}`);
+    })
     .catch(error => console.error('Error processing task:', error));
   
   // Return the task ID immediately
@@ -59,112 +53,83 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Endpoint to get task results (for testing)
+let taskResults = {};
+app.get('/tasks/:taskId', (req, res) => {
+  const { taskId } = req.params;
+  
+  if (taskResults[taskId]) {
+    return res.json(taskResults[taskId]);
+  }
+  
+  return res.status(404).json({
+    error: 'Task not found',
+    message: `No task found with ID: ${taskId}`
+  });
+});
+
 // Start the server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.FIXED_SERVER_PORT || 5001; // Use a different port to avoid conflicts
 app.listen(PORT, () => {
-  console.log(`AI Agent Express API running on port ${PORT}`);
+  console.log(`Fixed Server Demo API running on port ${PORT}`);
   console.log('Available endpoints:');
   console.log('  GET / - Web UI for task submission');
   console.log('  POST /submit-task - Execute tasks directly');
   console.log('  GET /health - Health check endpoint');
 });
 
-// Import our enhanced TypeScript task parser
-import { parseTaskDirect } from '../services/taskParser-fix.js';
-
 // Direct implementation of task processing with pattern matching
 async function processTaskDirect(taskId, taskText) {
   console.log(`Processing task: ${taskId}`);
   console.log(`Task text: ${taskText}`);
   
-  // Use our enhanced TypeScript parser for more reliable pattern matching
+  let taskType = 'unknown';
+  let parameters = {};
+  
   try {
-    // Attempt to use the TypeScript parser
+    // Attempt to use our fixed task parser
     const parsedTask = await parseTaskDirect(taskText);
-    console.log('Using TypeScript parser result:', parsedTask);
+    console.log('Task parser result:', parsedTask);
     
-    // Map the task type to string for the response
-    let taskType = parsedTask.type.toString().toLowerCase();
+    // Use the parsed task type and parameters
+    taskType = parsedTask.type === TaskType.FetchCRMReport 
+      ? 'fetch_crm_report' 
+      : (parsedTask.type || 'unknown').toString().toLowerCase();
+      
+    parameters = parsedTask.parameters;
     
-    // Convert to snake_case if needed
-    if (taskType === 'fetchcrmreport') {
-      taskType = 'fetch_crm_report';
-    } else if (taskType === 'unknown') {
-      taskType = 'unknown';
-    }
+    console.log(`Task detected as: ${taskType}`);
     
-    // Use the parsed parameters
-    const parameters = parsedTask.parameters;
-    
-    return {
-      id: taskId,
-      type: taskType,
-      parameters,
-      original: taskText,
-      result: {
-        message: 'Task processed successfully with TypeScript parser',
-        timestamp: new Date().toISOString()
-      }
-    };
   } catch (error) {
-    console.error('Error using TypeScript parser, falling back to direct implementation:', error);
+    console.error('Error using task parser, using fallback:', error);
     
-    // Fallback to original implementation
-    console.log('Fallback: using direct pattern matching');
-    
-    // Simple pattern matching without using LLM
+    // Simple fallback pattern matching if parser fails
     const taskLower = taskText.toLowerCase();
-    let taskType = 'unknown';
-    let parameters = {};
     
-    // Log all pattern tests to help debug
-    const patternTests = {
-      vinsolutions: taskLower.includes('vinsolutions'),
-      sales: taskLower.includes('sales'),
-      report: taskLower.includes('report'),
-      dealer: taskLower.includes('dealer'),
-      yesterday: taskLower.includes('yesterday'),
-      fetch: taskLower.includes('fetch'),
-      get: taskLower.includes('get'),
-      pull: taskLower.includes('pull')
-    };
-    
-    console.log('Pattern matches:', patternTests);
-    
-    // If VinSolutions and "sales report" are both mentioned, it's probably a CRM report
     if (taskLower.includes('vinsolutions') && 
-        ((taskLower.includes('sales') && taskLower.includes('report')) ||
-         taskLower.includes('crm'))) {
-      console.log('☑️ VinSolutions report match detected');
+        (taskLower.includes('sales') && taskLower.includes('report'))) {
+      console.log('☑️ Fallback: VinSolutions report detected');
       taskType = 'fetch_crm_report';
       
       // Extract dealer ID if present
       const dealerMatch = taskText.match(/dealer(?:ship)?\s+([A-Za-z0-9]+)/i);
       const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
-      console.log(`Dealer ID extracted: ${dealerId}`);
       
       parameters = {
         site: 'vinsolutions',
         dealerId: dealerId
       };
     }
-    
-    // Log the parsed task
-    console.log(`Task executed directly: ${taskId} - ${taskType}`);
-    console.log(`Task text: ${taskText}`);
   }
-  console.log('Parsed task:', JSON.stringify({
-    type: taskType,
-    parameters,
-    original: taskText
-  }, null, 2));
+  
+  // Log the parsed task
+  console.log(`Task parsed: ${taskId} - ${taskType}`);
+  console.log('Parameters:', parameters);
   
   // We would normally execute the task here based on type
   
-  // Log the completion
-  console.log(`Task logged: ${taskType} - success`);
-  
-  return {
+  // Create the result object
+  const result = {
     id: taskId,
     type: taskType,
     parameters,
@@ -174,6 +139,12 @@ async function processTaskDirect(taskId, taskText) {
       timestamp: new Date().toISOString()
     }
   };
+  
+  // Store the result for retrieval
+  taskResults[taskId] = result;
+  
+  // Return the result
+  return result;
 }
 
 export default app;

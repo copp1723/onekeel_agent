@@ -6,10 +6,13 @@ import { crawlWebsite } from '../tools/crawlWebsite.js';
 import { checkFlightStatus } from '../tools/checkFlightStatus.js';
 import { extractCleanContent } from '../tools/extractCleanContent.js';
 import { summarizeText } from '../tools/summarizeText.js';
+import { dealerLogin } from '../tools/dealerLogin.js';
+import { fetchCRMReport } from '../tools/fetchCRMReport.js';
 import { getApiKey } from '../services/supabase.js';
 import { parseTask, TaskType } from '../services/taskParser.js';
-import { logTask } from '../shared/logger.js';
+import { logTask, getTaskLogs } from '../shared/logger.js';
 import { executePlan } from '../agent/executePlan.js';
+import { registerAuthRoutes } from '../server/routes/index.js';
 // Load environment variables
 dotenv.config();
 // Initialize Express app
@@ -17,6 +20,16 @@ const app = express();
 app.use(express.json());
 // Serve static files from the public directory
 app.use(express.static('public'));
+// Configure and register authentication routes
+(async () => {
+    try {
+        await registerAuthRoutes(app);
+        console.log('Authentication routes registered successfully');
+    }
+    catch (error) {
+        console.error('Failed to register authentication routes:', error);
+    }
+})();
 // Serve the index.html file for the root route
 app.get('/', (_req, res) => {
     res.sendFile('index.html', { root: './public' });
@@ -35,9 +48,35 @@ tasksRouter.get('/:taskId', function (req, res) {
     res.status(200).json(taskLogs[taskId]);
 });
 // List all tasks endpoint
-tasksRouter.get('/', function (_req, res) {
+tasksRouter.get('/', function (req, res) {
+    // Get user ID from the authenticated user (if available)
+    const userId = req.user?.claims?.sub;
+    // Use in-memory task logs for compatibility with existing code
     const tasks = Object.values(taskLogs);
+    // If user is authenticated, filter tasks to show only their own
+    if (userId) {
+        const userTasks = tasks.filter(task => task.userId === userId);
+        return res.status(200).json(userTasks);
+    }
+    // Otherwise, show all tasks
     res.status(200).json(tasks);
+});
+// List user's tasks from the database
+tasksRouter.get('/user', async function (req, res) {
+    try {
+        // Get user ID from the authenticated user (required)
+        const userId = req.user?.claims?.sub;
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required to access personal tasks' });
+        }
+        // Get user's tasks from database
+        const userTasks = await getTaskLogs(userId);
+        return res.status(200).json(userTasks);
+    }
+    catch (error) {
+        console.error('Error retrieving user tasks:', error);
+        return res.status(500).json({ error: 'Failed to retrieve user tasks' });
+    }
 });
 // Register tasks GET endpoints
 app.use('/api/tasks', tasksRouter);
@@ -46,6 +85,15 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
     const { task } = req.body;
     if (!task || typeof task !== 'string') {
         return res.status(400).json({ error: 'Task is required and must be a string' });
+    }
+    // Get user ID from the authenticated user (if available)
+    const userId = req.user?.claims?.sub;
+    // Log authentication status for debugging
+    if (userId) {
+        console.log(`Task submitted by authenticated user: ${userId}`);
+    }
+    else {
+        console.log('Task submitted by unauthenticated user');
     }
     // Get the Eko API key for validation (used in both async and sync paths)
     const ekoApiKey = process.env.EKO_API_KEY;
@@ -75,10 +123,11 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
                 task,
                 taskType: parsedTask.type, // Set the detected type immediately
                 status: 'pending',
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                userId: userId // Include the user ID if available
             };
             // Process the task asynchronously
-            processTask(taskId, task).catch(error => {
+            processTask(taskId, task, userId).catch(error => {
                 console.error(`Error processing task ${taskId}:`, error);
                 taskLogs[taskId].status = 'failed';
                 taskLogs[taskId].error = error.message;
@@ -237,7 +286,8 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
             userInput: task,
             tool: toolUsed,
             status: 'success',
-            output: result
+            output: result,
+            userId: userId
         });
         // Return the immediate result
         return res.status(200).json({ success: true, result });
@@ -249,7 +299,8 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
             userInput: task,
             tool: 'unknown',
             status: 'error',
-            output: { error: error.message || String(error) }
+            output: { error: error.message || String(error) },
+            userId: userId
         });
         return res.status(500).json({
             success: false,
@@ -258,9 +309,9 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
     }
 });
 // Process a task asynchronously
-async function processTask(taskId, taskText) {
+async function processTask(taskId, taskText, userId) {
     try {
-        console.log(`Processing task: ${taskId}`);
+        console.log(`Processing task: ${taskId}${userId ? ` for user: ${userId}` : ''}`);
         // Update task status
         taskLogs[taskId].status = 'processing';
         // Get the Eko API key 
@@ -283,7 +334,8 @@ async function processTask(taskId, taskText) {
                 userInput: taskText,
                 tool: 'parser',
                 status: 'error',
-                output: { error: parsedTask.error }
+                output: { error: parsedTask.error },
+                userId: userId // Include the user ID if available
             });
             return; // Exit early as we can't process this task
         }
@@ -327,6 +379,12 @@ async function processTask(taskId, taskText) {
         const summarizeTool = summarizeText(ekoApiKey);
         tools.push(summarizeTool);
         toolsMap['summarizeText'] = summarizeTool;
+        const dealerLoginTool = dealerLogin();
+        tools.push(dealerLoginTool);
+        toolsMap['dealerLogin'] = dealerLoginTool;
+        const fetchCRMReportTool = fetchCRMReport();
+        tools.push(fetchCRMReportTool);
+        toolsMap['fetchCRMReport'] = fetchCRMReportTool;
         // Initialize Eko agent with the appropriate tools
         const eko = new Eko({
             llms,
@@ -393,6 +451,36 @@ async function processTask(taskId, taskText) {
                 data: await flightTool.handler(parsedTask.parameters)
             };
             toolUsed = 'checkFlightStatus';
+        }
+        else if (parsedTask.type === TaskType.DealerLogin) {
+            // For dealer login tasks, we need to include the user ID in the parameters
+            // so the dealerLogin tool can access their stored credentials
+            const dealerLoginParams = {
+                ...parsedTask.parameters,
+                userId: userId // Pass the user ID for credential lookup
+            };
+            result = {
+                type: TaskType.DealerLogin,
+                timestamp: new Date().toISOString(),
+                message: "Task processed with dealer login agent",
+                data: await dealerLoginTool.handler(dealerLoginParams)
+            };
+            toolUsed = 'dealerLogin';
+        }
+        else if (parsedTask.type === TaskType.FetchCRMReport) {
+            // For CRM report tasks, we need to include the user ID in the parameters
+            // so the fetchCRMReport tool can access their stored credentials
+            const crmReportParams = {
+                ...parsedTask.parameters,
+                userId: userId // Pass the user ID for credential lookup
+            };
+            result = {
+                type: TaskType.FetchCRMReport,
+                timestamp: new Date().toISOString(),
+                message: "Task processed with CRM report extraction agent",
+                data: await fetchCRMReportTool.handler(crmReportParams)
+            };
+            toolUsed = 'fetchCRMReport';
         }
         else if (parsedTask.type === TaskType.Unknown) {
             // Handle unknown task type with possible error message
