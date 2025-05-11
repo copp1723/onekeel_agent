@@ -9,10 +9,12 @@ import { summarizeText } from '../tools/summarizeText.js';
 import { dealerLogin } from '../tools/dealerLogin.js';
 import { fetchCRMReportTool } from '../tools/fetchCRMReport.js';
 import { getApiKey } from '../services/supabase.js';
-import { parseTask, TaskType } from '../services/taskParser.js';
+import { parseTask } from '../services/taskParser.js';
+import { TaskType } from '../types.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
 import { executePlan } from '../agent/executePlan.js';
 import { registerAuthRoutes } from '../server/routes/index.js';
+import type { CrawlWebsiteArgs, CheckFlightStatusArgs } from '../types.js';
 
 // Extend Express Request to include auth user
 interface Request extends ExpressRequest {
@@ -54,7 +56,7 @@ app.get('/', (_req: Request, res: Response) => {
 interface TaskLog {
   id: string;
   task: string;
-  taskType: string;
+  taskType: TaskType | string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   result?: any;
   error?: string;
