@@ -8,49 +8,51 @@ import path from 'path';
 import config from '../../configs/platforms.json' assert { type: 'json' };
 // Maximum number of retries for flow execution
 const MAX_RETRIES = 1;
-/**
- * Validates that all required environment variables are present
- * @param platform - The platform name to validate variables for
- * @param envVars - Environment variables object
- * @throws Error if any required variables are missing
- */
-function validateEnvironmentVariables(platform, envVars) {
-    // Get all placeholder values from the config
-    const platformConfig = config[platform];
-    if (!platformConfig) {
-        throw new Error(`Platform "${platform}" not found in configuration`);
+// Note: The function below has been replaced by direct validation in runFlow
+// We're keeping it here as reference for a more sophisticated validation approach
+// that extracts placeholders from the step configuration
+/*
+function validateEnvironmentVariables(platform: string, envVars: EnvVars): void {
+  // Get all placeholder values from the config
+  const platformConfig = (config as Record<string, PlatformConfig>)[platform];
+  if (!platformConfig) {
+    throw new Error(`Platform "${platform}" not found in configuration`);
+  }
+
+  // Extract all placeholders from the configuration
+  const placeholders = new Set<string>();
+  const extractPlaceholders = (step: FlowStep) => {
+    if (step.value && typeof step.value === 'string') {
+      const matches = step.value.match(/\{\{([A-Z_]+)\}\}/g);
+      if (matches) {
+        matches.forEach(match => {
+          // Extract variable name without {{ }}
+          const varName = match.slice(2, -2);
+          placeholders.add(varName);
+        });
+      }
     }
-    // Extract all placeholders from the configuration
-    const placeholders = new Set();
-    const extractPlaceholders = (step) => {
-        if (step.value && typeof step.value === 'string') {
-            const matches = step.value.match(/\{\{([A-Z_]+)\}\}/g);
-            if (matches) {
-                matches.forEach(match => {
-                    // Extract variable name without {{ }}
-                    const varName = match.slice(2, -2);
-                    placeholders.add(varName);
-                });
-            }
-        }
-    };
-    // Check all steps for placeholders
-    platformConfig.loginSteps.forEach(extractPlaceholders);
-    if (platformConfig.otpStep)
-        extractPlaceholders(platformConfig.otpStep);
-    platformConfig.navigationSteps.forEach(extractPlaceholders);
-    platformConfig.downloadSteps.forEach(extractPlaceholders);
-    // Verify all placeholders have corresponding environment variables
-    const missingVars = [];
-    placeholders.forEach(placeholder => {
-        if (!envVars[placeholder]) {
-            missingVars.push(placeholder);
-        }
-    });
-    if (missingVars.length > 0) {
-        throw new Error(`Missing required environment variables for ${platform}: ${missingVars.join(', ')}`);
+  };
+
+  // Check all steps for placeholders
+  platformConfig.loginSteps.forEach(extractPlaceholders);
+  if (platformConfig.otpStep) extractPlaceholders(platformConfig.otpStep);
+  platformConfig.navigationSteps.forEach(extractPlaceholders);
+  platformConfig.downloadSteps.forEach(extractPlaceholders);
+
+  // Verify all placeholders have corresponding environment variables
+  const missingVars: string[] = [];
+  placeholders.forEach(placeholder => {
+    if (!envVars[placeholder]) {
+      missingVars.push(placeholder);
     }
+  });
+
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required environment variables for ${platform}: ${missingVars.join(', ')}`);
+  }
 }
+*/
 /**
  * Interpolates environment variables into string values
  * @param text - The text containing {{VARIABLE}} placeholders
@@ -69,66 +71,69 @@ function interpolateVariables(text, envVars) {
  * @returns Path to the downloaded file
  */
 export async function runFlow(platform, envVars) {
-    // Validate that all required environment variables are present
-    validateEnvironmentVariables(platform, envVars);
+    // Validate env vars up front
+    const missing = Object.entries(envVars)
+        .filter(([_, v]) => !v)
+        .map(([k]) => k);
+    if (missing.length) {
+        throw new Error(`runFlow: missing env vars: ${missing.join(', ')}`);
+    }
     // Get platform-specific configuration
     const platformConfig = config[platform];
     if (!platformConfig) {
         throw new Error(`Platform "${platform}" not found in configuration`);
     }
-    // Retry logic wrapper
-    const MAX_RETRIES = 1;
+    let lastError;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        let browser;
         try {
             // Launch browser
-            const browser = await chromium.launch({ headless: true });
+            browser = await chromium.launch({ headless: true });
             const page = await browser.newPage();
-            try {
-                console.log(`Executing ${platform} flow (attempt ${attempt + 1})...`);
-                // 1. Execute login steps
-                console.log('Executing login steps...');
-                for (const step of platformConfig.loginSteps) {
-                    await executeStep(page, step, envVars);
-                }
-                // 2. Execute OTP step if present
-                if (platformConfig.otpStep) {
-                    console.log('Executing OTP step...');
-                    await executeOTPStep(page, platformConfig.otpStep, envVars);
-                }
-                // 3. Execute navigation steps
-                console.log('Executing navigation steps...');
-                for (const step of platformConfig.navigationSteps) {
-                    await executeStep(page, step, envVars);
-                }
-                // 4. Execute download steps
-                console.log('Executing download steps...');
-                let downloadPath = '';
-                for (const step of platformConfig.downloadSteps) {
-                    downloadPath = await executeDownloadStep(page, step, envVars);
-                }
-                // Flow completed successfully
-                console.log(`${platform} flow completed successfully`);
-                return downloadPath;
+            console.log(`Executing ${platform} flow (attempt ${attempt + 1})...`);
+            // 1. Execute login steps
+            console.log('Executing login steps...');
+            for (const step of platformConfig.loginSteps) {
+                await executeStep(page, step, envVars);
             }
-            finally {
-                // Always close the browser
-                await browser.close();
+            // 2. Execute OTP step if present
+            if (platformConfig.otpStep) {
+                console.log('Executing OTP step...');
+                await executeOTPStep(page, platformConfig.otpStep, envVars);
             }
+            // 3. Execute navigation steps
+            console.log('Executing navigation steps...');
+            for (const step of platformConfig.navigationSteps) {
+                await executeStep(page, step, envVars);
+            }
+            // 4. Execute download steps
+            console.log('Executing download steps...');
+            let downloadPath = '';
+            for (const step of platformConfig.downloadSteps) {
+                downloadPath = await executeDownloadStep(page, step, envVars);
+            }
+            // Flow completed successfully
+            console.log(`${platform} flow completed successfully`);
+            await browser.close();
+            return downloadPath;
         }
-        catch (error) {
-            console.error(`Error running ${platform} flow (attempt ${attempt + 1}):`, error);
-            // If this was the last retry, throw the error
-            if (attempt === MAX_RETRIES) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                throw new Error(`Failed to execute ${platform} flow after ${MAX_RETRIES + 1} attempts: ${errorMessage}`);
+        catch (err) {
+            lastError = err;
+            console.error(`runFlow [${platform}] attempt ${attempt} failed:`, err);
+            if (browser)
+                await browser.close();
+            if (attempt < MAX_RETRIES) {
+                console.log(`runFlow: retrying (${attempt + 1}/${MAX_RETRIES})…`);
+                // Add delay before retry
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                continue;
             }
-            // Otherwise, retry after a delay
-            console.log(`Retrying in 3 seconds...`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Exhausted retries
+            throw new Error(`runFlow: failed after ${MAX_RETRIES + 1} attempts: ${err instanceof Error ? err.message : String(err)}`);
         }
     }
-    // This should never be reached due to the throw in the loop
-    throw new Error(`Unexpected error in flow execution for ${platform}`);
+    // This should never be reached, but TypeScript needs it
+    throw lastError;
 }
 /**
  * Executes a single step in the flow

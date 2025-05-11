@@ -201,7 +201,7 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
                 message: "Task executed with simulated Eko Agent",
                 data: await extractTool.handler(parsedTask.parameters)
             };
-            toolUsed = 'extractCleanContent';
+            toolUsed = TaskType.WebContentExtraction;
         }
         else if (parsedTask.type === TaskType.SummarizeText) {
             result = {
@@ -210,7 +210,7 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
                 message: "Task executed with simulated Eko Agent",
                 data: await summarizeTool.handler(parsedTask.parameters)
             };
-            toolUsed = 'summarizeText';
+            toolUsed = TaskType.SummarizeText;
         }
         else if (parsedTask.type === TaskType.WebCrawling) {
             result = {
@@ -219,7 +219,7 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
                 message: "Task executed with simulated Eko Agent",
                 data: await crawlTool.handler(parsedTask.parameters)
             };
-            toolUsed = 'crawlWebsite';
+            toolUsed = TaskType.WebCrawling;
         }
         else if (parsedTask.type === TaskType.FlightStatus) {
             result = {
@@ -228,7 +228,7 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
                 message: "Task executed with simulated Eko Agent",
                 data: await flightTool.handler(parsedTask.parameters)
             };
-            toolUsed = 'checkFlightStatus';
+            toolUsed = TaskType.FlightStatus;
         }
         // For testing purposes, check if the task is about summarizing content
         else if ((task.toLowerCase().includes('summarize') || task.toLowerCase().includes('summary'))) {
