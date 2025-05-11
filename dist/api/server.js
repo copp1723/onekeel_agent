@@ -509,7 +509,8 @@ async function processTask(taskId, taskText, userId) {
             userInput: taskText,
             tool: parsedTask.type,
             status: 'success',
-            output: result
+            output: result,
+            userId: userId
         });
     }
     catch (error) {
@@ -522,7 +523,8 @@ async function processTask(taskId, taskText, userId) {
             userInput: taskText,
             tool: taskLogs[taskId].taskType || 'unknown',
             status: 'error',
-            output: { error: error.message || String(error) }
+            output: { error: error.message || String(error) },
+            userId: userId
         });
     }
 }
