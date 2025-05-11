@@ -65,35 +65,61 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
     return res.status(400).json({ error: 'Task is required and must be a string' });
   }
   
-  // For the async API, return a task ID immediately
+  // Get the Eko API key for validation (used in both async and sync paths)
+  const ekoApiKey = process.env.EKO_API_KEY;
+  if (!ekoApiKey) {
+    return res.status(500).json({ error: 'API key not available' });
+  }
+  
+  // For the async API, validate the task before accepting it
   const isAsync = req.path === '/api/tasks';
   
   if (isAsync) {
-    // Generate a unique ID for this task
-    const taskId = crypto.randomUUID();
-    
-    // Log the new task
-    taskLogs[taskId] = {
-      id: taskId,
-      task,
-      taskType: 'unknown', // Will be updated after parsing
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-    
-    // Process the task asynchronously
-    processTask(taskId, task).catch(error => {
-      console.error(`Error processing task ${taskId}:`, error);
-      taskLogs[taskId].status = 'failed';
-      taskLogs[taskId].error = error.message;
-      taskLogs[taskId].completedAt = new Date().toISOString();
-    });
-    
-    // Return the task ID immediately
-    return res.status(202).json({ 
-      id: taskId, 
-      message: 'Task submitted successfully' 
-    });
+    try {
+      // Parse the task first to see if it's valid
+      const parsedTask = await parseTask(task, ekoApiKey);
+      
+      // Check if the task parsing resulted in an error
+      if (parsedTask.error) {
+        console.error("❌ Task parser validation error:", parsedTask.error);
+        // Return a 400 Bad Request with the specific error message
+        return res.status(400).json({ 
+          error: parsedTask.error 
+        });
+      }
+      
+      // Generate a unique ID for this task
+      const taskId = crypto.randomUUID();
+      console.log(`Task submitted: ${taskId} - ${task}`);
+      
+      // Log the new task
+      taskLogs[taskId] = {
+        id: taskId,
+        task,
+        taskType: parsedTask.type, // Set the detected type immediately
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      
+      // Process the task asynchronously
+      processTask(taskId, task).catch(error => {
+        console.error(`Error processing task ${taskId}:`, error);
+        taskLogs[taskId].status = 'failed';
+        taskLogs[taskId].error = error.message;
+        taskLogs[taskId].completedAt = new Date().toISOString();
+      });
+      
+      // Return the task ID immediately
+      return res.status(201).json({ 
+        id: taskId, 
+        message: 'Task submitted successfully' 
+      });
+    } catch (error: any) {
+      console.error("Error during task validation:", error);
+      return res.status(500).json({ 
+        error: error.message || "Error validating task"
+      });
+    }
   }
 
   // For synchronous execution (submit-task), execute immediately 
@@ -279,20 +305,22 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
 // Process a task asynchronously
 async function processTask(taskId: string, taskText: string): Promise<void> {
   try {
+    console.log(`Processing task: ${taskId}`);
     // Update task status
     taskLogs[taskId].status = 'processing';
     
-    // Get the Eko API key from Supabase
+    // Get the Eko API key 
     const ekoApiKey = process.env.EKO_API_KEY;
     if (!ekoApiKey) {
       throw new Error('Eko API key not available');
     }
     
-    // Parse the task to determine the appropriate action
+    // We may have already parsed the task during validation,
+    // but we'll parse it again here for consistency since the processing function
+    // could be called independently
     const parsedTask = await parseTask(taskText, ekoApiKey);
-    console.log(`Parsed task (${taskId}):`, JSON.stringify(parsedTask, null, 2));
     
-    // If there was a parsing error, mark the task as failed and return early
+    // If parsing returned an error, fail the task immediately
     if (parsedTask.error) {
       console.error(`❌ Task parsing error (${taskId}):`, parsedTask.error);
       taskLogs[taskId].status = 'failed';
@@ -309,6 +337,12 @@ async function processTask(taskId: string, taskText: string): Promise<void> {
       
       return; // Exit early as we can't process this task
     }
+    
+    // Log the parsed task for debugging
+    console.log(`Parsed task (${taskId}):`, JSON.stringify(parsedTask, null, 2));
+    
+    // Update the task type in the logs
+    taskLogs[taskId].taskType = parsedTask.type;
     
     taskLogs[taskId].taskType = parsedTask.type;
     
