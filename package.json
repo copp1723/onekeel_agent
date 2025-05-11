@@ -15,9 +15,12 @@
   "description": "",
   "dependencies": {
     "@eko-ai/eko": "^2.0.2-alpha.6",
+    "@types/connect-pg-simple": "^7.0.3",
     "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.1",
+    "@types/express-session": "^1.18.1",
     "@types/memoizee": "^0.4.12",
+    "@types/passport": "^1.0.17",
     "axios": "^1.9.0",
     "connect-pg-simple": "^10.0.0",
     "crypto-js": "^4.2.0",
