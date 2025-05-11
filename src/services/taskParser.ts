@@ -358,11 +358,20 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
     };
   }
   // CRM Report extraction tasks
-  else if ((taskLower.includes('crm') || taskLower.includes('sales')) && 
+  else if ((taskLower.includes('crm') || taskLower.includes('sales') || taskLower.includes('vinsolutions')) && 
           (taskLower.includes('report') || taskLower.includes('data') || 
            taskLower.includes('deals') || taskLower.includes('yesterday'))) {
     
-    console.log('Detected CRM report extraction task');
+    console.log(`[${taskHash}] 🏆 Detected CRM report extraction task`);
+    console.log(`[${taskHash}] Matching keywords:`, {
+      hasCRM: taskLower.includes('crm'),
+      hasSales: taskLower.includes('sales'),  
+      hasVinSolutions: taskLower.includes('vinsolutions'),
+      hasReport: taskLower.includes('report'),
+      hasData: taskLower.includes('data'),
+      hasDeals: taskLower.includes('deals'),
+      hasYesterday: taskLower.includes('yesterday')
+    });
     
     // Extract dealer site/system if specified
     let site = '';
