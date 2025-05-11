@@ -69,9 +69,40 @@ tasksRouter.get('/:taskId', function(req: Request, res: Response) {
 });
 
 // List all tasks endpoint
-tasksRouter.get('/', function(_req: Request, res: Response) {
+tasksRouter.get('/', function(req: Request, res: Response) {
+  // Get user ID from the authenticated user (if available)
+  const userId = req.user?.claims?.sub;
+  
+  // Use in-memory task logs for compatibility with existing code
   const tasks = Object.values(taskLogs);
+  
+  // If user is authenticated, filter tasks to show only their own
+  if (userId) {
+    const userTasks = tasks.filter(task => task.userId === userId);
+    return res.status(200).json(userTasks);
+  }
+  
+  // Otherwise, show all tasks
   res.status(200).json(tasks);
+});
+
+// List user's tasks from the database
+tasksRouter.get('/user', async function(req: Request, res: Response) {
+  try {
+    // Get user ID from the authenticated user (required)
+    const userId = req.user?.claims?.sub;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required to access personal tasks' });
+    }
+    
+    // Get user's tasks from database
+    const userTasks = await getTaskLogs(userId);
+    return res.status(200).json(userTasks);
+  } catch (error) {
+    console.error('Error retrieving user tasks:', error);
+    return res.status(500).json({ error: 'Failed to retrieve user tasks' });
+  }
 });
 
 // Register tasks GET endpoints
