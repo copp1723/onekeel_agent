@@ -12,6 +12,7 @@ export enum TaskType {
   FlightStatus = 'flight_status',
   DealerLogin = 'dealer_login',
   VehicleData = 'vehicle_data',
+  FetchCRMReport = 'fetch_crm_report',
   MultiStep = 'multi_step',
   Unknown = 'unknown'
 }
@@ -356,6 +357,125 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
       original: task
     };
   }
+  // CRM Report extraction tasks
+  else if ((taskLower.includes('crm') || taskLower.includes('sales')) && 
+          (taskLower.includes('report') || taskLower.includes('data') || 
+           taskLower.includes('deals') || taskLower.includes('yesterday'))) {
+    
+    console.log('Detected CRM report extraction task');
+    
+    // Extract dealer site/system if specified
+    let site = '';
+    
+    // Check for specific CRM system mentions
+    const crmSystems = ['vinsolutions', 'dealersocket', 'elead', 'cdk'];
+    for (const system of crmSystems) {
+      if (taskLower.includes(system)) {
+        site = system;
+        break;
+      }
+    }
+    
+    // If no specific CRM mentioned, default to VinSolutions
+    if (!site) {
+      site = 'vinsolutions';
+    }
+    
+    console.log('CRM system detected:', site);
+    
+    // Extract date if specified
+    const dateMatch = task.match(/for\s+(\d{4}-\d{2}-\d{2})/i) || 
+                     task.match(/on\s+(\d{4}-\d{2}-\d{2})/i);
+    const date = dateMatch ? dateMatch[1] : '';
+    
+    // Check if this is a multi-step task needing login first
+    const needsLogin = taskLower.includes('login') || 
+                      !taskLower.includes('logged in') || 
+                      taskLower.includes('credentials');
+    
+    // Extract dealer ID if specified
+    const dealerIdMatch = task.match(/dealer(?:ship)?\s+id\s*[:=]?\s*([a-zA-Z0-9_-]+)/i) || 
+                          task.match(/dealer[:\s]+(\w+)/i);
+    const dealerId = dealerIdMatch ? dealerIdMatch[1] : '';
+    
+    if (needsLogin && dealerId) {
+      // This is a multi-step task: login -> get report
+      try {
+        // Create a plan entry in the database
+        const [planRecord] = await db.insert(plans).values({
+          task: task
+        }).returning({ id: plans.id });
+        
+        const planId = planRecord.id;
+        console.log(`Created multi-step CRM plan with ID: ${planId}`);
+        
+        // Return a multi-step plan
+        return {
+          type: TaskType.MultiStep,
+          parameters: { 
+            site,
+            dealerId,
+            ...(date ? { date } : {})
+          },
+          original: task,
+          planId: planId,
+          plan: {
+            planId: planId,
+            taskText: task,
+            steps: [
+              {
+                tool: 'dealerLogin',
+                input: { 
+                  dealerId,
+                  site
+                }
+              },
+              {
+                tool: 'fetchCRMReport',
+                input: { 
+                  site,
+                  dealerId: '{{step0.output.dealerId}}',
+                  ...(date ? { date } : {})
+                }
+              },
+              {
+                tool: 'summarizeText',
+                input: { 
+                  text: 'CRM Report Summary: {{step1.output.deals.length}} deals found for {{step1.output.reportDate}}. {{#if step1.output.summaryStats}}Total sales: {{step1.output.summaryStats.totalSales}}, Total revenue: ${{step1.output.summaryStats.totalRevenue}}, Total gross profit: ${{step1.output.summaryStats.totalGrossProfit}}{{#if step1.output.summaryStats.topRep}}, Top rep: {{step1.output.summaryStats.topRep}}{{/if}}{{/if}}',
+                  maxLength: 500,
+                  format: 'paragraph'
+                }
+              }
+            ]
+          }
+        };
+      } catch (error) {
+        console.error('Error creating CRM plan record:', error);
+        
+        // Return single-step fallback
+        return {
+          type: TaskType.FetchCRMReport,
+          parameters: {
+            site,
+            dealerId,
+            ...(date ? { date } : {})
+          },
+          original: task
+        };
+      }
+    } else {
+      // Single-step task - just get the report
+      return {
+        type: TaskType.FetchCRMReport,
+        parameters: {
+          site,
+          dealerId,
+          ...(date ? { date } : {})
+        },
+        original: task
+      };
+    }
+  }
   else if (taskLower.includes('vehicle') || 
            taskLower.includes('car') || 
            taskLower.includes('window sticker')) {
@@ -452,6 +572,8 @@ export async function parseTaskWithLLM(task: string, ekoApiKey: string): Promise
       - summarizeText - Summarizes text content
       - checkFlightStatus - Checks status of a flight
       - crawlWebsite - Crawls and extracts data from websites
+      - dealerLogin - Logs into dealer systems with credentials
+      - fetchCRMReport - Extracts reports from dealer CRM systems
       
       Task categories:
       1. web_crawling - For tasks about crawling websites, scraping data
@@ -460,8 +582,9 @@ export async function parseTaskWithLLM(task: string, ekoApiKey: string): Promise
       4. flight_status - For checking flight status
       5. dealer_login - For dealer login related tasks
       6. vehicle_data - For extracting vehicle information
-      7. multi_step - For tasks that require multiple steps
-      8. unknown - For tasks that don't fit the above categories
+      7. fetch_crm_report - For retrieving dealer CRM sales reports
+      8. multi_step - For tasks that require multiple steps
+      9. unknown - For tasks that don't fit the above categories
       
       For multi-step tasks, create an execution plan with the tools needed in sequence.
       

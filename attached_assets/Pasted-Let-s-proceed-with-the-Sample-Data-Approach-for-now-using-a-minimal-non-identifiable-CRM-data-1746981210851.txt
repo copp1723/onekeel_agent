@@ -1,0 +1,66 @@
+Let’s proceed with the **Sample Data Approach** for now — using a minimal, non-identifiable CRM data structure that reflects what we'd expect from VinSolutions (e.g., deal date, rep name, vehicle, sale price, gross profit), but without fabricating realistic or sensitive content.
+
+Here’s how you can hand that off to the Replit Agent to continue with **Phase 1.2: fetchCRMReport Tool**:
+
+---
+
+## 🧩 Replit Agent Handoff — Phase 1.2: VinSolutions Report Extraction Tool
+
+````
+Let’s build the `fetchCRMReport.ts` tool to simulate downloading a CRM report from VinSolutions.
+
+🎯 Objective:
+- Simulate the VinSolutions report download step in our multi-step agent workflow.
+- For now, use a hardcoded sample dataset that resembles a real CRM export (structure only — no fabricated or personal info).
+
+📦 Implementation Plan:
+
+1. **Tool File**: Create `src/tools/fetchCRMReport.ts`
+
+2. **Logic**:
+   - Accept `dealerId` or `site` from the task input.
+   - Retrieve mock structured data with keys like:
+     - saleDate, repName, vehicle, price, grossProfit, vin
+   - Return this data as a JSON array.
+
+3. **Sample Data Structure**:
+```ts
+[
+  {
+    saleDate: "2024-04-11",
+    repName: "John Smith",
+    vehicle: "2021 Ford F-150",
+    price: 45000,
+    grossProfit: 3600,
+    vin: "1FTFW1E89MFA12345"
+  },
+  {
+    saleDate: "2024-04-11",
+    repName: "Lisa Tran",
+    vehicle: "2022 Toyota Camry",
+    price: 28000,
+    grossProfit: 2500,
+    vin: "4T1BF1FK7NU123456"
+  }
+]
+````
+
+4. **Integrate into Multi-Step Plan**:
+
+   * Update `taskParser.ts` to recognize `"fetch CRM report"` or `"get sales from VinSolutions"` as `FetchCRMReport` type
+   * Update `executePlan.ts` to chain from `dealerLogin → fetchCRMReport → summarizeText`
+
+🛠 Notes:
+
+* Ensure the tool accepts a `userId` and retrieves credentials (if needed).
+* Add logging to track execution in Supabase.
+
+Goal:
+Simulate a realistic fetchCRMReport step so we can test full end-to-end task automation before using live credentials.
+
+```
+
+---
+
+When ready, I’ll provide the **Phase 2 Scheduler Handoff** so we can automate this task to run daily.
+```
