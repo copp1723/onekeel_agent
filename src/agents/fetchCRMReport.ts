@@ -17,8 +17,14 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
   console.log(`Fetching CRM report for dealer ${dealerId} from ${platform}...`);
   
   // Validate platform is supported
-  if (platform.toLowerCase() !== 'vinsolutions' && platform.toLowerCase() !== 'vauto') {
+  const supportedPlatforms = ['vinsolutions', 'vauto'];
+  if (!platform || !supportedPlatforms.includes(platform.toLowerCase())) {
     throw new Error(`Unsupported CRM platform: ${platform}. Supported platforms: VinSolutions, VAUTO`);
+  }
+  
+  // Validate dealer ID
+  if (!dealerId) {
+    throw new Error('Missing required parameter: dealerId');
   }
   
   // Check if we should use sample data
@@ -26,27 +32,37 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
     console.log(`Using sample data for ${platform} (dealer: ${dealerId})`);
     // Import dynamically to avoid circular dependencies
     const { createSampleReportFile } = await import('./sampleData.js');
-    const normalizedPlatform = platform.toLowerCase() === 'vinsolutions' ? 'VinSolutions' : 'VAUTO';
+    
+    const platformMap: Record<string, CRMPlatform> = {
+      'vinsolutions': 'VinSolutions',
+      'vauto': 'VAUTO'
+    };
+    const normalizedPlatform = platformMap[platform.toLowerCase()];
+    
     return await createSampleReportFile(dealerId, normalizedPlatform);
   }
   
   try {
     // Normalize platform name for configuration lookup
-    const normalizedPlatform = platform.toLowerCase() === 'vinsolutions' ? 'VinSolutions' : 'VAUTO' as CRMPlatform;
+    const platformMap: Record<string, CRMPlatform> = {
+      'vinsolutions': 'VinSolutions',
+      'vauto': 'VAUTO'
+    };
+    const normalizedPlatform = platformMap[platform.toLowerCase()];
     
     // Get environment variables based on platform
     const envVars: EnvVars = {};
     
-    if (normalizedPlatform === 'VinSolutions') {
-      // For VinSolutions, we need username, password and OTP email credentials
-      checkAndAssignEnvVar(envVars, 'VIN_SOLUTIONS_USERNAME');
-      checkAndAssignEnvVar(envVars, 'VIN_SOLUTIONS_PASSWORD');
-      checkAndAssignEnvVar(envVars, 'OTP_EMAIL_USER');
-      checkAndAssignEnvVar(envVars, 'OTP_EMAIL_PASS');
-    } else {
-      // For VAUTO, we just need username and password
-      checkAndAssignEnvVar(envVars, 'VAUTO_USERNAME');
-      checkAndAssignEnvVar(envVars, 'VAUTO_PASSWORD');
+    // Define required environment variables for each platform
+    const requiredEnvVars: Record<CRMPlatform, string[]> = {
+      'VinSolutions': ['VIN_SOLUTIONS_USERNAME', 'VIN_SOLUTIONS_PASSWORD', 'OTP_EMAIL_USER', 'OTP_EMAIL_PASS'],
+      'VAUTO': ['VAUTO_USERNAME', 'VAUTO_PASSWORD']
+    };
+    
+    // Check for required environment variables
+    const requiredVars = requiredEnvVars[normalizedPlatform] || [];
+    for (const varName of requiredVars) {
+      checkAndAssignEnvVar(envVars, varName);
     }
     
     // Run the flow for the specified platform
@@ -77,31 +93,45 @@ function checkAndAssignEnvVar(envVars: EnvVars, name: string): void {
  * @param filePath - Path to the downloaded report file
  * @returns Parsed report data
  */
-export async function parseCRMReport(filePath: string): Promise<Record<string, any>> {
-  // Ensure the file exists
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Report file not found: ${filePath}`);
+export interface CRMReport {
+  totalRecords: number;
+  headers: string[];
+  data: Record<string, string>[];
+}
+
+export async function parseCRMReport(filePath: string): Promise<CRMReport> {
+  // Ensure the file exists and is readable
+  try {
+    await fs.promises.access(filePath, fs.constants.R_OK);
+  } catch (error) {
+    throw new Error(`Report file not found or not readable: ${filePath}`);
   }
   
   try {
     console.log(`Parsing CRM report file: ${filePath}`);
     
     // Read the file
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const fileContent = await fs.promises.readFile(filePath, 'utf-8');
     
-    // Parse CSV content
-    // This is a simplified implementation - in a real scenario, use a proper CSV parser
-    const lines = fileContent.split('\n');
+    // Parse CSV content - using a simple parser for demo
+    // In production code, a robust CSV parser library would be used
+    const lines = fileContent.split('\n').filter(line => line.trim());
+    
+    if (lines.length === 0) {
+      throw new Error('CSV file is empty');
+    }
+    
     const headers = lines[0].split(',').map(header => header.trim());
+    const data: Record<string, string>[] = [];
     
-    const data: Record<string, any>[] = [];
-    
+    // Process each data row
     for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
-      
       const values = lines[i].split(',').map(value => value.trim());
-      const row: Record<string, any> = {};
       
+      // Skip rows with insufficient values
+      if (values.length < headers.length / 2) continue;
+      
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
       });
@@ -109,7 +139,7 @@ export async function parseCRMReport(filePath: string): Promise<Record<string, a
       data.push(row);
     }
     
-    // Return the parsed data
+    // Return the parsed data with proper type
     return {
       totalRecords: data.length,
       headers,

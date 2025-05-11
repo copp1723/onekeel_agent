@@ -10,4 +10,9 @@ export declare function fetchCRMReport(options: CRMReportOptions): Promise<strin
  * @param filePath - Path to the downloaded report file
  * @returns Parsed report data
  */
-export declare function parseCRMReport(filePath: string): Promise<Record<string, any>>;
+export interface CRMReport {
+    totalRecords: number;
+    headers: string[];
+    data: Record<string, string>[];
+}
+export declare function parseCRMReport(filePath: string): Promise<CRMReport>;
