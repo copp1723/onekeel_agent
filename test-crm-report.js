@@ -1,5 +1,5 @@
 // Test script for CRM report extraction
-const axios = require('axios');
+import axios from 'axios';
 
 /**
  * Tests the CRM report extraction functionality
@@ -61,3 +61,6 @@ async function testCRMReport() {
 
 // Run the test
 testCRMReport().catch(console.error);
+
+// Export for module compatibility
+export default testCRMReport;
