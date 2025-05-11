@@ -1,4 +1,5 @@
-import express, { Request as ExpressRequest, Response, Router, RequestHandler, NextFunction } from 'express';
+import express, { Response, Router, RequestHandler, NextFunction } from 'express';
+import type { Request as ExpressRequest } from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { Eko, LLMs } from '@eko-ai/eko';
@@ -14,24 +15,49 @@ import { TaskType } from '../types.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
 import { executePlan } from '../agent/executePlan.js';
 import { registerAuthRoutes } from '../server/routes/index.js';
-import { routeHandler } from '../utils/routeHandler.js';
 import type { CrawlWebsiteArgs, CheckFlightStatusArgs } from '../types.js';
 
-// Extend Express Request to include auth user
-// Enhanced Request interface to satisfy both strict checks and express-session types
-interface Request extends ExpressRequest {
+// Use a more specific name for our custom Request type
+// to avoid conflicts with the Express Request type
+type ServerRequest = ExpressRequest & {
   user?: {
     claims?: {
       sub: string;
       [key: string]: any;
     };
     [key: string]: any;
-  } | undefined;
-  
-  // Make these compatible with routeHandler
-  params?: any;
-  body?: any;
-  query?: any;
+  };
+};
+
+// Use this type throughout the file
+type Request = ServerRequest;
+
+// Import from utils instead of redefining
+import { routeHandler } from '../utils/routeHandler.js';
+    try {
+      const result = handler(req as Request, res, next);
+      if (result instanceof Promise) {
+        result.catch((error: any) => {
+          console.error('Route handler error:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ 
+              error: 'Internal server error', 
+              message: error instanceof Error ? error.message : String(error) 
+            });
+          }
+        });
+      }
+      return result;
+    } catch (error) {
+      console.error('Route handler error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: 'Internal server error', 
+          message: error instanceof Error ? error.message : String(error) 
+        });
+      }
+    }
+  };
 }
 
 // Load environment variables

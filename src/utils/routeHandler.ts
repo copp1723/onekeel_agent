@@ -1,20 +1,43 @@
-import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import { Request as ExpressRequest, Response, NextFunction } from 'express';
+
+// RouteHandler type to make Express handler types more flexible
+export type RouteHandler = (
+  req: ExpressRequest, 
+  res: Response, 
+  next?: NextFunction
+) => Promise<any> | any;
 
 /**
- * Wraps Express route handlers to fix TypeScript compatibility issues
- * and provide consistent error handling for async routes.
+ * Helper function to wrap Express route handlers and provide consistent error handling
+ * This also fixes TypeScript type compatibility issues with Express route handlers
+ * 
+ * @param handler - Express route handler function
+ * @returns Wrapped route handler with consistent error handling
  */
-export const routeHandler = <P = any, ResBody = any, ReqBody = any>(
-  handler: (req: Request<P, ResBody, ReqBody>, res: Response<ResBody>, next: NextFunction) => Promise<void> | void
-): RequestHandler => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+export function routeHandler(handler: RouteHandler) {
+  return (req: ExpressRequest, res: Response, next: NextFunction) => {
     try {
-      const result = handler(req as Request<P, ResBody, ReqBody>, res, next);
-      if (result && typeof result.catch === 'function') {
-        result.catch((err: Error) => next(err));
+      const result = handler(req, res, next);
+      if (result instanceof Promise) {
+        result.catch((error: Error) => {
+          console.error('Route handler error:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ 
+              error: 'Internal server error', 
+              message: error.message 
+            });
+          }
+        });
       }
-    } catch (err) {
-      next(err);
+      return result;
+    } catch (error) {
+      console.error('Route handler error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: 'Internal server error', 
+          message: error instanceof Error ? error.message : String(error) 
+        });
+      }
     }
   };
-};
+}

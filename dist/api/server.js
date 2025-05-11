@@ -14,7 +14,35 @@ import { TaskType } from '../types.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
 import { executePlan } from '../agent/executePlan.js';
 import { registerAuthRoutes } from '../server/routes/index.js';
-import { routeHandler } from '../utils/routeHandler.js';
+// Helper function to wrap route handlers and fix TypeScript compatibility issues
+function routeHandler(handler) {
+    return (req, res, next) => {
+        try {
+            const result = handler(req, res, next);
+            if (result instanceof Promise) {
+                result.catch((error) => {
+                    console.error('Route handler error:', error);
+                    if (!res.headersSent) {
+                        res.status(500).json({
+                            error: 'Internal server error',
+                            message: error instanceof Error ? error.message : String(error)
+                        });
+                    }
+                });
+            }
+            return result;
+        }
+        catch (error) {
+            console.error('Route handler error:', error);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: 'Internal server error',
+                    message: error instanceof Error ? error.message : String(error)
+                });
+            }
+        }
+    };
+}
 // Load environment variables
 dotenv.config();
 // Initialize Express app
