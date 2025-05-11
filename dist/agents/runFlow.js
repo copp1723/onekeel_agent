@@ -2,7 +2,8 @@
  * Generic config-driven Playwright automation engine
  * Executes multi-step flows defined in platform configurations
  */
-import { chromium } from 'playwright';
+import * as playwright from 'playwright';
+const { chromium } = playwright;
 import path from 'path';
 // Load platform configurations
 import config from '../../configs/platforms.json' assert { type: 'json' };

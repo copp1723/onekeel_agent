@@ -14,6 +14,7 @@ import { TaskType } from '../types.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
 import { executePlan } from '../agent/executePlan.js';
 import { registerAuthRoutes } from '../server/routes/index.js';
+import { routeHandler } from '../utils/routeHandler.js';
 // Load environment variables
 dotenv.config();
 // Initialize Express app
@@ -32,9 +33,9 @@ app.use(express.static('public'));
     }
 })();
 // Serve the index.html file for the root route
-app.get('/', (_req, res) => {
+app.get('/', routeHandler((_req, res) => {
     res.sendFile('index.html', { root: './public' });
-});
+}));
 // Simple in-memory task storage
 // In a production app, this would be stored in Supabase/Firestore
 const taskLogs = {};
@@ -573,7 +574,7 @@ async function processTask(taskId, taskText, userId) {
     }
 }
 // Test endpoint for parser
-app.post('/test-parser', async (req, res) => {
+app.post('/test-parser', routeHandler(async (req, res) => {
     const { task } = req.body;
     if (!task || typeof task !== 'string') {
         res.status(400).json({ error: 'Task is required and must be a string' });
@@ -602,9 +603,9 @@ app.post('/test-parser', async (req, res) => {
         res.status(500).json({ error: error.message });
         return;
     }
-});
+}));
 // Health check endpoint
-app.get('/health', (_req, res) => {
+app.get('/health', routeHandler((_req, res) => {
     res.status(200).json({
         status: 'ok',
         uptime: process.uptime(),
@@ -618,7 +619,7 @@ app.get('/health', (_req, res) => {
             summarization: true
         }
     });
-});
+}));
 // Start the server
 const port = Number(process.env.PORT) || 5000;
 const server = app.listen(port, () => {

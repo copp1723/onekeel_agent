@@ -21,7 +21,7 @@ const taskLogs: Record<string, {
   completedAt?: string;
 }> = {};
 
-// API endpoint for direct task execution (Phase 3)
+// Direct route handler without routeHandler wrapper to fix return type issues
 app.post('/submit-task', (req, res) => {
   try {
     const { task } = req.body;
@@ -84,7 +84,7 @@ app.post('/submit-task', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({ 
     status: 'up',
     version: '1.0.0',

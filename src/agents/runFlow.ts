@@ -2,7 +2,10 @@
  * Generic config-driven Playwright automation engine
  * Executes multi-step flows defined in platform configurations
  */
-import { chromium, Browser, Page } from 'playwright';
+import * as playwright from 'playwright';
+const { chromium } = playwright;
+type Browser = playwright.Browser;
+type Page = playwright.Page;
 import path from 'path';
 // This import is commented out because we're using a local implementation for testing
 // import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
