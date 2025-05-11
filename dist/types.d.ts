@@ -54,6 +54,7 @@ export interface CrawlWebsiteArgs {
     url: string;
     depth?: number;
     maxPages?: number;
+    [key: string]: any;
 }
 /**
  * Task type for flight status check
@@ -61,6 +62,7 @@ export interface CrawlWebsiteArgs {
 export interface CheckFlightStatusArgs {
     flightNumber: string;
     date?: string;
+    [key: string]: any;
 }
 /**
  * Platform configuration for CRM automation
