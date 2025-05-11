@@ -1,5 +1,6 @@
 import { Eko, LLMs } from '@eko-ai/eko';
 import { EkoTool } from './extractCleanContent.js';
+import OpenAI from 'openai';
 
 interface SummarizeTextArgs {
   text: string;
@@ -8,7 +9,7 @@ interface SummarizeTextArgs {
 
 /**
  * Creates a summarizeText tool that uses LLM to create concise summaries
- * @param ekoApiKey - The Eko API key to use
+ * @param ekoApiKey - The Eko API key (not used with direct OpenAI integration)
  * @returns A tool object that can be registered with Eko
  */
 export function summarizeText(ekoApiKey: string): EkoTool {
@@ -37,40 +38,57 @@ export function summarizeText(ekoApiKey: string): EkoTool {
           throw new Error('No text provided to summarize');
         }
         
-        // Configure LLMs
-        const llms: LLMs = {
-          default: {
-            provider: "openai",
-            model: "gpt-4o-mini",
-            apiKey: ekoApiKey,
-          }
-        };
+        console.log(`Summarizing text (length: ${text.length} characters)`);
         
-        // Initialize Eko agent
-        const eko = new Eko({ llms });
+        // Using direct OpenAI integration for more reliable summarization
+        const openaiApiKey = process.env.OPENAI_API_KEY;
         
-        // Define the summarization prompt
-        const summarizationPrompt = `
-          Your task is to create a concise summary of the following text.
-          Keep the summary to approximately ${maxLength} words while capturing the key points.
-          
-          Text to summarize:
-          ${text}
-          
-          Summary:
-        `;
+        if (!openaiApiKey) {
+          console.error('❌ OpenAI API key not found in environment variables');
+          throw new Error('OpenAI API key not configured. Please set the OPENAI_API_KEY environment variable.');
+        }
+
+        // Initialize OpenAI client with proper API key
+        const openai = new OpenAI({ apiKey: openaiApiKey });
         
-        // Generate the summary
-        const summary = await eko.run(summarizationPrompt);
+        // Call OpenAI API directly for summarization
+        const response = await openai.chat.completions.create({
+          model: 'gpt-4o-mini', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          messages: [
+            { 
+              role: 'system', 
+              content: `You are a summarization expert. Create a concise summary of about ${maxLength} words 
+                        that captures the key points of the provided text.` 
+            },
+            { 
+              role: 'user', 
+              content: text 
+            }
+          ],
+          temperature: 0.5,
+          max_tokens: 350,
+        });
+        
+        const summary = response.choices[0].message.content.trim();
         
         return {
-          summary: summary.trim(),
+          summary: summary,
           originalLength: text.length,
-          summaryLength: summary.trim().length
+          summaryLength: summary.length,
+          compressionRatio: `${Math.round((summary.length / text.length) * 100)}%`
         };
-      } catch (error) {
-        console.error('Error summarizing text:', error);
-        throw error;
+      } catch (error: any) {
+        console.error('❌ Error summarizing text:', error.message);
+        
+        // Provide a more descriptive error for debugging
+        if (error.response) {
+          console.error('OpenAI API error details:', {
+            status: error.response.status,
+            data: error.response.data
+          });
+        }
+        
+        throw new Error(`Failed to summarize text: ${error.message}`);
       }
     }
   };

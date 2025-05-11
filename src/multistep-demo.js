@@ -32,17 +32,16 @@ app.post('/summarize', async (req, res) => {
     
     console.log(`Received request to summarize content from: ${url}`);
     
-    // Get API key from environment variables
-    const apiKey = process.env.EKO_API_KEY;
-    if (!apiKey) {
+    // Verify that OpenAI API key is available in env
+    if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({
         success: false,
-        error: 'API key not configured'
+        error: 'OpenAI API key not configured'
       });
     }
     
     // Execute the multi-step process
-    const result = await extractAndSummarize(url, apiKey);
+    const result = await extractAndSummarize(url);
     
     // Return the result
     return res.status(200).json({
