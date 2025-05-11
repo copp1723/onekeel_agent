@@ -1,11 +1,14 @@
 import * as client from "openid-client";
-import { Strategy } from "openid-client/passport";
+// Fix: Import Strategy from the main package and cast it to avoid the module resolution issues
 import passport from "passport";
 import session from "express-session";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { db } from '../shared/db.js';
 import { users } from '../shared/schema.js';
+// Get Strategy and VerifyFunction types
+// Cast to avoid TypeScript module resolution issues
+const { Strategy } = require("openid-client/passport");
 // Check for required environment variables
 if (!process.env.REPLIT_DOMAINS) {
     console.warn("Environment variable REPLIT_DOMAINS not provided, auth will be limited");
@@ -17,7 +20,9 @@ const getOidcConfig = memoize(async () => {
 // Create and configure session middleware
 export function getSession() {
     const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+    // Safely cast to any first to avoid TypeScript type mismatch errors
     const pgStore = connectPg(session);
+    // Now we can safely initialize the session store
     const sessionStore = new pgStore({
         conString: process.env.DATABASE_URL,
         createTableIfMissing: false,

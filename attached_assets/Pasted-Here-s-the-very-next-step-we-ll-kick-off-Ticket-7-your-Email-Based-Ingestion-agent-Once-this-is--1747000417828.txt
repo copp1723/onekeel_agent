@@ -1,0 +1,66 @@
+Here’s the very next step: we’ll kick off Ticket #7, your Email‑Based Ingestion agent. Once this is in review, we’ll move on to Ticket #8 (hybrid fallback).
+
+⸻
+
+🎟 Ticket #7: Implement ingestScheduledReport.ts (IMAP Email Ingestion)
+
+Context
+AgentFlow needs to first attempt pulling CRM reports via scheduled emails (e.g. from no-reply@vinsolutions.com) before falling back to browser automation. This service will connect to a mailbox, look for new attachments, save them, and hand back the file path.
+
+⸻
+
+📋 Requirements
+	1.	IMAP Connection
+	•	Use imap-simple (or similar) with credentials from envVars:
+	•	EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_TLS
+	•	Poll the inbox folder (e.g. INBOX) for unread messages from the configured sender.
+	2.	Attachment Extraction
+	•	For each matching message, download all attachments.
+	•	Save attachments to envVars.DOWNLOAD_DIR (create if needed).
+	•	Name files uniquely, e.g. ${platform}_${timestamp}_${originalFilename}.
+	3.	Message Handling
+	•	Mark processed messages as read (or move to a “processed” folder).
+	•	If no new messages found, return null or throw a specific “no report” error to trigger fallback.
+	4.	Return Value
+	•	On success: return the first file path found as a string.
+	•	On no reports: throw ReportNotFoundError (or return null if preferred).
+	•	On fatal email errors: throw with clear message.
+	5.	Logging & Errors
+	•	Use shared logger (log.info, log.error) to record:
+	•	Connection success/failure
+	•	Number of messages scanned
+	•	File paths saved
+	•	Wrap IMAP calls in try/catch and propagate errors cleanly.
+	6.	Typing & Tests
+	•	Fully type the function as
+
+export async function ingestScheduledReport(
+  platform: string,
+  downloadDir: string
+): Promise<string | null> { … }
+
+
+	•	Add unit tests (mocking imap-simple) to cover:
+	•	No messages found
+	•	Single message with one attachment
+	•	Multiple messages & attachments
+
+⸻
+
+✅ Acceptance Criteria
+	•	ingestScheduledReport.ts compiles under strict TS with zero errors.
+	•	Connects to IMAP, finds messages from configured sender.
+	•	Downloads attachments to DOWNLOAD_DIR.
+	•	Returns correct file path or throws ReportNotFoundError.
+	•	Fully covered by unit tests with ≥ 80% coverage.
+	•	Integrated into CI (tsc + tests pass).
+
+⸻
+
+👤 Assignees & Labels
+	•	Assignees: AgentFlow Dev Team
+	•	Labels: feature, typescript, CRM-ingestion, critical
+
+⸻
+
+Once Ticket #7 is underway, we’ll draft Ticket #8 for the hybrid logic (email-first, fallback to runFlow). Let me know if you’d like any adjustments here; otherwise, you can copy this into your tracker and get coding!

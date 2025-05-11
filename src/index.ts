@@ -1,7 +1,5 @@
 // Main entry point for the AI Agent API server
 import dotenv from 'dotenv';
-import express from 'express';
-import * as crypto from 'crypto';
 import { app, server } from './api/server.js';
 
 // Load environment variables
