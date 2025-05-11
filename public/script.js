@@ -30,6 +30,12 @@ taskForm.addEventListener('submit', async (e) => {
   if (!taskText) return;
   
   try {
+    // Disable the input field and submit button during processing
+    taskInput.disabled = true;
+    const submitButton = taskForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+    
     // Show loading state
     taskForm.parentElement.classList.add('hidden');
     loadingState.classList.remove('hidden');
@@ -56,6 +62,13 @@ taskForm.addEventListener('submit', async (e) => {
     
   } catch (error) {
     showError('Failed to submit task', error.message);
+    
+    // Re-enable the form if there's an error
+    taskInput.disabled = false;
+    const submitButton = taskForm.querySelector('button[type="submit"]');
+    submitButton.disabled = false;
+    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    taskForm.parentElement.classList.remove('hidden');
   }
 });
 
@@ -64,11 +77,20 @@ newTaskButton.addEventListener('click', () => {
   // Stop any polling
   isPolling = false;
   
+  // Enable form inputs
+  taskInput.disabled = false;
+  const submitButton = taskForm.querySelector('button[type="submit"]');
+  submitButton.disabled = false;
+  submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+  
   // Reset UI
   taskInput.value = '';
   taskForm.parentElement.classList.remove('hidden');
   loadingState.classList.add('hidden');
   resultContainer.classList.add('hidden');
+  
+  // Focus the input for immediate typing
+  setTimeout(() => taskInput.focus(), 100);
 });
 
 // Start polling for task results
@@ -129,30 +151,32 @@ function showResults(taskData) {
   // Set title
   resultTitle.textContent = 'Task Completed Successfully';
   
-  // Extract the final result content based on task type
+  // Extract the final result content, focusing ONLY on the last step's output
   let finalResult = '';
   
   if (taskData.result) {
+    // For multi-step tasks, show ONLY the final step's output (what the user asked for)
     if (taskData.result.type === 'multi_step' && taskData.result.steps && taskData.result.steps.length > 0) {
-      // Get the last step result for multi-step tasks
+      // Get the last step result - this is the actual output the user cares about
       const lastStep = taskData.result.steps[taskData.result.steps.length - 1];
       
       if (lastStep.tool === 'summarizeText' && lastStep.output && lastStep.output.summary) {
-        finalResult = `<h3 class="font-medium mb-2">Summary:</h3><div class="bg-gray-50 p-4 rounded-md mb-4">${lastStep.output.summary}</div>`;
+        // For summarization tasks, show the summary text directly
+        finalResult = `<div class="bg-gray-50 p-4 rounded-md mb-4">${lastStep.output.summary}</div>`;
       } else if (lastStep.tool === 'extractCleanContent' && lastStep.output && lastStep.output.content) {
-        finalResult = `<h3 class="font-medium mb-2">Extracted Content:</h3><div class="bg-gray-50 p-4 rounded-md mb-4">${lastStep.output.content}</div>`;
+        // For content extraction, show the extracted content
+        finalResult = `<div class="bg-gray-50 p-4 rounded-md mb-4">${lastStep.output.content}</div>`;
       } else if (lastStep.output) {
+        // For other tools, show the output in a structured format
         finalResult = `<pre class="bg-gray-50 p-4 rounded-md overflow-auto">${JSON.stringify(lastStep.output, null, 2)}</pre>`;
       }
       
-      // Add additional info if available
-      if (taskData.result.data) {
-        if (taskData.result.data.summary) {
-          finalResult = `<h3 class="font-medium mb-2">Summary:</h3><div class="bg-gray-50 p-4 rounded-md mb-4">${taskData.result.data.summary}</div>`;
-        }
+      // If we have data.summary directly in the result (some response formats), prioritize this
+      if (taskData.result.data && taskData.result.data.summary) {
+        finalResult = `<div class="bg-gray-50 p-4 rounded-md mb-4">${taskData.result.data.summary}</div>`;
       }
     } else if (taskData.result.output) {
-      // Handle single-step task results
+      // Single-step task results
       finalResult = `<pre class="bg-gray-50 p-4 rounded-md overflow-auto">${JSON.stringify(taskData.result.output, null, 2)}</pre>`;
     } else {
       // Fallback for other result formats
@@ -174,7 +198,14 @@ function showError(title, message) {
   // Set error icon
   resultStatusIcon.innerHTML = '<svg class="h-6 w-6 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>';
   
-  // Set title and error message
-  resultTitle.textContent = title || 'Error';
-  resultContent.innerHTML = `<p class="text-red-500">${message || 'An unexpected error occurred'}</p>`;
+  // Simplify error display with consistent message
+  resultTitle.textContent = '❌ Task Failed';
+  
+  // Use a generic user-friendly message instead of technical details
+  resultContent.innerHTML = `
+    <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+      <p class="text-red-700">Task failed. Please try again.</p>
+      ${message ? `<p class="text-red-500 text-sm mt-2">Details: ${message}</p>` : ''}
+    </div>
+  `;
 }
