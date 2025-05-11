@@ -1,11 +1,15 @@
 import { Eko } from '@eko-ai/eko';
+import { executePlan } from '../agent/executePlan.js';
 // Define the task types the agent can handle
 export var TaskType;
 (function (TaskType) {
     TaskType["WebCrawling"] = "web_crawling";
+    TaskType["WebContentExtraction"] = "web_content_extraction";
+    TaskType["SummarizeText"] = "summarize_text";
     TaskType["FlightStatus"] = "flight_status";
     TaskType["DealerLogin"] = "dealer_login";
     TaskType["VehicleData"] = "vehicle_data";
+    TaskType["MultiStep"] = "multi_step";
     TaskType["Unknown"] = "unknown";
 })(TaskType || (TaskType = {}));
 /**
@@ -18,6 +22,71 @@ export async function parseTask(task, ekoApiKey) {
     // For a simple implementation, we'll use a rule-based approach
     // In a more complex system, you would use the LLM for this
     const taskLower = task.toLowerCase();
+    
+    console.log('Parsing task:', task);
+    console.log('Task keywords:', 
+      'summarize:', taskLower.includes('summarize'),
+      'summary:', taskLower.includes('summary'),
+      'content:', taskLower.includes('content'),
+      'from:', taskLower.includes('from'),
+      'of:', taskLower.includes('of'),
+      'text:', taskLower.includes('text')
+    );
+    
+    // Check for multi-step tasks that involve extracting content and then summarizing
+    if ((taskLower.includes('extract') && taskLower.includes('content') && 
+         (taskLower.includes('summarize') || taskLower.includes('summary'))) ||
+        ((taskLower.includes('summarize') || taskLower.includes('summary')) && 
+         (taskLower.includes('content of') || taskLower.includes('content from') || 
+          taskLower.includes('from') || taskLower.includes('of') || taskLower.includes('text') ||
+          taskLower.includes('website') || taskLower.includes('page') || taskLower.includes('article') ||
+          taskLower.includes('url')))) {
+      
+      console.log('Detected potential multi-step task pattern');
+      
+      const urlMatch = task.match(/https?:\/\/[^\s]+/);
+      const url = urlMatch ? urlMatch[0] : '';
+      
+      console.log('URL detected:', url || 'None');
+      
+      if (url) {
+        // Create a multi-step plan
+        return {
+          type: TaskType.MultiStep,
+          parameters: { url },
+          original: task,
+          plan: {
+            steps: [
+              {
+                tool: 'extractCleanContent',
+                input: { url }
+              },
+              {
+                tool: 'summarizeText',
+                input: { text: '{{step0.output.content}}', maxLength: 300 }
+              }
+            ]
+          }
+        };
+      }
+    }
+    
+    // Extract clean content tasks
+    if ((taskLower.includes('extract') && taskLower.includes('clean content')) || 
+        (taskLower.includes('get') && taskLower.includes('article text'))) {
+      const urlMatch = task.match(/https?:\/\/[^\s]+/);
+      const url = urlMatch ? urlMatch[0] : '';
+      
+      if (url) {
+        return {
+          type: TaskType.WebContentExtraction,
+          parameters: { url },
+          original: task
+        };
+      }
+    }
+    
+    // Regular web crawling tasks
     if (taskLower.includes('crawl') || taskLower.includes('scrape') || taskLower.includes('extract')) {
         // This is likely a web crawling task
         const urlMatch = task.match(/https?:\/\/[^\s]+/);
