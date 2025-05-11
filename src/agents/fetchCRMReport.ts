@@ -28,6 +28,15 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
     throw new Error(`Unsupported CRM platform: ${platform}. Supported platforms: VinSolutions, VAUTO`);
   }
   
+  // Check if we should use sample data
+  if (process.env.USE_SAMPLE_DATA === 'true') {
+    console.log(`Using sample data for ${platform} (dealer: ${dealerId})`);
+    // Import dynamically to avoid circular dependencies
+    const { createSampleReportFile } = await import('./sampleData.js');
+    const normalizedPlatform = platform.toLowerCase() === 'vinsolutions' ? 'VinSolutions' : 'VAUTO';
+    return await createSampleReportFile(dealerId, normalizedPlatform);
+  }
+  
   try {
     // Normalize platform name for configuration lookup
     const normalizedPlatform = platform.toLowerCase() === 'vinsolutions' ? 'VinSolutions' : 'VAUTO';
