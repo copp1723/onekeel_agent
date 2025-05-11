@@ -48,15 +48,32 @@ export async function logTask({
   
   try {
     // Then try to log to database
-    await db.insert(taskLogs).values({
-      userInput,
-      tool,
-      status,
-      output,
-      userId
-    });
-    
-    console.log(`Task logged to database: ${tool} - ${status}`);
+    // First attempt with userId (for upgraded schema)
+    try {
+      await db.insert(taskLogs).values({
+        userInput,
+        tool,
+        status,
+        output,
+        userId
+      });
+      console.log(`Task logged to database: ${tool} - ${status}`);
+    } catch (error) {
+      // If that fails, try without userId (for original schema)
+      if (error.message && error.message.includes('user_id')) {
+        console.log('Falling back to schema without user_id');
+        await db.insert(taskLogs).values({
+          userInput,
+          tool,
+          status,
+          output
+        });
+        console.log(`Task logged to database (without userId): ${tool} - ${status}`);
+      } else {
+        // Re-throw if it's not a user_id related issue
+        throw error;
+      }
+    }
   } catch (error) {
     // Don't throw here to avoid breaking the main flow if logging fails
     console.error('Failed to log task to database:', error);
@@ -74,13 +91,25 @@ export async function getTaskLogs(userId?: string) {
     // Try database first
     let query = db.select().from(taskLogs);
     
-    // Add userId filter if provided
+    // Add userId filter if provided, but handle if user_id column doesn't exist
     if (userId) {
-      query = query.where(eq(taskLogs.userId, userId));
+      try {
+        query = query.where(eq(taskLogs.userId, userId));
+        const dbLogs = await query;
+        return dbLogs;
+      } catch (error) {
+        // If user_id column doesn't exist, retrieve all logs
+        if (error.message && error.message.includes('user_id')) {
+          console.log('Column user_id not found, retrieving all logs');
+          return await db.select().from(taskLogs);
+        }
+        throw error;
+      }
+    } else {
+      // No user ID filter needed
+      const dbLogs = await query;
+      return dbLogs;
     }
-    
-    const dbLogs = await query;
-    return dbLogs;
   } catch (error) {
     console.error('Failed to retrieve logs from database:', error);
     
