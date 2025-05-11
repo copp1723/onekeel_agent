@@ -51,15 +51,22 @@ async function extractContent(url) {
 }
 
 // Summarize text using OpenAI API
-async function summarizeText(text, apiKey) {
+async function summarizeText(text) {
   try {
     console.log(`Summarizing text (length: ${text.length} characters)`);
     
     // Use the OpenAI API for summarization
+    // Get the OpenAI API key from environment
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured. Please set the OPENAI_API_KEY environment variable.');
+    }
+    
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-mini', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
         messages: [
           {
             role: 'system',
@@ -74,7 +81,7 @@ async function summarizeText(text, apiKey) {
       },
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json'
         }
       }
@@ -86,19 +93,22 @@ async function summarizeText(text, apiKey) {
       summaryLength: response.data.choices[0].message.content.length
     };
   } catch (error) {
-    // For demo purposes, return a fallback summary if API call fails
     console.error('Error summarizing text:', error.message);
-    return {
-      summary: "This domain is used for illustrative examples in documentation. It's a placeholder domain reserved for use in examples without prior coordination.",
-      originalLength: text.length,
-      summaryLength: 124,
-      note: "API error occurred, using fallback summary"
-    };
+    
+    if (error.response) {
+      console.error('OpenAI API error details:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+    }
+    
+    throw new Error(`Failed to summarize text: ${error.message}`);
   }
 }
 
 // Main function that executes the multi-step process
-async function extractAndSummarize(url, apiKey) {
+async function extractAndSummarize(url) {
   try {
     // Step 1: Extract content
     console.log("Step 1: Extracting content");
@@ -112,7 +122,7 @@ async function extractAndSummarize(url, apiKey) {
     
     // Step 2: Summarize the extracted content
     console.log("Step 2: Summarizing content");
-    const summarizationResult = await summarizeText(extractionResult.content, apiKey);
+    const summarizationResult = await summarizeText(extractionResult.content);
     
     // Return the complete result with metadata
     return {
