@@ -6,7 +6,10 @@
  */
 import OpenAI from 'openai';
 import * as fs from 'fs';
+import path from 'path';
 import { getPromptByIntent } from '../prompts/promptRouter.js';
+import { logInsightRun } from '../shared/logger.js';
+import { saveResult } from '../shared/outputStorage.js';
 /**
  * Generates insights from a CSV file using LLM-based analysis
  * @param csvFilePath - Path to the CSV file containing dealership data
@@ -18,6 +21,12 @@ export async function generateInsightsFromCSV(csvFilePath, intent = 'automotive_
     if (!fs.existsSync(csvFilePath)) {
         throw new Error(`CSV file not found: ${csvFilePath}`);
     }
+    // Extract platform from file path
+    const filename = path.basename(csvFilePath);
+    const platform = filename.includes('VinSolutions') ? 'VinSolutions' :
+        filename.includes('VAUTO') ? 'VAUTO' : 'Unknown';
+    // Timing data
+    const startTime = Date.now();
     // Read CSV file content
     const csvContent = await fs.promises.readFile(csvFilePath, 'utf-8');
     try {
@@ -46,6 +55,9 @@ export async function generateInsightsFromCSV(csvFilePath, intent = 'automotive_
             temperature: 0.2,
             response_format: { type: 'json_object' }
         });
+        // Calculate duration
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
         // Parse the response
         const content = response.choices[0].message.content;
         if (!content) {
@@ -57,6 +69,26 @@ export async function generateInsightsFromCSV(csvFilePath, intent = 'automotive_
         if (!insightData.title || !insightData.description || !Array.isArray(insightData.actionItems)) {
             throw new Error('Invalid insight format: Missing required fields');
         }
+        // Log the insight run
+        const insightRunData = {
+            platform,
+            inputFile: csvFilePath,
+            promptIntent: intent,
+            promptVersion: promptInfo.version,
+            durationMs,
+            outputSummary: [insightData.title]
+        };
+        logInsightRun(insightRunData);
+        // Save result to structured directory
+        const outputFilename = `insight_${Date.now()}`;
+        const outputPath = saveResult(platform, insightData, outputFilename, {
+            promptIntent: intent,
+            promptVersion: promptInfo.version,
+            durationMs,
+            inputFile: csvFilePath,
+            sampleSize
+        });
+        console.log(`Insight saved to: ${outputPath}`);
         return insightData;
     }
     catch (error) {
