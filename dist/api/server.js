@@ -87,7 +87,8 @@ app.use('/api/tasks', tasksRouter);
 app.post('/submit-task', async (req, res) => {
     const { task } = req.body;
     if (!task || typeof task !== 'string') {
-        return res.status(400).json({ error: 'Task is required and must be a string' });
+        res.status(400).json({ error: 'Task is required and must be a string' });
+        return;
     }
     // Get user ID from the authenticated user (if available)
     const userId = req.user?.claims?.sub;
@@ -311,7 +312,7 @@ app.post('/submit-task', async (req, res) => {
         // Log the error
         await logTask({
             userInput: task,
-            tool: 'unknown',
+            tool: TaskType.Unknown,
             status: 'error',
             output: { error: error.message || String(error) },
             userId: userId
@@ -346,7 +347,7 @@ async function processTask(taskId, taskText, userId) {
             // Log the error
             await logTask({
                 userInput: taskText,
-                tool: 'parser',
+                tool: TaskType.Unknown, // Parser is not a TaskType enum value
                 status: 'error',
                 output: { error: parsedTask.error },
                 userId: userId // Include the user ID if available
@@ -567,7 +568,8 @@ async function processTask(taskId, taskText, userId) {
 app.post('/test-parser', async (req, res) => {
     const { task } = req.body;
     if (!task || typeof task !== 'string') {
-        return res.status(400).json({ error: 'Task is required and must be a string' });
+        res.status(400).json({ error: 'Task is required and must be a string' });
+        return;
     }
     try {
         // Get the API key

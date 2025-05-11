@@ -126,11 +126,12 @@ tasksRouter.get('/user', (async (req: Request, res: Response, _next: NextFunctio
 app.use('/api/tasks', tasksRouter);
 
 // Unified task submission endpoint for both sync and async operations
-app.post('/submit-task', async (req: Request, res: Response): Promise<Response> => {
+app.post('/submit-task', async (req: Request, res: Response): Promise<void> => {
   const { task } = req.body;
   
   if (!task || typeof task !== 'string') {
-    return res.status(400).json({ error: 'Task is required and must be a string' });
+    res.status(400).json({ error: 'Task is required and must be a string' });
+    return;
   }
   
   // Get user ID from the authenticated user (if available)
@@ -381,7 +382,7 @@ app.post('/submit-task', async (req: Request, res: Response): Promise<Response> 
     // Log the error
     await logTask({
       userInput: task,
-      tool: 'unknown',
+      tool: TaskType.Unknown,
       status: 'error',
       output: { error: error.message || String(error) },
       userId: userId
@@ -422,7 +423,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
       // Log the error
       await logTask({
         userInput: taskText,
-        tool: 'parser',
+        tool: TaskType.Unknown, // Parser is not a TaskType enum value
         status: 'error',
         output: { error: parsedTask.error },
         userId: userId // Include the user ID if available
@@ -666,11 +667,12 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
 }
 
 // Test endpoint for parser
-app.post('/test-parser', async (req: Request, res: Response) => {
+app.post('/test-parser', async (req: Request, res: Response): Promise<void> => {
   const { task } = req.body;
   
   if (!task || typeof task !== 'string') {
-    return res.status(400).json({ error: 'Task is required and must be a string' });
+    res.status(400).json({ error: 'Task is required and must be a string' });
+    return;
   }
   
   try {
