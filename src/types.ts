@@ -49,6 +49,7 @@ export enum TaskType {
   MultiStep = 'multiStep',
   WebCrawling = 'webCrawling',
   WebContentExtraction = 'webContentExtraction',
+  VehicleData = 'vehicleData',
   Unknown = 'unknown'
 }
 

@@ -564,9 +564,10 @@ export async function parseTask(task, ekoApiKey) {
             task.match(/on\s+(\d{4}-\d{2}-\d{2})/i);
         const date = dateMatch ? dateMatch[1] : '';
         // Check if this is a multi-step task needing login first
-        const needsLogin = taskLower.includes('login') ||
-            !taskLower.includes('logged in') ||
-            taskLower.includes('credentials');
+        // Keeping this commented for future implementation
+        // const needsLogin = taskLower.includes('login') || 
+        //                  !taskLower.includes('logged in') || 
+        //                  taskLower.includes('credentials');
         // Get a dealer ID using a more robust extraction approach
         let dealerId = '';
         // Try to match a dealer ID specified explicitly
@@ -724,8 +725,10 @@ export async function parseTaskWithLLM(task, ekoApiKey) {
     `;
         // Generate a response
         const response = await eko.run(parsingPrompt);
+        // Convert response to string to use regex
+        const responseText = typeof response === 'string' ? response : JSON.stringify(response);
         // Parse the JSON response
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             try {
                 const parsed = JSON.parse(jsonMatch[0]);
