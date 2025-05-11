@@ -225,7 +225,7 @@ async function executeDownloadStep(page, step, _envVars) {
     // Click the download button and wait for download
     const [download] = await Promise.all([
         page.waitForEvent('download'),
-        row.locator(step.buttonSelector).click()
+        page.click(`${step.rowSelector} ${step.buttonSelector}`)
     ]);
     // Save the file
     await download.saveAs(downloadPath);
