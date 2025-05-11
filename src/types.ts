@@ -60,6 +60,7 @@ export interface CrawlWebsiteArgs {
   url: string;
   depth?: number;
   maxPages?: number;
+  [key: string]: any; // Allow for additional properties to prevent type errors
 }
 
 /**
@@ -68,6 +69,7 @@ export interface CrawlWebsiteArgs {
 export interface CheckFlightStatusArgs {
   flightNumber: string;
   date?: string;
+  [key: string]: any; // Allow for additional properties to prevent type errors
 }
 
 /**

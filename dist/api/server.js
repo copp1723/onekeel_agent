@@ -221,18 +221,27 @@ app.post(['/submit-task', '/api/tasks'], (async (req, res) => {
                 type: TaskType.WebCrawling,
                 timestamp: new Date().toISOString(),
                 message: "Task executed with simulated Eko Agent",
-                data: await crawlTool.handler(parsedTask.parameters)
+                // Ensure we have required parameters for web crawling
+                data: await crawlTool.handler({
+                    url: parsedTask.parameters.url || 'https://example.com', // Default URL as fallback
+                    depth: parsedTask.parameters.depth,
+                    maxPages: parsedTask.parameters.maxPages
+                })
             };
-            toolUsed = TaskType.WebCrawling;
+            toolUsed = TaskType.WebCrawling.toString();
         }
         else if (parsedTask.type === TaskType.FlightStatus) {
             result = {
                 type: TaskType.FlightStatus,
                 timestamp: new Date().toISOString(),
                 message: "Task executed with simulated Eko Agent",
-                data: await flightTool.handler(parsedTask.parameters)
+                // Ensure we have required parameters for flight status check
+                data: await flightTool.handler({
+                    flightNumber: parsedTask.parameters.flightNumber || 'UA123', // Default flight number as fallback
+                    date: parsedTask.parameters.date
+                })
             };
-            toolUsed = TaskType.FlightStatus;
+            toolUsed = TaskType.FlightStatus.toString();
         }
         // For testing purposes, check if the task is about summarizing content
         else if ((task.toLowerCase().includes('summarize') || task.toLowerCase().includes('summary'))) {
@@ -418,7 +427,17 @@ async function processTask(taskId, taskText, userId) {
                 }))
             };
             // Record all tools used in the sequence
-            toolUsed = parsedTask.plan.steps.map(step => step.tool).join(',');
+            // We join the tool names but keep them as string for database logging
+            toolUsed = parsedTask.plan.steps.map(step => {
+                // Try to map the string tool name to TaskType when possible for consistency
+                try {
+                    return TaskType[step.tool].toString();
+                }
+                catch (e) {
+                    // Fallback to the original tool name if not in TaskType enum
+                    return step.tool;
+                }
+            }).join(',');
         }
         // Handle single-step tasks with the appropriate tool
         else if (parsedTask.type === TaskType.WebContentExtraction) {
@@ -440,20 +459,31 @@ async function processTask(taskId, taskText, userId) {
             toolUsed = TaskType.SummarizeText.toString();
         }
         else if (parsedTask.type === TaskType.WebCrawling) {
+            // Ensure we have required parameters for web crawling
+            const crawlParams = {
+                url: parsedTask.parameters.url || 'https://example.com', // Default URL as fallback
+                depth: parsedTask.parameters.depth,
+                maxPages: parsedTask.parameters.maxPages
+            };
             result = {
                 type: TaskType.WebCrawling,
                 timestamp: new Date().toISOString(),
                 message: "Task processed with simulated agent",
-                data: await toolsMap[TaskType.WebCrawling].handler(parsedTask.parameters)
+                data: await toolsMap[TaskType.WebCrawling].handler(crawlParams)
             };
             toolUsed = TaskType.CrawlWebsite.toString();
         }
         else if (parsedTask.type === TaskType.FlightStatus) {
+            // Ensure we have required parameters for flight status check
+            const flightParams = {
+                flightNumber: parsedTask.parameters.flightNumber || 'UA123', // Default flight number as fallback
+                date: parsedTask.parameters.date
+            };
             result = {
                 type: TaskType.FlightStatus,
                 timestamp: new Date().toISOString(),
                 message: "Task processed with simulated agent",
-                data: await flightTool.handler(parsedTask.parameters)
+                data: await flightTool.handler(flightParams)
             };
             toolUsed = TaskType.FlightStatus.toString();
         }

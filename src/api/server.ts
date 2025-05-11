@@ -522,7 +522,16 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
       };
       
       // Record all tools used in the sequence
-      toolUsed = parsedTask.plan.steps.map(step => step.tool).join(',');
+      // We join the tool names but keep them as string for database logging
+      toolUsed = parsedTask.plan.steps.map(step => {
+        // Try to map the string tool name to TaskType when possible for consistency
+        try {
+          return TaskType[step.tool as keyof typeof TaskType].toString();
+        } catch (e) {
+          // Fallback to the original tool name if not in TaskType enum
+          return step.tool;
+        }
+      }).join(',');
     } 
     // Handle single-step tasks with the appropriate tool
     else if (parsedTask.type === TaskType.WebContentExtraction) {
