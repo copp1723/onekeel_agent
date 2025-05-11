@@ -22,6 +22,13 @@ export declare function logTask({ userInput, tool, status, output, userId }: {
  * @returns Array of task logs, either from database or memory
  */
 export declare function getTaskLogs(userId?: string): Promise<{
+    userInput: string;
+    tool: string;
+    status: "success" | "error";
+    output: any;
+    userId: string | undefined;
+    timestamp: string;
+}[] | {
     id: string;
     userId: string | null;
     userInput: string;
@@ -29,11 +36,4 @@ export declare function getTaskLogs(userId?: string): Promise<{
     status: string;
     output: unknown;
     createdAt: Date | null;
-}[] | {
-    userInput: string;
-    tool: string;
-    status: "success" | "error";
-    output: any;
-    userId: string | undefined;
-    timestamp: string;
 }[]>;

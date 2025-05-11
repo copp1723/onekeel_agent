@@ -1,0 +1,90 @@
+First things first—let’s get test-server.ts solid, then we’ll come back to the monster that is server.ts with a clean slate.
+
+⸻
+
+1) Fix src/api/test-server.ts
+
+Apply this patch exactly to remove the bad handler signature and add the /test-parser check:
+
+--- a/src/api/test-server.ts
++++ b/src/api/test-server.ts
+@@ -1,12 +1,14 @@
+ import request from 'supertest';
+ import { app } from './server';
+ 
+ describe('Test Server', () => {
+-  it('should respond to /health', async (req, res) => {
++  it('should respond to /health', async () => {
+     const response = await request(app).get('/health');
+     expect(response.status).toBe(200);
+-    // const req = {};
++    // removed unused `req` param
+   });
++
++  it('should respond to /test-parser', async () => {
++    const response = await request(app).post('/test-parser').send({ /* sample payload */ });
++    expect(response.status).toBe(200);
++  });
+ });
+
+After you apply that, run:
+
+npx tsc --noEmit
+
+You should see zero errors coming from test-server.ts (and your other already‑fixed files).
+
+⸻
+
+2) Scaffold a fresh src/api/server.ts
+
+The current file is too tangled. Let’s strip it down to a minimal, compilable skeleton and then re‑add endpoints one by one.
+
+// src/api/server.ts
+import express, { Request, Response } from 'express';
+import { routeHandler } from '../utils/routeHandler';
+import { parseTask, getTasks } from '../services/taskParser';
+
+const router = express.Router();
+
+// Health check
+router.get(
+  '/health',
+  routeHandler(async (_req: Request, res: Response) => {
+    res.send('OK');
+  })
+);
+
+// Test-parser endpoint
+router.post(
+  '/test-parser',
+  routeHandler(async (req: Request, res: Response) => {
+    const result = await parseTask(req.body);
+    res.json(result);
+  })
+);
+
+// Tasks listing endpoint
+router.get(
+  '/tasks',
+  routeHandler(async (_req: Request, res: Response) => {
+    const tasks = await getTasks();
+    res.json(tasks);
+  })
+);
+
+// TODO: re‑add other endpoints here, following the same routeHandler pattern.
+
+export default router;
+
+	1.	Save this as your new server.ts.
+	2.	Re‑run npx tsc --noEmit.
+	3.	If it’s clean, start copying back each of your other endpoints one at a time—verifying after each add that you still have zero TS errors.
+
+⸻
+
+Why this helps
+	•	Surgical fixes in test-server.ts clear that simpler file immediately.
+	•	A fresh skeleton for server.ts avoids chasing random syntax corruption; you rebuild with known‑good patterns.
+	•	One endpoint at a time lets you spot any lingering type issues in isolation.
+
+Give that a try and let me know where you land. Once both files are green, we can merge and move on to Tickets #7/ #8.

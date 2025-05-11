@@ -1,11 +1,16 @@
-import { Request as ExpressRequest, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 
-// RouteHandler type to make Express handler types more flexible
-export type RouteHandler = (
-  req: ExpressRequest, 
-  res: Response, 
-  next?: NextFunction
-) => Promise<any> | any;
+// Use a type that allows for custom properties on the request
+type AnyRequest = Request & {
+  [key: string]: any;
+  user?: {
+    claims?: {
+      sub: string;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
+};
 
 /**
  * Helper function to wrap Express route handlers and provide consistent error handling
@@ -14,10 +19,10 @@ export type RouteHandler = (
  * @param handler - Express route handler function
  * @returns Wrapped route handler with consistent error handling
  */
-export function routeHandler(handler: RouteHandler) {
-  return (req: ExpressRequest, res: Response, next: NextFunction) => {
+export function routeHandler<P = any>(handler: (req: AnyRequest, res: Response, next?: NextFunction) => any): RequestHandler<P> {
+  return (req, res, next) => {
     try {
-      const result = handler(req, res, next);
+      const result = handler(req as Request, res, next);
       if (result instanceof Promise) {
         result.catch((error: Error) => {
           console.error('Route handler error:', error);
