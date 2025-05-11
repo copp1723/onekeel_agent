@@ -22,6 +22,16 @@ app.post('/api/tasks', async (req, res) => {
       return res.status(400).json({ error: 'Task is required and must be a string' });
     }
     
+    // Check for required URL in summarize tasks
+    if ((task.toLowerCase().includes('summarize') || task.toLowerCase().includes('summary')) && 
+        !task.match(/\b([a-z0-9-]+\.)+[a-z]{2,}\b/i)) {
+      // Missing URL in a summarize task
+      console.error("❌ Task parser error: No valid URL detected");
+      return res.status(400).json({ 
+        error: 'No valid URL found. Please include a full or partial URL.' 
+      });
+    }
+    
     // Generate task ID
     const taskId = crypto.randomUUID();
     
@@ -78,6 +88,17 @@ app.post('/submit-task', async (req, res) => {
     
     if (!task || typeof task !== 'string') {
       return res.status(400).json({ error: 'Task is required and must be a string' });
+    }
+    
+    // Check for required URL in summarize tasks
+    if ((task.toLowerCase().includes('summarize') || task.toLowerCase().includes('summary')) && 
+        !task.match(/\b([a-z0-9-]+\.)+[a-z]{2,}\b/i)) {
+      // Missing URL in a summarize task
+      console.error("❌ Task parser error: No valid URL detected");
+      return res.status(400).json({ 
+        success: false,
+        error: 'No valid URL found. Please include a full or partial URL.' 
+      });
     }
     
     // Generate task ID
