@@ -1,4 +1,6 @@
 import { EkoTool } from '../tools/extractCleanContent.js';
+import { db } from '../shared/db.js';
+import { plans, steps } from '../shared/schema.js';
 
 export interface PlanStep {
   tool: string;
@@ -7,11 +9,14 @@ export interface PlanStep {
 
 export interface ExecutionPlan {
   steps: PlanStep[];
+  planId?: string; // Optional plan ID for tracking in the database
+  taskText?: string; // Original task text
 }
 
 export interface StepResult {
   output: any;
   error?: string;
+  stepId?: string; // Identifier for the step in the database
 }
 
 /**
@@ -25,10 +30,21 @@ export interface StepResult {
 export async function executePlan(
   plan: ExecutionPlan,
   tools: Record<string, EkoTool>
-): Promise<{ finalOutput: any; stepResults: StepResult[] }> {
+): Promise<{ finalOutput: any; stepResults: StepResult[]; planId: string }> {
   const stepResults: StepResult[] = [];
   
   try {
+    // Create a new plan entry in the database
+    let planId = plan.planId;
+    if (!planId) {
+      const [newPlan] = await db.insert(plans).values({
+        task: plan.taskText || 'Unknown task'
+      }).returning({ id: plans.id });
+      
+      planId = newPlan.id;
+      console.log(`Created new plan in database with ID: ${planId}`);
+    }
+    
     for (let i = 0; i < plan.steps.length; i++) {
       const step = plan.steps[i];
       console.log(`Executing step ${i}: ${step.tool}`);
@@ -42,16 +58,48 @@ export async function executePlan(
       // Process input template variables (e.g., {{step0.output}})
       const processedInput = processInputTemplates(step.input, stepResults);
       
+      // Create step record in database with pending status
+      const [stepRecord] = await db.insert(steps).values({
+        planId: planId,
+        stepIndex: i,
+        tool: step.tool,
+        input: processedInput,
+        status: 'pending'
+      }).returning({ id: steps.id });
+      
+      const stepId = stepRecord.id;
+      console.log(`Created step record with ID: ${stepId}`);
+      
       try {
         // Execute the tool with processed inputs
         const output = await tool.handler(processedInput);
-        stepResults.push({ output });
+        
+        // Update step in database with success status and output
+        await db.update(steps)
+          .set({ 
+            output: output,
+            status: 'completed' 
+          })
+          .where(steps.id.equals(stepId));
+        
+        stepResults.push({ output, stepId });
         console.log(`Step ${i} completed successfully`);
       } catch (error) {
         console.error(`Error in step ${i}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        // Update step in database with error status
+        await db.update(steps)
+          .set({ 
+            status: 'failed',
+            error: errorMessage
+          })
+          .where(steps.id.equals(stepId));
+        
         stepResults.push({ 
           output: null, 
-          error: error instanceof Error ? error.message : String(error) 
+          error: errorMessage,
+          stepId
         });
         // Don't break execution on error, but log it
       }
@@ -60,7 +108,8 @@ export async function executePlan(
     // Return the final output and all step results
     return {
       finalOutput: stepResults[stepResults.length - 1]?.output,
-      stepResults
+      stepResults,
+      planId
     };
   } catch (error) {
     console.error('Error executing plan:', error);

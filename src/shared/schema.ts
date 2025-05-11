@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, uuid, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, uuid, timestamp, jsonb, json, integer } from "drizzle-orm/pg-core";
 
 // Define the API keys table structure
 export const apiKeys = pgTable('api_keys', {
@@ -23,5 +23,25 @@ export const taskLogs = pgTable('task_logs', {
   tool: text('tool').notNull(),
   status: text('status').notNull(), // 'success' or 'error'
   output: jsonb('output'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Define the plans table for multi-step execution plans
+export const plans = pgTable('plans', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  task: text('task').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Define the steps table for individual execution steps within a plan
+export const steps = pgTable('steps', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  planId: uuid('plan_id').references(() => plans.id).notNull(),
+  stepIndex: integer('step_index').notNull(),
+  tool: text('tool').notNull(),
+  input: json('input').notNull(),
+  output: json('output'),
+  status: text('status').default('pending'),
+  error: text('error'),
   createdAt: timestamp('created_at').defaultNow(),
 });
