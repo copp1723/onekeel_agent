@@ -7,7 +7,6 @@ import { checkFlightStatus } from '../tools/checkFlightStatus.js';
 import { extractCleanContent } from '../tools/extractCleanContent.js';
 import { summarizeText } from '../tools/summarizeText.js';
 import { dealerLogin } from '../tools/dealerLogin.js';
-import { fetchCRMReport } from '../tools/fetchCRMReport.js';
 import { getApiKey } from '../services/supabase.js';
 import { parseTask, TaskType } from '../services/taskParser.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
@@ -570,9 +569,9 @@ app.get('/health', (_req, res) => {
     });
 });
 // Start the server
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-    console.log(`AI Agent API server running on port ${PORT}`);
+const port = Number(process.env.PORT) || 5000;
+const server = app.listen(port, () => {
+    console.log(`AI Agent API server running on port ${port}`);
     console.log('Available endpoints:');
     console.log('  GET / - Web UI for task submission and result viewing');
     console.log('  POST /api/tasks - Submit a new task');

@@ -1,6 +1,6 @@
-import { storage } from '../server/storage';
+import { storage } from '../server/storage.js';
 import axios from 'axios';
-import { EkoTool } from './extractCleanContent';
+import { EkoTool } from './extractCleanContent.js';
 
 interface DealerLoginArgs {
   dealerId: string;

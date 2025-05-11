@@ -1,4 +1,4 @@
-import { EkoTool } from './extractCleanContent';
+import { EkoTool } from './extractCleanContent.js';
 /**
  * Creates a dealerLogin tool that handles authentication with dealer websites
  * using stored credentials

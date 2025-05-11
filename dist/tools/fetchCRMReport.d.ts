@@ -1,6 +1,7 @@
-import { EkoTool } from './extractCleanContent';
+import { EkoTool } from './extractCleanContent.js';
 /**
- * Creates a fetchCRMReport tool that simulates retrieving a sales report from a dealer CRM
+ * Creates a fetchCRMReport tool that extracts reports from CRM platforms
  * @returns A tool object that can be registered with Eko
  */
-export declare function fetchCRMReport(): EkoTool;
+export declare function fetchCRMReportTool(): EkoTool;
+export default fetchCRMReportTool;

@@ -1,7 +1,7 @@
 import { Express } from 'express';
-import authRouter from './auth';
-import credentialsRouter from './credentials';
-import { setupAuth } from '../replitAuth';
+import authRouter from './auth.js';
+import credentialsRouter from './credentials.js';
+import { setupAuth } from '../replitAuth.js';
 
 /**
  * Register all auth and credential routes with the Express app

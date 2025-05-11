@@ -1,11 +1,11 @@
 import { eq, and } from "drizzle-orm";
 import * as CryptoJS from "crypto-js";
-import { db } from "../shared/db";
+import { db } from '../shared/db.js';
 import { 
   users, 
   credentials,
   updatedTaskLogs as taskLogs
-} from "../shared/schema";
+} from '../shared/schema.js';
 
 // Type definitions
 export type User = typeof users.$inferSelect;

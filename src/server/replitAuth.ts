@@ -6,8 +6,8 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
-import { db } from "../shared/db";
-import { users } from "../shared/schema";
+import { db } from '../shared/db.js';
+import { users } from '../shared/schema.js';
 import { eq } from "drizzle-orm";
 
 // Check for required environment variables

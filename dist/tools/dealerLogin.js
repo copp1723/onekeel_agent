@@ -1,4 +1,4 @@
-import { storage } from '../server/storage';
+import { storage } from '../server/storage.js';
 // Map of common dealer systems to their friendly names and endpoints
 const DEALER_SYSTEMS = {
     'dealersocket': {
