@@ -110,6 +110,8 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
     // Parse the task to determine what type it is
     const parsedTask = await parseTask(task, ekoApiKey);
     console.log(`Task executed directly: ${crypto.randomUUID()} - ${parsedTask.type}`);
+    console.log('Task text:', task);
+    console.log('Parsed task:', JSON.stringify(parsedTask, null, 2));
     
     // Create tools map
     const toolsMap: Record<string, any> = {};
@@ -180,12 +182,48 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
       };
       toolUsed = 'checkFlightStatus';
     }
+    // Explicitly handle summarize tasks with URL as multi-step
+    else if ((task.toLowerCase().includes('summarize') || task.toLowerCase().includes('summary')) && 
+        (task.toLowerCase().includes('content') || task.toLowerCase().includes('of')) && 
+        task.match(/https?:\/\/[^\s]+/)) {
+      const urlMatch = task.match(/https?:\/\/[^\s]+/);
+      const url = urlMatch ? urlMatch[0] : '';
+      
+      console.log(`Creating multi-step plan manually for task: "${task}"`);
+      
+      // Create a multi-step plan
+      const plan = {
+        steps: [
+          {
+            tool: 'extractCleanContent',
+            input: { url }
+          },
+          {
+            tool: 'summarizeText',
+            input: { text: '{{step0.output.content}}' }
+          }
+        ]
+      };
+      
+      // Execute the plan
+      console.log('Executing manually created plan');
+      const executionResult = await executePlan(plan, toolsMap);
+      
+      result = {
+        type: 'multi_step',
+        timestamp: new Date().toISOString(),
+        message: "Task executed with multi-step execution",
+        data: executionResult.finalOutput
+      };
+      
+      toolUsed = 'extractCleanContent,summarizeText';
+    }
     else {
       result = {
         type: parsedTask.type,
         timestamp: new Date().toISOString(),
         message: "Task received but not implemented",
-        data: { error: "Task type not implemented" }
+        data: { message: "Task type not supported yet" }
       };
     }
     
