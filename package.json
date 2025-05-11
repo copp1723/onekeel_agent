@@ -15,6 +15,7 @@
   "description": "",
   "dependencies": {
     "@eko-ai/eko": "^2.0.2-alpha.6",
+    "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.1",
     "@types/memoizee": "^0.4.12",
     "axios": "^1.9.0",
