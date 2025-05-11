@@ -83,9 +83,16 @@ credentialsRouter.delete('/:id', async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Unauthorized - User ID not found' });
     }
     
-    // TODO: Implement delete credential functionality in storage
-    // For now, just return success
+    // Delete the credential using our storage method
+    const success = await storage.deleteCredential(credentialId, userId);
     
+    if (!success) {
+      return res.status(404).json({ 
+        message: 'Credential not found or you do not have permission to delete it' 
+      });
+    }
+    
+    // Return 204 No Content on successful deletion
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting credential:', error);

@@ -23,6 +23,7 @@ export interface IStorage {
   // Credential operations
   getCredential(userId: string, site: string): Promise<{ username: string, password: string } | null>;
   saveCredential(credential: UpsertCredential): Promise<Credential>;
+  deleteCredential(credentialId: string, userId: string): Promise<boolean>;
   listCredentials(userId: string): Promise<Credential[]>;
   
   // Task log operations
