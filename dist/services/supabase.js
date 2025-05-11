@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import dotenv from 'dotenv';
-import { dealerCredentials } from '../shared/schema';
+import { dealerCredentials } from '../shared/schema.js';
 // Load environment variables
 dotenv.config();
 // Define the database connection

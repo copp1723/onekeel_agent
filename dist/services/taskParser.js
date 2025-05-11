@@ -1,5 +1,6 @@
 import { Eko } from '@eko-ai/eko';
-import { executePlan } from '../agent/executePlan.js';
+import { db } from '../shared/db.js';
+import { plans } from '../shared/schema.js';
 // Define the task types the agent can handle
 export var TaskType;
 (function (TaskType) {
@@ -22,87 +23,242 @@ export async function parseTask(task, ekoApiKey) {
     // For a simple implementation, we'll use a rule-based approach
     // In a more complex system, you would use the LLM for this
     const taskLower = task.toLowerCase();
-    
-    console.log('Parsing task:', task);
-    console.log('Task keywords:', 
-      'summarize:', taskLower.includes('summarize'),
-      'summary:', taskLower.includes('summary'),
-      'content:', taskLower.includes('content'),
-      'from:', taskLower.includes('from'),
-      'of:', taskLower.includes('of'),
-      'text:', taskLower.includes('text')
-    );
-    
-    // Check for multi-step tasks that involve extracting content and then summarizing
-    if ((taskLower.includes('extract') && taskLower.includes('content') && 
-         (taskLower.includes('summarize') || taskLower.includes('summary'))) ||
-        ((taskLower.includes('summarize') || taskLower.includes('summary')) && 
-         (taskLower.includes('content of') || taskLower.includes('content from') || 
-          taskLower.includes('from') || taskLower.includes('of') || taskLower.includes('text') ||
-          taskLower.includes('website') || taskLower.includes('page') || taskLower.includes('article') ||
-          taskLower.includes('url')))) {
-      
-      console.log('Detected potential multi-step task pattern');
-      
-      const urlMatch = task.match(/https?:\/\/[^\s]+/);
-      const url = urlMatch ? urlMatch[0] : '';
-      
-      console.log('URL detected:', url || 'None');
-      
-      if (url) {
-        // Create a multi-step plan
-        return {
-          type: TaskType.MultiStep,
-          parameters: { url },
-          original: task,
-          plan: {
-            steps: [
-              {
-                tool: 'extractCleanContent',
-                input: { url }
-              },
-              {
-                tool: 'summarizeText',
-                input: { text: '{{step0.output.content}}', maxLength: 300 }
-              }
-            ]
-          }
-        };
-      }
+    const taskHash = require('crypto').createHash('md5').update(task).digest('hex').substring(0, 8);
+    console.log(`[${taskHash}] 🔎 Task parser analyzing: ${task}`);
+    console.log(`[${taskHash}] Task lowercase: "${taskLower}"`);
+    // Log keyword detection more clearly
+    const hasKeywords = {
+        'summarize': taskLower.includes('summarize'),
+        'summary': taskLower.includes('summary'),
+        'content': taskLower.includes('content'),
+        'from': taskLower.includes('from'),
+        'of': taskLower.includes('of'),
+        'text': taskLower.includes('text')
+    };
+    console.log(`[${taskHash}] Detected keywords:`, JSON.stringify(hasKeywords, null, 2));
+    // Improved pattern matching for multi-step tasks
+    // Define regex patterns for more precise matching
+    const extractPatterns = [
+        /\bextract\b/i,
+        /\bget\s+.*\bcontent\b/i,
+        /\bpull\s+.*\bcontent\b/i,
+        /\bfetch\s+.*\btext\b/i,
+        /\bextract\s+.*\btext\b/i,
+    ];
+    const summarizePatterns = [
+        /\bsummariz(e|ation)\b/i,
+        /\bsummary\b/i,
+        /\bsummarise\b/i,
+        /\bcondense\b/i,
+        /\btl;dr\b/i,
+    ];
+    const sourcePatterns = [
+        /\bcontent\s+of\b/i,
+        /\bcontent\s+from\b/i,
+        /\bfrom\b/i,
+        /\bof\b/i,
+        /\btext\b/i,
+        /\bwebsite\b/i,
+        /\bpage\b/i,
+        /\barticle\b/i,
+        /\burl\b/i,
+        /\blink\b/i,
+        /\bweb\b/i,
+    ];
+    // Check if task matches extract AND summarize patterns
+    const hasExtractPattern = extractPatterns.some(pattern => pattern.test(taskLower));
+    const hasSummarizePattern = summarizePatterns.some(pattern => pattern.test(taskLower));
+    const hasSourcePattern = sourcePatterns.some(pattern => pattern.test(taskLower));
+    // Multi-step task detection logic with detailed logging
+    const isMultiStepExtractAndSummarize = hasExtractPattern && hasSummarizePattern;
+    const isMultiStepSummarizeContent = hasSummarizePattern && hasSourcePattern;
+    console.log('Task patterns:', {
+        extractPattern: hasExtractPattern,
+        summarizePattern: hasSummarizePattern,
+        sourcePattern: hasSourcePattern,
+        isMultiStepExtractAndSummarize,
+        isMultiStepSummarizeContent
+    });
+    if (isMultiStepExtractAndSummarize || isMultiStepSummarizeContent) {
+        console.log('Detected potential multi-step task pattern');
+        // Enhanced URL extraction
+        // Match both http/https URLs and domain-only references
+        const strictUrlMatch = task.match(/https?:\/\/[^\s'"`)]+/);
+        const domainMatch = !strictUrlMatch ? task.match(/\b([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/i) : null;
+        let url = '';
+        if (strictUrlMatch) {
+            url = strictUrlMatch[0];
+            // Strip trailing punctuation that might be part of the match
+            url = url.replace(/[.,;:!?)]+$/, '');
+        }
+        else if (domainMatch) {
+            url = 'https://' + domainMatch[0];
+        }
+        console.log('URL detected:', url || 'None');
+        if (url) {
+            // Create a complete multi-step plan with detailed configuration
+            let multiStepPlan;
+            try {
+                // First, create a plan entry in the database
+                const [planRecord] = await db.insert(plans).values({
+                    task: task
+                }).returning({ id: plans.id });
+                const planId = planRecord.id;
+                console.log(`Created plan record with ID: ${planId}`);
+                multiStepPlan = {
+                    type: TaskType.MultiStep,
+                    parameters: { url },
+                    original: task,
+                    planId: planId,
+                    plan: {
+                        planId: planId,
+                        taskText: task,
+                        steps: [
+                            {
+                                tool: 'extractCleanContent',
+                                input: {
+                                    url,
+                                    fallbackMessage: 'Could not extract content from the provided URL'
+                                }
+                            },
+                            {
+                                tool: 'summarizeText',
+                                input: {
+                                    text: '{{step0.output.content}}',
+                                    maxLength: 300,
+                                    format: 'paragraph',
+                                    fallbackBehavior: 'passthrough' // Pass through original content if summarization fails
+                                }
+                            }
+                        ]
+                    }
+                };
+            }
+            catch (error) {
+                console.error('Error creating plan record:', error);
+                multiStepPlan = {
+                    type: TaskType.MultiStep,
+                    parameters: { url },
+                    original: task,
+                    plan: {
+                        steps: [
+                            {
+                                tool: 'extractCleanContent',
+                                input: {
+                                    url,
+                                    fallbackMessage: 'Could not extract content from the provided URL'
+                                }
+                            },
+                            {
+                                tool: 'summarizeText',
+                                input: {
+                                    text: '{{step0.output.content}}',
+                                    maxLength: 300,
+                                    format: 'paragraph',
+                                    fallbackBehavior: 'passthrough' // Pass through original content if summarization fails
+                                }
+                            }
+                        ]
+                    }
+                };
+            }
+            console.log('Generated multi-step plan:', JSON.stringify(multiStepPlan, null, 2));
+            return multiStepPlan;
+        }
+        else {
+            // No URL found, but it's a summarization-related task
+            console.log('Multi-step pattern detected but no URL found');
+            return {
+                type: TaskType.Unknown,
+                parameters: {},
+                original: task,
+                error: 'No valid URL detected in task. Please include a URL.'
+            };
+        }
     }
-    
     // Extract clean content tasks
-    if ((taskLower.includes('extract') && taskLower.includes('clean content')) || 
-        (taskLower.includes('get') && taskLower.includes('article text'))) {
-      const urlMatch = task.match(/https?:\/\/[^\s]+/);
-      const url = urlMatch ? urlMatch[0] : '';
-      
-      if (url) {
-        return {
-          type: TaskType.WebContentExtraction,
-          parameters: { url },
-          original: task
-        };
-      }
+    if ((taskLower.includes('extract') && taskLower.includes('clean content')) ||
+        (taskLower.includes('get') && taskLower.includes('article text')) ||
+        (taskLower.includes('extract') && taskLower.includes('readable'))) {
+        console.log('Detected content extraction task');
+        // Use the same enhanced URL extraction as multi-step tasks
+        const strictUrlMatch = task.match(/https?:\/\/[^\s'"`)]+/);
+        const domainMatch = !strictUrlMatch ? task.match(/\b([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/i) : null;
+        let url = '';
+        if (strictUrlMatch) {
+            url = strictUrlMatch[0];
+            url = url.replace(/[.,;:!?)]+$/, '');
+        }
+        else if (domainMatch) {
+            url = 'https://' + domainMatch[0];
+        }
+        console.log('URL detected for extraction:', url || 'None');
+        if (url) {
+            return {
+                type: TaskType.WebContentExtraction,
+                parameters: { url },
+                original: task
+            };
+        }
+        else {
+            return {
+                type: TaskType.Unknown,
+                parameters: {},
+                original: task,
+                error: 'No valid URL detected in task. Please include a URL.'
+            };
+        }
     }
-    
-    // Regular web crawling tasks
-    if (taskLower.includes('crawl') || taskLower.includes('scrape') || taskLower.includes('extract')) {
-        // This is likely a web crawling task
-        const urlMatch = task.match(/https?:\/\/[^\s]+/);
-        const url = urlMatch ? urlMatch[0] : '';
+    // Summarize text task
+    else if (taskLower.includes('summarize') && taskLower.includes('text')) {
+        // This is a summarization task
+        const text = task.replace(/summarize\s+text[:\s]*/i, '').trim();
         return {
-            type: TaskType.WebCrawling,
+            type: TaskType.SummarizeText,
             parameters: {
-                url,
-                // Extract other potential parameters - for a full implementation,
-                // you'd use the LLM to extract these more intelligently
-                selector: taskLower.includes('selector') ? 'auto-detect' : undefined,
-                depth: taskLower.includes('depth') ? 1 : undefined,
-                extractFields: []
+                text
             },
             original: task
         };
+    }
+    // Regular web crawling tasks
+    else if (taskLower.includes('crawl') || taskLower.includes('scrape') ||
+        (taskLower.includes('extract') && !taskLower.includes('clean content'))) {
+        console.log('Detected web crawling task');
+        // Enhanced URL extraction
+        const strictUrlMatch = task.match(/https?:\/\/[^\s'"`)]+/);
+        const domainMatch = !strictUrlMatch ? task.match(/\b([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/i) : null;
+        let url = '';
+        if (strictUrlMatch) {
+            url = strictUrlMatch[0];
+            url = url.replace(/[.,;:!?)]+$/, '');
+        }
+        else if (domainMatch) {
+            url = 'https://' + domainMatch[0];
+        }
+        console.log('URL detected for crawling:', url || 'None');
+        if (url) {
+            return {
+                type: TaskType.WebCrawling,
+                parameters: {
+                    url,
+                    // Extract other potential parameters - for a full implementation,
+                    // you'd use the LLM to extract these more intelligently
+                    selector: taskLower.includes('selector') ? 'auto-detect' : undefined,
+                    depth: taskLower.includes('depth') ? 1 : undefined,
+                    extractFields: []
+                },
+                original: task
+            };
+        }
+        else {
+            return {
+                type: TaskType.Unknown,
+                parameters: {},
+                original: task,
+                error: 'No valid URL detected in task. Please include a URL.'
+            };
+        }
     }
     else if (taskLower.includes('flight') &&
         (taskLower.includes('status') || taskLower.includes('check'))) {
@@ -148,7 +304,44 @@ export async function parseTask(task, ekoApiKey) {
             original: task
         };
     }
-    // For anything else or if detection fails, return unknown
+    // For anything else or if detection fails, check for summarize-related keywords
+    if (taskLower.includes('summarize') || taskLower.includes('summary')) {
+        console.log(`[${taskHash}] ⚠️ MISSING URL: Detected summarize keywords but no URL matched patterns`);
+        // Try once more for URL patterns with a more lenient regex
+        const lenientMatch = taskLower.match(/\b([a-z0-9-]+\.)+[a-z]{2,}\b/i);
+        if (lenientMatch) {
+            console.log(`[${taskHash}] 🔍 Found possible domain with lenient regex:`, lenientMatch[0]);
+            // Try to construct a multi-step plan with this domain
+            const url = 'https://' + lenientMatch[0];
+            return {
+                type: TaskType.MultiStep,
+                parameters: { url },
+                original: task,
+                plan: {
+                    steps: [
+                        {
+                            tool: 'extractCleanContent',
+                            input: { url }
+                        },
+                        {
+                            tool: 'summarizeText',
+                            input: { text: '{{step0.output.content}}' }
+                        }
+                    ]
+                }
+            };
+        }
+        // No URL found, return error
+        console.log(`[${taskHash}] ❌ ERROR: No valid URL detected in summarize task`);
+        return {
+            type: TaskType.Unknown,
+            parameters: {},
+            original: task,
+            error: 'No valid URL detected in task. Please include a URL.'
+        };
+    }
+    // Default case
+    console.log(`[${taskHash}] ℹ️ Task type not recognized, marking as unknown`);
     return {
         type: TaskType.Unknown,
         parameters: {},
@@ -177,16 +370,37 @@ export async function parseTaskWithLLM(task, ekoApiKey) {
         const parsingPrompt = `
       You are a task parsing agent. Your job is to categorize user tasks and extract relevant parameters.
       
+      Available tools:
+      - extractCleanContent - Extracts clean text content from a URL
+      - summarizeText - Summarizes text content
+      - checkFlightStatus - Checks status of a flight
+      - crawlWebsite - Crawls and extracts data from websites
+      
       Task categories:
       1. web_crawling - For tasks about crawling websites, scraping data
-      2. flight_status - For checking flight status
-      3. dealer_login - For dealer login related tasks
-      4. vehicle_data - For extracting vehicle information
-      5. unknown - For tasks that don't fit the above categories
+      2. web_content_extraction - For extracting clean content from websites
+      3. summarize_text - For summarizing text content
+      4. flight_status - For checking flight status
+      5. dealer_login - For dealer login related tasks
+      6. vehicle_data - For extracting vehicle information
+      7. multi_step - For tasks that require multiple steps
+      8. unknown - For tasks that don't fit the above categories
       
-      For the following task, return a JSON object with:
+      For multi-step tasks, create an execution plan with the tools needed in sequence.
+      
+      For simple tasks, return a JSON with:
       - type: One of the task categories above
       - parameters: Key parameters needed for the task
+
+      For multi-step tasks, return a JSON with:
+      - type: "multi_step"
+      - parameters: Key parameters needed for the main task
+      - plan: {
+          steps: [
+            { tool: "toolName", input: { param1: "value1", param2: "value2" } },
+            { tool: "toolName2", input: { param1: "{{step0.output.fieldName}}" } }
+          ]
+        }
       
       Task: "${task}"
       
@@ -199,6 +413,36 @@ export async function parseTaskWithLLM(task, ekoApiKey) {
         if (jsonMatch) {
             try {
                 const parsed = JSON.parse(jsonMatch[0]);
+                // Check if this is a multi-step task with a plan
+                if (parsed.type === 'multi_step' && parsed.plan && parsed.plan.steps) {
+                    try {
+                        // Create a plan entry in database
+                        const [planRecord] = await db.insert(plans).values({
+                            task: task
+                        }).returning({ id: plans.id });
+                        const planId = planRecord.id;
+                        console.log(`Created plan record with ID: ${planId} (LLM-generated)`);
+                        // Add plan ID to execution plan
+                        parsed.plan.planId = planId;
+                        parsed.plan.taskText = task;
+                        return {
+                            type: TaskType.MultiStep,
+                            parameters: parsed.parameters || {},
+                            original: task,
+                            planId: planId,
+                            plan: parsed.plan
+                        };
+                    }
+                    catch (dbError) {
+                        console.error('Error creating plan record:', dbError);
+                        return {
+                            type: TaskType.MultiStep,
+                            parameters: parsed.parameters || {},
+                            original: task,
+                            plan: parsed.plan
+                        };
+                    }
+                }
                 return {
                     type: parsed.type,
                     parameters: parsed.parameters || {},
