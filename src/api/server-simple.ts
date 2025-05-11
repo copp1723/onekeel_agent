@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { logTask, getTaskLogs } from '../shared/logger.js';
+import { TaskType } from '../types.js';
 
 // Load environment variables
 dotenv.config();
@@ -14,7 +15,7 @@ app.use(express.json());
 const taskLogs: Record<string, {
   id: string;
   task: string;
-  taskType: string;
+  taskType: TaskType | string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   result?: any;
   error?: string;
@@ -38,8 +39,8 @@ app.post('/api/tasks', async (req, res) => {
     taskLogs[taskId] = {
       id: taskId,
       task,
-      taskType: task.toLowerCase().includes('crawl') ? 'web_crawling' : 
-               task.toLowerCase().includes('flight') ? 'flight_status' : 'unknown',
+      taskType: task.toLowerCase().includes('crawl') ? TaskType.WebCrawling : 
+               task.toLowerCase().includes('flight') ? TaskType.FlightStatus : TaskType.Unknown,
       status: 'pending',
       createdAt: new Date().toISOString()
     };
