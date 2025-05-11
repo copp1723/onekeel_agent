@@ -41,15 +41,15 @@ const taskLogs = {};
 // Create router for tasks API
 const tasksRouter = Router();
 // Get a task status endpoint
-tasksRouter.get('/:taskId', (req, res) => {
+tasksRouter.get('/:taskId', ((req, res) => {
     const { taskId } = req.params;
     if (!taskLogs[taskId]) {
         return res.status(404).json({ error: 'Task not found' });
     }
     return res.status(200).json(taskLogs[taskId]);
-});
+}));
 // List all tasks endpoint
-tasksRouter.get('/', (req, res) => {
+tasksRouter.get('/', ((req, res) => {
     // Get user ID from the authenticated user (if available)
     const userId = req.user?.claims?.sub;
     // Use in-memory task logs for compatibility with existing code
@@ -61,9 +61,9 @@ tasksRouter.get('/', (req, res) => {
     }
     // Otherwise, show all tasks
     return res.status(200).json(tasks);
-});
+}));
 // List user's tasks from the database
-tasksRouter.get('/user', async (req, res) => {
+tasksRouter.get('/user', (async (req, res) => {
     try {
         // Get user ID from the authenticated user (required)
         const userId = req.user?.claims?.sub;
@@ -78,11 +78,11 @@ tasksRouter.get('/user', async (req, res) => {
         console.error('Error retrieving user tasks:', error);
         return res.status(500).json({ error: 'Failed to retrieve user tasks' });
     }
-});
+}));
 // Register tasks GET endpoints
 app.use('/api/tasks', tasksRouter);
 // Unified task submission endpoint for both sync and async operations
-app.post(['/submit-task', '/api/tasks'], async (req, res) => {
+app.post(['/submit-task', '/api/tasks'], (async (req, res) => {
     const { task } = req.body;
     if (!task || typeof task !== 'string') {
         return res.status(400).json({ error: 'Task is required and must be a string' });
@@ -308,7 +308,7 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
             error: error.message || 'Task execution failed'
         });
     }
-});
+}));
 // Process a task asynchronously
 async function processTask(taskId, taskText, userId) {
     try {

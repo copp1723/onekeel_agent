@@ -3,19 +3,7 @@ import { ExecutionPlan, PlanStep } from '../agent/executePlan.js';
 import { db } from '../shared/db.js';
 import { plans } from '../shared/schema.js';
 import * as crypto from 'crypto';
-
-// Define the task types the agent can handle
-export enum TaskType {
-  WebCrawling = 'web_crawling',
-  WebContentExtraction = 'web_content_extraction',
-  SummarizeText = 'summarize_text',
-  FlightStatus = 'flight_status',
-  DealerLogin = 'dealer_login',
-  VehicleData = 'vehicle_data',
-  FetchCRMReport = 'fetch_crm_report',
-  MultiStep = 'multi_step',
-  Unknown = 'unknown'
-}
+import { TaskType } from '../types.js';
 
 // Define the parsed task structure
 export interface ParsedTask {

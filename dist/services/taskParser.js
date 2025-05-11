@@ -2,19 +2,7 @@ import { Eko } from '@eko-ai/eko';
 import { db } from '../shared/db.js';
 import { plans } from '../shared/schema.js';
 import * as crypto from 'crypto';
-// Define the task types the agent can handle
-export var TaskType;
-(function (TaskType) {
-    TaskType["WebCrawling"] = "web_crawling";
-    TaskType["WebContentExtraction"] = "web_content_extraction";
-    TaskType["SummarizeText"] = "summarize_text";
-    TaskType["FlightStatus"] = "flight_status";
-    TaskType["DealerLogin"] = "dealer_login";
-    TaskType["VehicleData"] = "vehicle_data";
-    TaskType["FetchCRMReport"] = "fetch_crm_report";
-    TaskType["MultiStep"] = "multi_step";
-    TaskType["Unknown"] = "unknown";
-})(TaskType || (TaskType = {}));
+import { TaskType } from '../types.js';
 /**
  * Uses an LLM to parse a natural language task into a structured format
  * @param task - The natural language task description
