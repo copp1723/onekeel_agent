@@ -19,6 +19,7 @@ export interface ParsedTask {
   parameters: Record<string, any>;
   original: string;
   plan?: ExecutionPlan; // For multi-step tasks
+  error?: string; // Optional error message for invalid tasks
 }
 
 /**
@@ -141,6 +142,15 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
       
       console.log('Generated multi-step plan:', JSON.stringify(multiStepPlan, null, 2));
       return multiStepPlan;
+    } else {
+      // No URL found, but it's a summarization-related task
+      console.log('Multi-step pattern detected but no URL found');
+      return {
+        type: TaskType.Unknown,
+        parameters: {},
+        original: task,
+        error: 'Could not find a valid URL in the task. Please provide a URL to extract and summarize content from.'
+      };
     }
   }
   
@@ -148,17 +158,37 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   if ((taskLower.includes('extract') && taskLower.includes('clean content')) || 
       (taskLower.includes('get') && taskLower.includes('article text')) ||
       (taskLower.includes('extract') && taskLower.includes('readable'))) {
-    // This is a content extraction task
-    const urlMatch = task.match(/https?:\/\/[^\s]+/);
-    const url = urlMatch ? urlMatch[0] : '';
     
-    return {
-      type: TaskType.WebContentExtraction,
-      parameters: {
-        url
-      },
-      original: task
-    };
+    console.log('Detected content extraction task');
+    
+    // Use the same enhanced URL extraction as multi-step tasks
+    const strictUrlMatch = task.match(/https?:\/\/[^\s'"`)]+/);
+    const domainMatch = !strictUrlMatch ? task.match(/\b([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/i) : null;
+    
+    let url = '';
+    if (strictUrlMatch) {
+      url = strictUrlMatch[0];
+      url = url.replace(/[.,;:!?)]+$/, '');
+    } else if (domainMatch) {
+      url = 'https://' + domainMatch[0];
+    }
+    
+    console.log('URL detected for extraction:', url || 'None');
+    
+    if (url) {
+      return {
+        type: TaskType.WebContentExtraction,
+        parameters: { url },
+        original: task
+      };
+    } else {
+      return {
+        type: TaskType.Unknown,
+        parameters: {},
+        original: task,
+        error: 'Could not find a valid URL to extract content from. Please provide a URL.'
+      };
+    }
   }
   // Summarize text task
   else if (taskLower.includes('summarize') && taskLower.includes('text')) {
@@ -176,12 +206,26 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   // Regular web crawling tasks
   else if (taskLower.includes('crawl') || taskLower.includes('scrape') || 
       (taskLower.includes('extract') && !taskLower.includes('clean content'))) {
-    // This is likely a web crawling task
-    const urlMatch = task.match(/https?:\/\/[^\s]+/);
-    const url = urlMatch ? urlMatch[0] : '';
     
-    return {
-      type: TaskType.WebCrawling,
+    console.log('Detected web crawling task');
+    
+    // Enhanced URL extraction
+    const strictUrlMatch = task.match(/https?:\/\/[^\s'"`)]+/);
+    const domainMatch = !strictUrlMatch ? task.match(/\b([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/i) : null;
+    
+    let url = '';
+    if (strictUrlMatch) {
+      url = strictUrlMatch[0];
+      url = url.replace(/[.,;:!?)]+$/, '');
+    } else if (domainMatch) {
+      url = 'https://' + domainMatch[0];
+    }
+    
+    console.log('URL detected for crawling:', url || 'None');
+    
+    if (url) {
+      return {
+        type: TaskType.WebCrawling,
       parameters: {
         url,
         // Extract other potential parameters - for a full implementation,
@@ -192,6 +236,14 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
       },
       original: task
     };
+    } else {
+      return {
+        type: TaskType.Unknown,
+        parameters: {},
+        original: task,
+        error: 'Could not find a valid URL to crawl or extract data from. Please provide a URL.'
+      };
+    }
   } 
   else if (taskLower.includes('flight') && 
           (taskLower.includes('status') || taskLower.includes('check'))) {
