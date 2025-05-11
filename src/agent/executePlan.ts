@@ -84,23 +84,43 @@ function processInputTemplates(
   
   for (const [key, value] of Object.entries(input)) {
     if (typeof value === 'string') {
-      // Match template patterns like {{step0.output}}
-      const templateRegex = /{{step(\d+)\.output}}/g;
+      // Match template patterns like {{step0.output}} or {{step0.output.property.subprop}}
+      const templateRegex = /{{step(\d+)\.output(\.[\w\.]+)?}}/g;
       let processedValue = value;
       
       // Replace all template references with actual values
       processedValue = processedValue.replace(
         templateRegex,
-        (_, stepIndex) => {
+        (match, stepIndex, propertyPath) => {
           const index = parseInt(stepIndex, 10);
           if (index < 0 || index >= stepResults.length) {
             throw new Error(`Invalid step reference: step${index}`);
           }
           
-          const result = stepResults[index].output;
+          let result = stepResults[index].output;
+          
+          // If a property path is specified, traverse the object
+          if (propertyPath) {
+            // Remove leading dot and split by dots
+            const props = propertyPath.substring(1).split('.');
+            
+            // Navigate through the properties
+            try {
+              for (const prop of props) {
+                if (!result || typeof result !== 'object') {
+                  throw new Error(`Cannot access property '${prop}' of non-object value`);
+                }
+                result = result[prop];
+              }
+            } catch (e) {
+              console.warn(`Failed to access property path ${propertyPath} in step ${index} output:`, e);
+              // Return empty string for failed property access
+              return '';
+            }
+          }
           
           // If the result is an object or array, stringify it
-          if (typeof result === 'object') {
+          if (typeof result === 'object' && result !== null) {
             return JSON.stringify(result);
           }
           
@@ -109,14 +129,36 @@ function processInputTemplates(
       );
       
       // If the entire value was a template, try to parse it back to an object
-      if (processedValue !== value && value.match(/^{{step\d+\.output}}$/)) {
+      if (processedValue !== value && value.match(/^{{step\d+\.output(\.[\w\.]+)?}}$/)) {
         try {
           // For special case where the whole value is a template reference
           // Check if we should just pass through the original value
-          const match = value.match(/{{step(\d+)\.output}}/);
+          const match = value.match(/{{step(\d+)\.output(\.[\w\.]+)?}}/);
           if (match) {
             const index = parseInt(match[1], 10);
-            const result = stepResults[index].output;
+            const propertyPath = match[2];
+            
+            let result = stepResults[index].output;
+            
+            // If a property path is specified, traverse the object
+            if (propertyPath) {
+              // Remove leading dot and split by dots
+              const props = propertyPath.substring(1).split('.');
+              
+              // Navigate through the properties
+              try {
+                for (const prop of props) {
+                  if (!result || typeof result !== 'object') {
+                    throw new Error(`Cannot access property '${prop}' of non-object value`);
+                  }
+                  result = result[prop];
+                }
+              } catch (e) {
+                // If property access fails, just use the processed value as is
+                continue;
+              }
+            }
+            
             // If it's an object, pass it directly instead of as a string
             if (typeof result === 'object' && result !== null) {
               processed[key] = result;
