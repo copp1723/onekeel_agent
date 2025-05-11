@@ -1,5 +1,6 @@
 import { storage } from '../server/storage.js';
-import axios from 'axios';
+// axios import is commented out as it's not currently used
+// import axios from 'axios';
 import { EkoTool } from './extractCleanContent.js';
 
 interface DealerLoginArgs {
@@ -8,11 +9,12 @@ interface DealerLoginArgs {
   userId?: string; // User ID for credential lookup
 }
 
-interface DealerLoginResult {
+// Export the interface so it can be imported by other modules
+export interface DealerLoginResult {
   success: boolean;
   message: string;
   dealerId: string;
-  dealerName?: string; // Friendly name of the dealer system
+  dealerName: string | undefined; // Friendly name of the dealer system
   token?: string; // Auth token when login is successful
   expiresAt?: string; // Token expiration date
   error?: string; // Detailed error information when login fails
@@ -99,7 +101,7 @@ export function dealerLogin(): EkoTool {
       },
       required: ['dealerId']
     },
-    handler: async (args: DealerLoginArgs) => {
+    handler: async (args: DealerLoginArgs): Promise<DealerLoginResult> => {
       try {
         const { dealerId, userId } = args;
         
@@ -225,20 +227,22 @@ export function dealerLogin(): EkoTool {
             apiEndpoint, // Include the endpoint used for reference
             sessionId // Include a session ID for tracking
           };
-        } catch (loginError: any) {
+        } catch (loginError: unknown) {
           console.error(`Login error for dealer ${dealerId}:`, loginError);
+          const errorMessage = loginError instanceof Error ? loginError.message : String(loginError);
           
           return {
             success: false,
             dealerId,
             dealerName,
             message: `Authentication failed with ${dealerName || 'dealer system'}`,
-            error: loginError.message || 'Unknown login error',
+            error: errorMessage,
             apiEndpoint
           };
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error in dealer login:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
         
         // For catastrophic errors, create a generic response
         const dealerId = args.dealerId;
@@ -250,7 +254,7 @@ export function dealerLogin(): EkoTool {
           dealerId,
           dealerName,
           message: `Failed to authenticate with ${dealerName}`,
-          error: error.message || String(error)
+          error: errorMessage
         };
       }
     }

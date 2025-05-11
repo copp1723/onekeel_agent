@@ -1,0 +1,123 @@
+Here’s a concrete snippet you can drop into the top of your runFlow.ts to get error‑handling and retries fully typed and clean:
+
+// src/agents/runFlow.ts
+import { chromium, Browser, Page } from 'playwright';
+import config from '../../configs/platforms.json';
+import { FlowStep, EnvVars } from '../types';
+
+const MAX_RETRIES = 1;
+
+export async function runFlow(
+  platform: keyof typeof config,
+  envVars: EnvVars
+): Promise<string> {
+  // Validate env vars up front
+  const missing = Object.entries(envVars)
+    .filter(([_, v]) => !v)
+    .map(([k]) => k);
+  if (missing.length) {
+    throw new Error(`runFlow: missing env vars: ${missing.join(', ')}`);
+  }
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let browser: Browser | undefined;
+    try {
+      browser = await chromium.launch({ headless: true });
+      const page: Page = await browser.newPage();
+
+      const flow = config[platform] as {
+        loginSteps: FlowStep[];
+        otpStep?: FlowStep;
+        navigationSteps: FlowStep[];
+        downloadSteps: FlowStep[];
+      };
+
+      // Run loginSteps…
+      for (const step of flow.loginSteps) {
+        await (page as any)[step.action](
+          step.selector ?? undefined,
+          ...(step.args ?? [step.value ?? ''])
+        );
+      }
+
+      // OTP if present…
+      if (flow.otpStep) {
+        const code = await getEmailOTP(envVars);
+        await page.fill(flow.otpStep.selector!, code);
+        await page.click(flow.otpStep.clickAfter!);
+      }
+
+      // Navigation…
+      for (const step of flow.navigationSteps) {
+        await (page as any)[step.action](step.selector!);
+      }
+
+      // Download…
+      for (const step of flow.downloadSteps) {
+        const row = await page.waitForSelector(step.rowSelector!);
+        const [download] = await Promise.all([
+          page.waitForEvent('download'),
+          row.locator(step.buttonSelector!).click()
+        ]);
+        const path = step.saveAs ?? 'report.csv';
+        await download.saveAs(path);
+        await browser.close();
+        return path;
+      }
+
+      // Should never get here
+      throw new Error('runFlow: no downloadSteps matched');
+    } catch (err: unknown) {
+      lastError = err;
+      console.error(`runFlow [${platform}] attempt ${attempt} failed:`, err);
+      if (browser) await browser.close();
+      if (attempt < MAX_RETRIES) {
+        console.log(`runFlow: retrying (${attempt + 1}/${MAX_RETRIES})…`);
+        continue;
+      }
+      // Exhausted retries
+      throw new Error(
+        `runFlow: failed after ${MAX_RETRIES + 1} attempts: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    }
+  }
+
+  // Unreachable
+  throw lastError;
+}
+
+What this fixes:
+	•	Strict typing of runFlow signature and FlowStep usage.
+	•	Env‑var validation up front with a clear error.
+	•	Clean browser lifecycle in every path (.close() in both success and error).
+	•	Retry loop (1 retry) wrapped in a try/catch.
+	•	Typed errors so TS can infer err instanceof Error.
+
+⸻
+
+Next steps for the remaining cleanup
+	1.	JSON import types
+	•	Ensure tsconfig.json has "resolveJsonModule": true and "esModuleInterop": true, then:
+
+import config from '../../configs/platforms.json';
+
+To satisfy TS you may need to add:
+
+declare module '*.json';
+
+in src/types.ts.
+
+	2.	Sweep remaining files (emailIngest.ts, fetchCRMReport.ts, any test files) and apply the same pattern:
+	•	Explicit function return types.
+	•	No implicit any.
+	•	Remove unused imports/vars.
+	3.	Run
+
+npx tsc --noEmit
+
+Iterate until clean.
+
+Once runFlow.ts is solid and error‑free, your other files will fall into place much faster. Let me know if any specific errors pop up next!
