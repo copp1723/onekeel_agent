@@ -126,7 +126,7 @@ tasksRouter.get('/user', (async (req: Request, res: Response, _next: NextFunctio
 app.use('/api/tasks', tasksRouter);
 
 // Unified task submission endpoint for both sync and async operations
-app.post('/submit-task', async (req: Request, res: Response) => {
+app.post('/submit-task', async (req: Request, res: Response): Promise<Response> => {
   const { task } = req.body;
   
   if (!task || typeof task !== 'string') {
