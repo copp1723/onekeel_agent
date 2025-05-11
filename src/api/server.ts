@@ -558,7 +558,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // Start the server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`AI Agent API server running on port ${PORT}`);
   console.log('Available endpoints:');
   console.log('  POST /api/tasks - Submit a new task');
@@ -567,3 +567,6 @@ app.listen(PORT, () => {
   console.log('  POST /submit-task - Execute tasks directly');
   console.log('  GET /health - Health check endpoint');
 });
+
+// Export for testing and external use
+export { app, server };
