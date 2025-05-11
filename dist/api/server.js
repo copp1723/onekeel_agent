@@ -15,6 +15,12 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 app.use(express.json());
+// Serve static files from the public directory
+app.use(express.static('public'));
+// Serve the index.html file for the root route
+app.get('/', (_req, res) => {
+    res.sendFile('index.html', { root: './public' });
+});
 // Simple in-memory task storage
 // In a production app, this would be stored in Supabase/Firestore
 const taskLogs = {};
@@ -480,6 +486,7 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
     console.log(`AI Agent API server running on port ${PORT}`);
     console.log('Available endpoints:');
+    console.log('  GET / - Web UI for task submission and result viewing');
     console.log('  POST /api/tasks - Submit a new task');
     console.log('  GET /api/tasks/:taskId - Get task status');
     console.log('  GET /api/tasks - List all tasks');
