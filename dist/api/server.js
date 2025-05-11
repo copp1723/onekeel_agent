@@ -232,7 +232,7 @@ app.post('/submit-task', async (req, res) => {
                 data: await crawlTool.handler({
                     url: parsedTask.parameters.url || 'https://example.com', // Default URL as fallback
                     depth: parsedTask.parameters.depth,
-                    maxPages: parsedTask.parameters.maxPages
+                    ...(parsedTask.parameters.maxPages ? { maxPages: parsedTask.parameters.maxPages } : {})
                 })
             };
             toolUsed = TaskType.WebCrawling.toString();
@@ -324,10 +324,11 @@ app.post('/submit-task', async (req, res) => {
             output: { error: error.message || String(error) },
             userId: userId
         });
-        return res.status(500).json({
+        res.status(500).json({
             success: false,
             error: error.message || 'Task execution failed'
         });
+        return;
     }
 });
 // Process a task asynchronously
@@ -582,21 +583,24 @@ app.post('/test-parser', async (req, res) => {
         // Get the API key
         const ekoApiKey = process.env.EKO_API_KEY;
         if (!ekoApiKey) {
-            return res.status(500).json({ error: 'API key not available' });
+            res.status(500).json({ error: 'API key not available' });
+            return;
         }
         // Parse the task
         console.log('TEST PARSER - Task:', task);
         const parsedTask = await parseTask(task, ekoApiKey);
         // Return the parsed result including any errors
-        return res.status(200).json({
+        res.status(200).json({
             task,
             parsed: parsedTask,
             hasError: !!parsedTask.error
         });
+        return;
     }
     catch (error) {
         console.error('Error in test parser:', error);
-        return res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message });
+        return;
     }
 });
 // Health check endpoint
