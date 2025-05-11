@@ -1,4 +1,4 @@
-import express, { Request, Response, Router } from 'express';
+import express, { Request as ExpressRequest, Response, Router } from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { Eko, LLMs } from '@eko-ai/eko';
@@ -9,11 +9,21 @@ import { summarizeText } from '../tools/summarizeText.js';
 import { dealerLogin } from '../tools/dealerLogin.js';
 import { fetchCRMReportTool } from '../tools/fetchCRMReport.js';
 import { getApiKey } from '../services/supabase.js';
-import { parseTask, ParsedTask, TaskType } from '../services/taskParser.js';
+import { parseTask, TaskType } from '../services/taskParser.js';
 import { logTask, getTaskLogs } from '../shared/logger.js';
-import { executePlan, PlanStep } from '../agent/executePlan.js';
+import { executePlan } from '../agent/executePlan.js';
 import { registerAuthRoutes } from '../server/routes/index.js';
-import { storage } from '../server/storage.js';
+
+// Extend Express Request to include auth user
+interface Request extends ExpressRequest {
+  user?: {
+    claims?: {
+      sub: string;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
+}
 
 // Load environment variables
 dotenv.config();
@@ -61,18 +71,18 @@ const taskLogs: Record<string, TaskLog> = {};
 const tasksRouter = Router();
 
 // Get a task status endpoint
-tasksRouter.get('/:taskId', function(req: Request, res: Response) {
+tasksRouter.get('/:taskId', (req: Request, res: Response) => {
   const { taskId } = req.params;
   
   if (!taskLogs[taskId]) {
     return res.status(404).json({ error: 'Task not found' });
   }
   
-  res.status(200).json(taskLogs[taskId]);
+  return res.status(200).json(taskLogs[taskId]);
 });
 
 // List all tasks endpoint
-tasksRouter.get('/', function(req: Request, res: Response) {
+tasksRouter.get('/', (req: Request, res: Response) => {
   // Get user ID from the authenticated user (if available)
   const userId = req.user?.claims?.sub;
   
@@ -86,11 +96,11 @@ tasksRouter.get('/', function(req: Request, res: Response) {
   }
   
   // Otherwise, show all tasks
-  res.status(200).json(tasks);
+  return res.status(200).json(tasks);
 });
 
 // List user's tasks from the database
-tasksRouter.get('/user', async function(req: Request, res: Response) {
+tasksRouter.get('/user', async (req: Request, res: Response) => {
   try {
     // Get user ID from the authenticated user (required)
     const userId = req.user?.claims?.sub;

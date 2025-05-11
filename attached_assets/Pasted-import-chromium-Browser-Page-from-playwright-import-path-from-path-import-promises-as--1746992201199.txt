@@ -1,0 +1,222 @@
+import { chromium, Browser, Page } from 'playwright';
+import path from 'path';
+import { promises as fs } from 'fs';
+import { FlowStep, EnvVars, PlatformConfig } from '../types.js';
+import platformConfigsJson from '../../configs/platforms.json' assert { type: 'json' };
+import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
+import { log, error } from '../utils/logger.js';
+
+// Cast JSON to a typed config map
+const config = platformConfigsJson as Record<string, PlatformConfig>;
+
+// Maximum number of retries for flow execution
+const MAX_RETRIES = 1;
+
+/**
+ * Utility to delay execution
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Validates that all {{PLACEHOLDER}} vars in the config have corresponding env values
+ */
+function validateEnvironmentVariables(
+  platform: keyof typeof config,
+  envVars: EnvVars
+): void {
+  const platformConfig = config[platform];
+  if (!platformConfig) {
+    throw new Error(`Platform \"${platform}\" not found in configuration`);
+  }
+
+  const placeholders = new Set<string>();
+  const extractPlaceholders = (step?: FlowStep) => {
+    if (step?.value && typeof step.value === 'string') {
+      const matches = step.value.match(/\{\{([A-Z_]+)\}\}/g);
+      matches?.forEach(m => placeholders.add(m.slice(2, -2)));
+    }
+  };
+
+  platformConfig.loginSteps.forEach(extractPlaceholders);
+  extractPlaceholders(platformConfig.otpStep);
+  platformConfig.navigationSteps.forEach(extractPlaceholders);
+  platformConfig.downloadSteps.forEach(extractPlaceholders);
+
+  const missing: string[] = [];
+  placeholders.forEach(name => {
+    if (!envVars[name]) missing.push(name);
+  });
+  if (missing.length) {
+    throw new Error(
+      `runFlow: missing required environment variables for ${platform}: ${missing.join(', ')}`
+    );
+  }
+}
+
+/**
+ * Interpolates {{VAR}} placeholders in a string
+ */
+function interpolateVariables(text: string, envVars: EnvVars): string {
+  return text.replace(/\{\{([A-Z_]+)\}\}/g, (_, varName) => envVars[varName] || _);
+}
+
+/**
+ * Main function to execute a platform-specific flow
+ */
+export async function runFlow(
+  platform: keyof typeof config,
+  envVars: EnvVars
+): Promise<string> {
+  // 1. Validate environment
+  validateEnvironmentVariables(platform, envVars);
+
+  // 2. Retrieve platform config
+  const platformConfig = config[platform];
+  if (!platformConfig) {
+    throw new Error(`Platform \"${platform}\" not found in config`);
+  }
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let browser: Browser | undefined;
+    try {
+      browser = await chromium.launch({ headless: true });
+      const page: Page = await browser.newPage();
+      log.info(`Executing ${platform} flow (attempt ${attempt + 1})`);
+
+      // Login steps
+      for (const step of platformConfig.loginSteps) {
+        await executeStep(page, step, envVars);
+      }
+
+      // OTP step
+      if (platformConfig.otpStep) {
+        await executeOTPStep(page, platformConfig.otpStep, envVars);
+      }
+
+      // Navigation steps
+      for (const step of platformConfig.navigationSteps) {
+        await executeStep(page, step, envVars);
+      }
+
+      // Download steps
+      let downloadPath = '';
+      for (const step of platformConfig.downloadSteps) {
+        downloadPath = await executeDownloadStep(page, step, envVars);
+      }
+
+      log.info(`${platform} flow completed successfully`);
+      return downloadPath;
+    } catch (err: unknown) {
+      error(`runFlow [${platform}] attempt ${attempt + 1} failed`, err);
+      if (attempt === MAX_RETRIES) {
+        throw err instanceof Error ? err : new Error(String(err));
+      }
+      log.info(`Retrying ${platform} flow (next attempt)...`);
+      await delay(3000);
+    } finally {
+      if (browser) await browser.close();
+    }
+  }
+
+  // Unreachable
+  throw new Error('runFlow: unexpected exit');
+}
+
+/**
+ * Executes a generic step
+ */
+async function executeStep(
+  page: Page,
+  step: FlowStep,
+  envVars: EnvVars
+): Promise<void> {
+  log.info(`Action: ${step.action}`);
+  switch (step.action) {
+    case 'goto': {
+      const url = interpolateVariables(step.args?.[0] ?? '', envVars);
+      await page.goto(url, { waitUntil: 'networkidle' });
+      break;
+    }
+    case 'fill': {
+      const value = interpolateVariables(step.value ?? '', envVars);
+      await page.fill(step.selector!, value);
+      break;
+    }
+    case 'click': {
+      await page.click(step.selector!);
+      break;
+    }
+    case 'wait': {
+      if (step.selector) {
+        await page.waitForSelector(step.selector);
+      } else if (step.args && step.args.length) {
+        await page.waitForTimeout(parseInt(step.args[0], 10));
+      }
+      break;
+    }
+    default: {
+      // Ensure exhaustive handling
+      const _exhaustive: never = step.action;
+      throw new Error(`Unhandled action: ${_exhaustive}`);
+    }
+  }
+}
+
+/**
+ * Handles the OTP flow step
+ */
+async function executeOTPStep(
+  page: Page,
+  step: FlowStep,
+  envVars: EnvVars
+): Promise<void> {
+  if (step.action !== 'otpEmail') {
+    throw new Error(`Expected otpEmail, got: ${step.action}`);
+  }
+
+  const otpCode = await fetchEmailOTP(envVars.OTP_EMAIL_USER!);
+  if (!otpCode) {
+    throw new Error('Failed to retrieve OTP code from email');
+  }
+  log.info('OTP code retrieved');
+
+  await page.waitForSelector(step.selector!);
+  await page.fill(step.selector!, otpCode);
+  if (step.clickAfter) {
+    await page.click(step.clickAfter);
+  }
+}
+
+/**
+ * Handles the download flow step
+ */
+async function executeDownloadStep(
+  page: Page,
+  step: FlowStep,
+  envVars: EnvVars
+): Promise<string> {
+  if (step.action !== 'download') {
+    throw new Error(`Expected download, got: ${step.action}`);
+  }
+
+  const downloadDir = envVars.DOWNLOAD_DIR;
+  if (!downloadDir) {
+    throw new Error('Missing DOWNLOAD_DIR env var');
+  }
+  await fs.mkdir(downloadDir, { recursive: true });
+
+  await page.waitForSelector(step.rowSelector!, { state: 'visible' });
+  const saveName = step.saveAs || 'report.csv';
+  const downloadPath = path.resolve(downloadDir, saveName);
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.click(`${step.rowSelector} ${step.buttonSelector}`)
+  ]);
+
+  await download.saveAs(downloadPath);
+  log.info(`Downloaded file saved to: ${downloadPath}`);
+  return downloadPath;
+}
