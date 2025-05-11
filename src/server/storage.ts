@@ -110,6 +110,25 @@ export class DatabaseStorage implements IStorage {
     return credential;
   }
   
+  async deleteCredential(credentialId: string, userId: string): Promise<boolean> {
+    try {
+      // Ensure the credential belongs to the user requesting deletion
+      const result = await db
+        .delete(credentials)
+        .where(and(
+          eq(credentials.id, credentialId),
+          eq(credentials.userId, userId)
+        ))
+        .returning({ id: credentials.id });
+      
+      // If a row was deleted (array has length), return success
+      return result.length > 0;
+    } catch (error) {
+      console.error('Error deleting credential:', error);
+      return false;
+    }
+  }
+  
   async listCredentials(userId: string): Promise<Credential[]> {
     return await db
       .select()

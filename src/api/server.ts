@@ -8,7 +8,7 @@ import { extractCleanContent } from '../tools/extractCleanContent.js';
 import { summarizeText } from '../tools/summarizeText.js';
 import { getApiKey } from '../services/supabase.js';
 import { parseTask, ParsedTask, TaskType } from '../services/taskParser.js';
-import { logTask } from '../shared/logger.js';
+import { logTask, getTaskLogs } from '../shared/logger.js';
 import { executePlan, PlanStep } from '../agent/executePlan.js';
 import { registerAuthRoutes } from '../server/routes/index.js';
 import { storage } from '../server/storage.js';
@@ -48,6 +48,7 @@ interface TaskLog {
   error?: string;
   createdAt: string;
   completedAt?: string;
+  userId?: string; // User ID for task ownership
 }
 
 // Simple in-memory task storage
@@ -159,7 +160,8 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
         task,
         taskType: parsedTask.type, // Set the detected type immediately
         status: 'pending',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        userId: userId // Include the user ID if available
       };
       
       // Process the task asynchronously
@@ -395,7 +397,8 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
         userInput: taskText,
         tool: 'parser',
         status: 'error',
-        output: { error: parsedTask.error }
+        output: { error: parsedTask.error },
+        userId: userId // Include the user ID if available
       });
       
       return; // Exit early as we can't process this task
