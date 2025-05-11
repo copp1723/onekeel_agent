@@ -329,14 +329,14 @@ export async function parseTask(task: string, _ekoApiKey: string): Promise<Parse
             taskText: task,
             steps: [
               {
-                tool: 'dealerLogin',
+                tool: TaskType.DealerLogin,
                 input: { 
                   dealerId,
                   site
                 }
               },
               {
-                tool: 'fetchCRMReport',
+                tool: TaskType.FetchCRMReport,
                 input: { 
                   site,
                   dealerId: '{{step0.output.dealerId}}',
@@ -344,7 +344,7 @@ export async function parseTask(task: string, _ekoApiKey: string): Promise<Parse
                 }
               },
               {
-                tool: 'summarizeText',
+                tool: TaskType.SummarizeText,
                 input: { 
                   text: 'CRM Report Summary: {{step1.output.deals.length}} deals found for {{step1.output.reportDate}}. {{#if step1.output.summaryStats}}Total sales: {{step1.output.summaryStats.totalSales}}, Total revenue: ${{step1.output.summaryStats.totalRevenue}}, Total gross profit: ${{step1.output.summaryStats.totalGrossProfit}}{{#if step1.output.summaryStats.topRep}}, Top rep: {{step1.output.summaryStats.topRep}}{{/if}}{{/if}}',
                   maxLength: 500,

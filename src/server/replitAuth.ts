@@ -3,12 +3,24 @@ import { Strategy, type VerifyFunction } from "openid-client/passport";
 
 import passport from "passport";
 import session from "express-session";
-import type { Express, RequestHandler } from "express";
+import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { db } from '../shared/db.js';
 import { users } from '../shared/schema.js';
-import { eq } from "drizzle-orm";
+
+// Define the User interface to replace Express.User
+declare global {
+  namespace Express {
+    interface User {
+      claims?: any;
+      access_token?: string;
+      refresh_token?: string;
+      expires_at?: number;
+      [key: string]: any;
+    }
+  }
+}
 
 // Check for required environment variables
 if (!process.env.REPLIT_DOMAINS) {
