@@ -34,7 +34,10 @@ router.get('/health', routeHandler(async (_req, res) => {
 }));
 // Test-parser endpoint
 router.post('/test-parser', routeHandler(async (req, res) => {
-    const result = await parseTask(req.body.task || '');
+    const task = req.body.task || '';
+    // Pass the EKO_API_KEY from environment variables or a default empty string
+    const ekoApiKey = process.env.EKO_API_KEY || '';
+    const result = await parseTask(task, ekoApiKey);
     res.json(result);
 }));
 // Tasks listing endpoint

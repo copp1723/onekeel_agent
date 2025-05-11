@@ -47,8 +47,9 @@ router.post(
   '/test-parser',
   routeHandler(async (req: Request, res: Response) => {
     const task = req.body.task || '';
-    const options = req.body.options || {};
-    const result = await parseTask(task, options);
+    // Pass the EKO_API_KEY from environment variables or a default empty string
+    const ekoApiKey = process.env.EKO_API_KEY || '';
+    const result = await parseTask(task, ekoApiKey);
     res.json(result);
   })
 );
