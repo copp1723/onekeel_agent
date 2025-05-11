@@ -180,18 +180,20 @@ export function dealerLogin() {
                 }
                 catch (loginError) {
                     console.error(`Login error for dealer ${dealerId}:`, loginError);
+                    const errorMessage = loginError instanceof Error ? loginError.message : String(loginError);
                     return {
                         success: false,
                         dealerId,
                         dealerName,
                         message: `Authentication failed with ${dealerName || 'dealer system'}`,
-                        error: loginError.message || 'Unknown login error',
+                        error: errorMessage,
                         apiEndpoint
                     };
                 }
             }
             catch (error) {
                 console.error('Error in dealer login:', error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
                 // For catastrophic errors, create a generic response
                 const dealerId = args.dealerId;
                 const systemInfo = identifyDealerSystem(dealerId);
@@ -201,7 +203,7 @@ export function dealerLogin() {
                     dealerId,
                     dealerName,
                     message: `Failed to authenticate with ${dealerName}`,
-                    error: error.message || String(error)
+                    error: errorMessage
                 };
             }
         }

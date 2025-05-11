@@ -39,7 +39,8 @@ export async function logTask({ userInput, tool, status, output, userId }) {
         }
         catch (error) {
             // If that fails, try without userId (for original schema)
-            if (error.message && error.message.includes('user_id')) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.includes('user_id')) {
                 console.log('Falling back to schema without user_id');
                 await db.insert(taskLogs).values({
                     userInput,
@@ -57,7 +58,8 @@ export async function logTask({ userInput, tool, status, output, userId }) {
     }
     catch (error) {
         // Don't throw here to avoid breaking the main flow if logging fails
-        console.error('Failed to log task to database:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Failed to log task to database:', errorMessage);
         console.log('Task was logged to memory instead');
     }
 }
@@ -79,7 +81,8 @@ export async function getTaskLogs(userId) {
             }
             catch (error) {
                 // If user_id column doesn't exist, retrieve all logs
-                if (error.message && error.message.includes('user_id')) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (errorMessage.includes('user_id')) {
                     console.log('Column user_id not found, retrieving all logs');
                     return await db.select().from(taskLogs);
                 }

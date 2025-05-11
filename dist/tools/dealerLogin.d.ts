@@ -1,4 +1,15 @@
 import { EkoTool } from './extractCleanContent.js';
+export interface DealerLoginResult {
+    success: boolean;
+    message: string;
+    dealerId: string;
+    dealerName: string | undefined;
+    token?: string;
+    expiresAt?: string;
+    error?: string;
+    apiEndpoint?: string;
+    sessionId?: string;
+}
 /**
  * Creates a dealerLogin tool that handles authentication with dealer websites
  * using stored credentials

@@ -34,6 +34,6 @@ export declare function getTaskLogs(userId?: string): Promise<{
     tool: string;
     status: "success" | "error";
     output: any;
-    userId?: string;
+    userId: string | undefined;
     timestamp: string;
 }[]>;
