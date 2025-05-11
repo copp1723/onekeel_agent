@@ -15,6 +15,7 @@ export var TaskType;
     TaskType["MultiStep"] = "multiStep";
     TaskType["WebCrawling"] = "webCrawling";
     TaskType["WebContentExtraction"] = "webContentExtraction";
+    TaskType["VehicleData"] = "vehicleData";
     TaskType["Unknown"] = "unknown";
 })(TaskType || (TaskType = {}));
 //# sourceMappingURL=types.js.map

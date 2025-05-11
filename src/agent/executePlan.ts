@@ -141,7 +141,7 @@ function processInputTemplates(
       // Replace all template references with actual values
       processedValue = processedValue.replace(
         templateRegex,
-        (match, stepIndex, propertyPath) => {
+        (_match, stepIndex, propertyPath) => {
           const index = parseInt(stepIndex, 10);
           if (index < 0 || index >= stepResults.length) {
             throw new Error(`Invalid step reference: step${index}`);
