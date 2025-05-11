@@ -113,6 +113,12 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
     console.log('Task text:', task);
     console.log('Parsed task:', JSON.stringify(parsedTask, null, 2));
     
+    // Check if there was a parsing error
+    if (parsedTask.error) {
+      console.error("❌ Task parser error:", parsedTask.error);
+      return res.status(400).json({ error: parsedTask.error });
+    }
+    
     // Create tools map
     const toolsMap: Record<string, any> = {};
     
@@ -284,9 +290,22 @@ async function processTask(taskId: string, taskText: string): Promise<void> {
     const parsedTask = await parseTask(taskText, ekoApiKey);
     console.log(`Parsed task (${taskId}):`, JSON.stringify(parsedTask, null, 2));
     
-    // Log if error is present
+    // If there was a parsing error, mark the task as failed and return early
     if (parsedTask.error) {
-      console.log(`Task parsing error (${taskId}):`, parsedTask.error);
+      console.error(`❌ Task parsing error (${taskId}):`, parsedTask.error);
+      taskLogs[taskId].status = 'failed';
+      taskLogs[taskId].error = parsedTask.error;
+      taskLogs[taskId].completedAt = new Date().toISOString();
+      
+      // Log the error
+      await logTask({
+        userInput: taskText,
+        tool: 'parser',
+        status: 'error',
+        output: { error: parsedTask.error }
+      });
+      
+      return; // Exit early as we can't process this task
     }
     
     taskLogs[taskId].taskType = parsedTask.type;
