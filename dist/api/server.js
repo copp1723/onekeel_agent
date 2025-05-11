@@ -182,7 +182,8 @@ app.post(['/submit-task', '/api/tasks'], (async (req, res) => {
         toolsMap[TaskType.WebContentExtraction] = extractTool;
         toolsMap[TaskType.SummarizeText] = summarizeTool;
         let result;
-        let toolUsed = TaskType.Unknown;
+        // Initialize toolUsed as a string for tracking tools used in processing
+        let toolUsed = TaskType.Unknown.toString();
         // Handle multi-step execution
         if (parsedTask.type === TaskType.MultiStep && parsedTask.plan) {
             // Execute the plan using the execution engine
@@ -193,8 +194,8 @@ app.post(['/submit-task', '/api/tasks'], (async (req, res) => {
                 message: "Task executed with simulated Eko Agent",
                 data: executionResult.finalOutput
             };
-            // Record the tools used
-            toolUsed = parsedTask.plan.steps.map(step => step.tool).join(',');
+            // Record the tools used as a string
+            toolUsed = parsedTask.plan.steps.map(step => step.tool.toString()).join(',');
         }
         // Handle direct tool execution for specific task types
         else if (parsedTask.type === TaskType.WebContentExtraction) {
@@ -264,7 +265,8 @@ app.post(['/submit-task', '/api/tasks'], (async (req, res) => {
                     message: "Task executed with multi-step execution",
                     data: executionResult.finalOutput
                 };
-                toolUsed = 'extractCleanContent,summarizeText';
+                // Record the tools used as a string for logging
+                toolUsed = `${TaskType.ExtractContent},${TaskType.SummarizeText}`;
             }
             else {
                 console.log("No URL found in summarize task");
