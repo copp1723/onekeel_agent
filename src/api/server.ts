@@ -1,4 +1,4 @@
-import express, { Request as ExpressRequest, Response, Router } from 'express';
+import express, { Request as ExpressRequest, Response, Router, RequestHandler, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { Eko, LLMs } from '@eko-ai/eko';
@@ -73,7 +73,7 @@ const taskLogs: Record<string, TaskLog> = {};
 const tasksRouter = Router();
 
 // Get a task status endpoint
-tasksRouter.get('/:taskId', (req: Request, res: Response) => {
+tasksRouter.get('/:taskId', ((req: Request, res: Response) => {
   const { taskId } = req.params;
   
   if (!taskLogs[taskId]) {
@@ -81,10 +81,10 @@ tasksRouter.get('/:taskId', (req: Request, res: Response) => {
   }
   
   return res.status(200).json(taskLogs[taskId]);
-});
+}) as RequestHandler);
 
 // List all tasks endpoint
-tasksRouter.get('/', (req: Request, res: Response) => {
+tasksRouter.get('/', ((req: Request, res: Response) => {
   // Get user ID from the authenticated user (if available)
   const userId = req.user?.claims?.sub;
   
@@ -99,10 +99,10 @@ tasksRouter.get('/', (req: Request, res: Response) => {
   
   // Otherwise, show all tasks
   return res.status(200).json(tasks);
-});
+}) as RequestHandler);
 
 // List user's tasks from the database
-tasksRouter.get('/user', async (req: Request, res: Response) => {
+tasksRouter.get('/user', (async (req: Request, res: Response) => {
   try {
     // Get user ID from the authenticated user (required)
     const userId = req.user?.claims?.sub;
@@ -118,13 +118,13 @@ tasksRouter.get('/user', async (req: Request, res: Response) => {
     console.error('Error retrieving user tasks:', error);
     return res.status(500).json({ error: 'Failed to retrieve user tasks' });
   }
-});
+}) as RequestHandler);
 
 // Register tasks GET endpoints
 app.use('/api/tasks', tasksRouter);
 
 // Unified task submission endpoint for both sync and async operations
-app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => {
+app.post(['/submit-task', '/api/tasks'], (async (req: Request, res: Response) => {
   const { task } = req.body;
   
   if (!task || typeof task !== 'string') {

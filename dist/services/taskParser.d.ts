@@ -1,15 +1,5 @@
 import { ExecutionPlan } from '../agent/executePlan.js';
-export declare enum TaskType {
-    WebCrawling = "web_crawling",
-    WebContentExtraction = "web_content_extraction",
-    SummarizeText = "summarize_text",
-    FlightStatus = "flight_status",
-    DealerLogin = "dealer_login",
-    VehicleData = "vehicle_data",
-    FetchCRMReport = "fetch_crm_report",
-    MultiStep = "multi_step",
-    Unknown = "unknown"
-}
+import { TaskType } from '../types.js';
 export interface ParsedTask {
     type: TaskType;
     parameters: Record<string, any>;
