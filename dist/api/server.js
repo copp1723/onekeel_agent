@@ -256,7 +256,7 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
                 console.log('Executing manually created plan');
                 const executionResult = await executePlan(plan, toolsMap);
                 result = {
-                    type: 'multi_step',
+                    type: TaskType.MultiStep,
                     timestamp: new Date().toISOString(),
                     message: "Task executed with multi-step execution",
                     data: executionResult.finalOutput
@@ -266,7 +266,7 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
             else {
                 console.log("No URL found in summarize task");
                 result = {
-                    type: 'error',
+                    type: TaskType.Unknown, // Using Unknown type for errors
                     timestamp: new Date().toISOString(),
                     message: "Cannot summarize without a URL",
                     data: { error: "Please provide a URL to summarize content from" }

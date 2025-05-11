@@ -12,6 +12,9 @@ export var TaskType;
     TaskType["FlightStatus"] = "flightStatus";
     TaskType["DealerLogin"] = "dealerLogin";
     TaskType["FetchCRMReport"] = "fetchCRMReport";
+    TaskType["MultiStep"] = "multiStep";
+    TaskType["WebCrawling"] = "webCrawling";
+    TaskType["WebContentExtraction"] = "webContentExtraction";
     TaskType["Unknown"] = "unknown";
 })(TaskType || (TaskType = {}));
 //# sourceMappingURL=types.js.map

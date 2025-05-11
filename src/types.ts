@@ -46,6 +46,9 @@ export enum TaskType {
   FlightStatus = 'flightStatus',
   DealerLogin = 'dealerLogin',
   FetchCRMReport = 'fetchCRMReport',
+  MultiStep = 'multiStep',
+  WebCrawling = 'webCrawling',
+  WebContentExtraction = 'webContentExtraction',
   Unknown = 'unknown'
 }
 
