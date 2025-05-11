@@ -16,7 +16,7 @@ import config from '../../configs/platforms.json' assert { type: 'json' };
  * @param envVars - Environment variables object
  * @throws Error if any required variables are missing
  */
-function validateEnvironmentVariables(platform: string, envVars: Record<string, string>): void {
+function validateEnvironmentVariables(platform: string, envVars: EnvVars): void {
   // Get all placeholder values from the config
   const platformConfig = (config as Record<string, PlatformConfig>)[platform];
   if (!platformConfig) {
@@ -63,7 +63,7 @@ function validateEnvironmentVariables(platform: string, envVars: Record<string, 
  * @param envVars - Environment variables object
  * @returns Interpolated text with variables replaced
  */
-function interpolateVariables(text: string, envVars: Record<string, string>): string {
+function interpolateVariables(text: string, envVars: EnvVars): string {
   return text.replace(/\{\{([A-Z_]+)\}\}/g, (match, varName) => {
     return envVars[varName] || match;
   });
@@ -75,7 +75,7 @@ function interpolateVariables(text: string, envVars: Record<string, string>): st
  * @param envVars - Environment variables needed for the flow
  * @returns Path to the downloaded file
  */
-export async function runFlow(platform: string, envVars: Record<string, string>): Promise<string> {
+export async function runFlow(platform: CRMPlatform, envVars: EnvVars): Promise<string> {
   // Validate that all required environment variables are present
   validateEnvironmentVariables(platform, envVars);
 
@@ -129,12 +129,13 @@ export async function runFlow(platform: string, envVars: Record<string, string>)
         // Always close the browser
         await browser.close();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error running ${platform} flow (attempt ${attempt + 1}):`, error);
       
       // If this was the last retry, throw the error
       if (attempt === MAX_RETRIES) {
-        throw new Error(`Failed to execute ${platform} flow after ${MAX_RETRIES + 1} attempts: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to execute ${platform} flow after ${MAX_RETRIES + 1} attempts: ${errorMessage}`);
       }
       
       // Otherwise, retry after a delay
@@ -153,7 +154,7 @@ export async function runFlow(platform: string, envVars: Record<string, string>)
  * @param step - Flow step to execute
  * @param envVars - Environment variables for interpolation
  */
-async function executeStep(page: any, step: FlowStep, envVars: Record<string, string>): Promise<void> {
+async function executeStep(page: any, step: FlowStep, envVars: EnvVars): Promise<void> {
   console.log(`Executing action: ${step.action}`);
 
   switch (step.action) {
@@ -197,15 +198,14 @@ async function executeStep(page: any, step: FlowStep, envVars: Record<string, st
  * @param step - OTP flow step
  * @param envVars - Environment variables for interpolation
  */
-async function executeOTPStep(page: any, step: FlowStep, envVars: Record<string, string>): Promise<void> {
+async function executeOTPStep(page: any, step: FlowStep, envVars: EnvVars): Promise<void> {
   if (step.action !== 'otpEmail') {
     throw new Error(`Expected otpEmail action for OTP step, got: ${step.action}`);
   }
 
   // Get the OTP code from email
   const otpCode = await getEmailOTP(
-    envVars.OTP_EMAIL_USER,
-    envVars.OTP_EMAIL_PASS
+    envVars.OTP_EMAIL_USER
   );
   
   if (!otpCode) {
@@ -233,7 +233,7 @@ async function executeOTPStep(page: any, step: FlowStep, envVars: Record<string,
  * @param envVars - Environment variables for interpolation
  * @returns Path to the downloaded file
  */
-async function executeDownloadStep(page: any, step: FlowStep, envVars: Record<string, string>): Promise<string> {
+async function executeDownloadStep(page: any, step: FlowStep, envVars: EnvVars): Promise<string> {
   if (step.action !== 'download') {
     throw new Error(`Expected download action for download step, got: ${step.action}`);
   }
@@ -264,11 +264,10 @@ async function executeDownloadStep(page: any, step: FlowStep, envVars: Record<st
   return downloadPath;
 }
 
-// Helper function to get OTP from email
-// Placeholder for actual implementation which would be in src/utils/emailOTP.ts
-async function getEmailOTP(username: string, password: string): Promise<string> {
+// Use the imported fetchEmailOTP function instead of this local version
+async function getEmailOTP(username: string): Promise<string> {
   console.log(`Getting OTP for ${username}...`);
-  // In a real implementation, this would connect to an email service
-  // For now, we'll return a placeholder code
+  // In a real implementation, this would connect to an email service via the imported function
+  // For now, we'll return a placeholder code for testing
   return '123456';
 }

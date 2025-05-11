@@ -117,7 +117,8 @@ export async function runFlow(platform, envVars) {
             console.error(`Error running ${platform} flow (attempt ${attempt + 1}):`, error);
             // If this was the last retry, throw the error
             if (attempt === MAX_RETRIES) {
-                throw new Error(`Failed to execute ${platform} flow after ${MAX_RETRIES + 1} attempts: ${error.message}`);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                throw new Error(`Failed to execute ${platform} flow after ${MAX_RETRIES + 1} attempts: ${errorMessage}`);
             }
             // Otherwise, retry after a delay
             console.log(`Retrying in 3 seconds...`);
@@ -177,7 +178,7 @@ async function executeOTPStep(page, step, envVars) {
         throw new Error(`Expected otpEmail action for OTP step, got: ${step.action}`);
     }
     // Get the OTP code from email
-    const otpCode = await getEmailOTP(envVars.OTP_EMAIL_USER, envVars.OTP_EMAIL_PASS);
+    const otpCode = await getEmailOTP(envVars.OTP_EMAIL_USER);
     if (!otpCode) {
         throw new Error('Failed to retrieve OTP code from email');
     }
@@ -223,12 +224,11 @@ async function executeDownloadStep(page, step, envVars) {
     console.log(`Downloaded file saved to: ${downloadPath}`);
     return downloadPath;
 }
-// Helper function to get OTP from email
-// Placeholder for actual implementation which would be in src/utils/emailOTP.ts
-async function getEmailOTP(username, password) {
+// Use the imported fetchEmailOTP function instead of this local version
+async function getEmailOTP(username) {
     console.log(`Getting OTP for ${username}...`);
-    // In a real implementation, this would connect to an email service
-    // For now, we'll return a placeholder code
+    // In a real implementation, this would connect to an email service via the imported function
+    // For now, we'll return a placeholder code for testing
     return '123456';
 }
 //# sourceMappingURL=runFlow.js.map
