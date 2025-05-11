@@ -6,6 +6,15 @@
  * from platforms like VinSolutions and DealerSocket.
  */
 
+/**
+ * Version of the automotive analyst prompt
+ * Follow semver: MAJOR.MINOR.PATCH
+ * - MAJOR: Breaking changes to output structure or analysis focus
+ * - MINOR: Improvements to existing analysis capabilities
+ * - PATCH: Clarifications or minor adjustments
+ */
+export const promptVersion = 'v1.0.0';
+
 export const automotiveAnalystSystemPrompt = `
 You are an Automotive Retail Data Analyst specializing in analyzing customer and sales data from automotive dealerships.
 

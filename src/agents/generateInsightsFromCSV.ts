@@ -37,7 +37,7 @@ export async function generateInsightsFromCSV(
   
   try {
     // Get appropriate system prompt based on intent
-    const systemPrompt = getPromptByIntent(intent);
+    const promptInfo = getPromptByIntent(intent);
     
     // Initialize OpenAI client
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -50,12 +50,13 @@ export async function generateInsightsFromCSV(
     
     // Generate insight using OpenAI
     console.log(`Generating insights with intent: ${intent}`);
+    console.log(`Using prompt version: ${promptInfo.version}`);
     console.log(`Using sample of ${sampleSize} rows from CSV`);
     
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: promptInfo.text },
         { 
           role: 'user', 
           content: `Here is a validated CRM export from an automotive dealership. Please analyze this data and provide insights:\n\n${sampleData}`
@@ -103,7 +104,7 @@ export async function generateInsightsFromCSVContent(
 ): Promise<InsightResponse> {
   try {
     // Get appropriate system prompt based on intent
-    const systemPrompt = getPromptByIntent(intent);
+    const promptInfo = getPromptByIntent(intent);
     
     // Initialize OpenAI client
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -116,12 +117,13 @@ export async function generateInsightsFromCSVContent(
     
     // Generate insight using OpenAI
     console.log(`Generating insights with intent: ${intent}`);
+    console.log(`Using prompt version: ${promptInfo.version}`);
     console.log(`Using sample of ${sampleSize} rows from CSV content`);
     
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: promptInfo.text },
         { 
           role: 'user', 
           content: `Here is a validated CRM export from an automotive dealership. Please analyze this data and provide insights:\n\n${sampleData}`

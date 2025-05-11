@@ -1,39 +1,45 @@
 /**
- * Logs a task execution to the database
+ * Logger Module
  *
- * @param params - The logging parameters
- * @param params.userInput - The original user input/task description
- * @param params.tool - The tool used to execute the task
- * @param params.status - The execution status ('success' or 'error')
- * @param params.output - The task output or error information
- * @param params.userId - Optional user ID for authenticated tasks
- * @returns Promise that resolves when the log entry is created
+ * This module provides centralized logging functionality for the application.
+ * It supports different log levels and can log to both console and files.
  */
-export declare function logTask({ userInput, tool, status, output, userId }: {
-    userInput: string;
-    tool: string;
-    status: 'success' | 'error';
-    output: any;
-    userId: string | undefined;
-}): Promise<void>;
+export declare enum LogLevel {
+    DEBUG = "DEBUG",
+    INFO = "INFO",
+    WARN = "WARN",
+    ERROR = "ERROR"
+}
 /**
- * Retrieves task logs, optionally filtered by user ID
- * @param userId - Optional user ID to filter logs
- * @returns Array of task logs, either from database or memory
+ * General purpose logger for application events
  */
-export declare function getTaskLogs(userId?: string): Promise<{
-    userInput: string;
-    tool: string;
-    status: "success" | "error";
-    output: any;
-    userId: string | undefined;
-    timestamp: string;
-}[] | {
-    id: string;
-    userId: string | null;
-    userInput: string;
-    tool: string;
-    status: string;
-    output: unknown;
-    createdAt: Date | null;
-}[]>;
+export declare const logger: {
+    debug: (message: string, meta?: any) => void;
+    info: (message: string, meta?: any) => void;
+    warn: (message: string, meta?: any) => void;
+    error: (message: string, meta?: any) => void;
+};
+/**
+ * Specialized logger for insight generation runs
+ */
+export interface InsightRunLogData {
+    platform: string;
+    inputFile?: string;
+    promptIntent: string;
+    promptVersion: string;
+    durationMs: number;
+    outputSummary: string[];
+    error?: string;
+    timestamp?: string;
+}
+/**
+ * Log insight generation run details
+ * @param data - Insight run log data
+ */
+export declare function logInsightRun(data: InsightRunLogData): void;
+/**
+ * Get task logs from DB (placeholder for DB integration)
+ * @param taskId - Task ID to retrieve logs for
+ * @returns Array of log entries
+ */
+export declare function getTaskLogs(taskId: string): Promise<string[]>;

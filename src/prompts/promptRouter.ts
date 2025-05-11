@@ -6,7 +6,12 @@
  * here for easy selection throughout the application.
  */
 
-import { automotiveAnalystSystemPrompt } from './automotiveAnalystPrompt.js';
+import { automotiveAnalystSystemPrompt, promptVersion as autoPromptVersion } from './automotiveAnalystPrompt.js';
+
+/**
+ * Tracks the version of the prompt router itself
+ */
+export const routerVersion = 'v1.0.0';
 
 /**
  * Intent type for more strongly typed prompt selection
@@ -14,18 +19,41 @@ import { automotiveAnalystSystemPrompt } from './automotiveAnalystPrompt.js';
 export type PromptIntent = 'automotive_analysis' | 'default';
 
 /**
+ * Prompt info including the text and version information
+ */
+export interface PromptInfo {
+  text: string;
+  version: string;
+  intent: string;
+}
+
+/**
  * Returns the appropriate system prompt based on the specified intent
+ * @param intent - The type of analysis or task to be performed
+ * @returns The system prompt info including text and version
+ * @throws Error if no prompt is defined for the given intent
+ */
+export function getPromptByIntent(intent: PromptIntent | string): PromptInfo {
+  switch (intent) {
+    case 'automotive_analysis':
+      return {
+        text: automotiveAnalystSystemPrompt,
+        version: autoPromptVersion,
+        intent: 'automotive_analysis'
+      };
+    default:
+      throw new Error(`No prompt defined for intent: ${intent}`);
+  }
+}
+
+/**
+ * Returns just the prompt text for backwards compatibility
  * @param intent - The type of analysis or task to be performed
  * @returns The system prompt text to use with the LLM
  * @throws Error if no prompt is defined for the given intent
  */
-export function getPromptByIntent(intent: PromptIntent | string): string {
-  switch (intent) {
-    case 'automotive_analysis':
-      return automotiveAnalystSystemPrompt;
-    default:
-      throw new Error(`No prompt defined for intent: ${intent}`);
-  }
+export function getPromptTextByIntent(intent: PromptIntent | string): string {
+  return getPromptByIntent(intent).text;
 }
 
 /**
