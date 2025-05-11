@@ -69,69 +69,90 @@ app.listen(PORT, () => {
   console.log('  GET /health - Health check endpoint');
 });
 
+// Import our enhanced TypeScript task parser
+import { parseTaskDirect } from '../services/taskParser-fix.js';
+
 // Direct implementation of task processing with pattern matching
 async function processTaskDirect(taskId, taskText) {
   console.log(`Processing task: ${taskId}`);
   console.log(`Task text: ${taskText}`);
   
-  // Simple pattern matching without using LLM
-  const taskLower = taskText.toLowerCase();
-  let taskType = 'unknown';
-  let parameters = {};
-  
-  // Log all pattern tests to help debug
-  const patternTests = {
-    vinsolutions: taskLower.includes('vinsolutions'),
-    sales: taskLower.includes('sales'),
-    report: taskLower.includes('report'),
-    dealer: taskLower.includes('dealer'),
-    yesterday: taskLower.includes('yesterday'),
-    fetch: taskLower.includes('fetch'),
-    get: taskLower.includes('get')
-  };
-  
-  console.log('Pattern matches:', patternTests);
-  
-  // Test VinSolutions pattern
-  const vinSolutionsPattern = /fetch\s+(?:yesterday['']s\s+)?sales\s+report\s+from\s+vinsolutions/i;
-  const isVinSolutionsMatch = vinSolutionsPattern.test(taskText);
-  console.log('VinSolutions pattern test:', isVinSolutionsMatch);
-  
-  // Direct pattern matching for VinSolutions CRM report
-  if (isVinSolutionsMatch) {
-    console.log('☑️ VinSolutions CRM report pattern matched');
-    taskType = 'fetch_crm_report';
+  // Use our enhanced TypeScript parser for more reliable pattern matching
+  try {
+    // Attempt to use the TypeScript parser
+    const parsedTask = await parseTaskDirect(taskText);
+    console.log('Using TypeScript parser result:', parsedTask);
     
-    // Extract dealer ID if present
-    const dealerMatch = taskText.match(/dealer\s+([A-Za-z0-9]+)/i);
-    const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
-    console.log(`Dealer ID extracted: ${dealerId}`);
+    // Map the task type to string for the response
+    let taskType = parsedTask.type.toString().toLowerCase();
     
-    parameters = {
-      site: 'vinsolutions',
-      dealerId: dealerId
+    // Convert to snake_case if needed
+    if (taskType === 'fetchcrmreport') {
+      taskType = 'fetch_crm_report';
+    } else if (taskType === 'unknown') {
+      taskType = 'unknown';
+    }
+    
+    // Use the parsed parameters
+    const parameters = parsedTask.parameters;
+    
+    return {
+      id: taskId,
+      type: taskType,
+      parameters,
+      original: taskText,
+      result: {
+        message: 'Task processed successfully with TypeScript parser',
+        timestamp: new Date().toISOString()
+      }
     };
-  }
-  // Generic sales report detection - fallback
-  else if ((taskLower.includes('sales') && taskLower.includes('report')) || 
-           (taskLower.includes('crm') && taskLower.includes('report'))) {
-    console.log('☑️ Generic sales report pattern matched');
-    taskType = 'fetch_crm_report';
+  } catch (error) {
+    console.error('Error using TypeScript parser, falling back to direct implementation:', error);
     
-    // Extract dealer ID if present
-    const dealerMatch = taskText.match(/dealer(?:ship)?\s+([A-Za-z0-9]+)/i);
-    const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
-    console.log(`Dealer ID extracted: ${dealerId}`);
+    // Fallback to original implementation
+    console.log('Fallback: using direct pattern matching');
     
-    parameters = {
-      site: 'vinsolutions', // Default
-      dealerId: dealerId
+    // Simple pattern matching without using LLM
+    const taskLower = taskText.toLowerCase();
+    let taskType = 'unknown';
+    let parameters = {};
+    
+    // Log all pattern tests to help debug
+    const patternTests = {
+      vinsolutions: taskLower.includes('vinsolutions'),
+      sales: taskLower.includes('sales'),
+      report: taskLower.includes('report'),
+      dealer: taskLower.includes('dealer'),
+      yesterday: taskLower.includes('yesterday'),
+      fetch: taskLower.includes('fetch'),
+      get: taskLower.includes('get'),
+      pull: taskLower.includes('pull')
     };
+    
+    console.log('Pattern matches:', patternTests);
+    
+    // If VinSolutions and "sales report" are both mentioned, it's probably a CRM report
+    if (taskLower.includes('vinsolutions') && 
+        ((taskLower.includes('sales') && taskLower.includes('report')) ||
+         taskLower.includes('crm'))) {
+      console.log('☑️ VinSolutions report match detected');
+      taskType = 'fetch_crm_report';
+      
+      // Extract dealer ID if present
+      const dealerMatch = taskText.match(/dealer(?:ship)?\s+([A-Za-z0-9]+)/i);
+      const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
+      console.log(`Dealer ID extracted: ${dealerId}`);
+      
+      parameters = {
+        site: 'vinsolutions',
+        dealerId: dealerId
+      };
+    }
+    
+    // Log the parsed task
+    console.log(`Task executed directly: ${taskId} - ${taskType}`);
+    console.log(`Task text: ${taskText}`);
   }
-  
-  // Log the parsed task
-  console.log(`Task executed directly: ${taskId} - ${taskType}`);
-  console.log(`Task text: ${taskText}`);
   console.log('Parsed task:', JSON.stringify({
     type: taskType,
     parameters,
