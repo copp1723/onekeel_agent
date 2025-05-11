@@ -1,10 +1,13 @@
 /**
  * CRM Report Fetching Tool
- * Uses the generic runFlow system to fetch reports from different CRM platforms
+ * Uses the following methods in order of preference:
+ * 1. Email ingestion - Fetch reports from scheduled emails
+ * 2. Playwright automation - Use browser automation as fallback
  */
 import { runFlow } from './runFlow.js';
 import * as fs from 'fs';
 import { CRMPlatform, CRMReportOptions, EnvVars } from '../types.js';
+import { tryFetchReportFromEmail } from './ingestScheduledReport.js';
 
 /**
  * Fetches a CRM report from the specified platform
@@ -50,6 +53,18 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
     };
     const normalizedPlatform = platformMap[platform.toLowerCase()];
     
+    // STEP 1: Try to fetch the report from scheduled emails first
+    console.log(`Attempting to fetch report from emails for ${normalizedPlatform}...`);
+    const emailReportPath = await tryFetchReportFromEmail(normalizedPlatform);
+    
+    if (emailReportPath) {
+      console.log(`✅ CRM report found in email. File path: ${emailReportPath}`);
+      return emailReportPath;
+    }
+    
+    console.log(`No report found in emails. Falling back to browser automation...`);
+    
+    // STEP 2: Fall back to browser automation if email ingestion fails
     // Get environment variables based on platform
     const envVars: EnvVars = {};
     
@@ -68,7 +83,7 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
     // Run the flow for the specified platform
     const filePath = await runFlow(normalizedPlatform, envVars);
     
-    console.log(`CRM report fetched successfully. File path: ${filePath}`);
+    console.log(`✅ CRM report fetched successfully using browser automation. File path: ${filePath}`);
     return filePath;
   } catch (error: unknown) {
     console.error(`Error fetching CRM report from ${platform}:`, error);
