@@ -159,7 +159,13 @@ With the Phase 2 extensions, the agent supports multiple tools and task types:
    ```
    This will automatically:
    - Extract clean content from the URL
-   - Summarize the extracted content
+   - Summarize the extracted content using property path access
+   
+   The multi-step execution engine supports:
+   - Sequential execution of multiple tools
+   - Passing outputs between steps with template variables
+   - Advanced property path access with syntax like `{{step0.output.content}}`
+   - Automatic type handling for object and primitive values
 
 The agent will automatically parse the task intent using either rule-based or LLM-powered parsing, select the appropriate tool, and execute the task. For multi-step tasks, the agent will create and execute a plan with multiple steps in sequence.
 
@@ -177,6 +183,8 @@ You can also use the REST API to submit tasks and retrieve results. Start the AP
 
 #### Multi-Step Demo API (v3)
 - `POST http://localhost:3000/summarize` - Extract and summarize content from a URL
+  - Request body: `{ "url": "https://example.com" }`
+  - Returns: Clean extracted content and its summary with statistics
 - `GET http://localhost:3000/health` - Health check endpoint
 
 Example POST request to /submit-task:

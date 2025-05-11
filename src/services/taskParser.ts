@@ -57,7 +57,7 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
             },
             {
               tool: 'summarizeText',
-              input: { text: '{{step0.output.content}}' }
+              input: { text: '{{step0.output.content}}', maxLength: 300 }
             }
           ]
         }
