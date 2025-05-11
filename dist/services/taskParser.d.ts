@@ -9,12 +9,12 @@ export interface ParsedTask {
     planId?: string;
 }
 /**
- * Uses an LLM to parse a natural language task into a structured format
+ * Parses a natural language task into a structured format using rule-based patterns
  * @param task - The natural language task description
- * @param ekoApiKey - The Eko API key for the LLM call
+ * @param _ekoApiKey - The Eko API key (unused in this implementation, but kept for API compatibility)
  * @returns The parsed task with type and parameters
  */
-export declare function parseTask(task: string, ekoApiKey: string): Promise<ParsedTask>;
+export declare function parseTask(task: string, _ekoApiKey: string): Promise<ParsedTask>;
 /**
  * Uses the LLM to parse a task (more advanced implementation)
  * @param task - The natural language task

@@ -73,18 +73,18 @@ const taskLogs: Record<string, TaskLog> = {};
 const tasksRouter = Router();
 
 // Get a task status endpoint
-tasksRouter.get('/:taskId', ((req: Request, res: Response) => {
+tasksRouter.get('/:taskId', ((req: Request, res: Response, next: NextFunction) => {
   const { taskId } = req.params;
   
   if (!taskLogs[taskId]) {
     return res.status(404).json({ error: 'Task not found' });
   }
   
-  return res.status(200).json(taskLogs[taskId]);
+  res.status(200).json(taskLogs[taskId]);
 }) as RequestHandler);
 
 // List all tasks endpoint
-tasksRouter.get('/', ((req: Request, res: Response) => {
+tasksRouter.get('/', ((req: Request, res: Response, next: NextFunction) => {
   // Get user ID from the authenticated user (if available)
   const userId = req.user?.claims?.sub;
   
@@ -94,29 +94,31 @@ tasksRouter.get('/', ((req: Request, res: Response) => {
   // If user is authenticated, filter tasks to show only their own
   if (userId) {
     const userTasks = tasks.filter(task => task.userId === userId);
-    return res.status(200).json(userTasks);
+    res.status(200).json(userTasks);
+    return;
   }
   
   // Otherwise, show all tasks
-  return res.status(200).json(tasks);
+  res.status(200).json(tasks);
 }) as RequestHandler);
 
 // List user's tasks from the database
-tasksRouter.get('/user', (async (req: Request, res: Response) => {
+tasksRouter.get('/user', (async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get user ID from the authenticated user (required)
     const userId = req.user?.claims?.sub;
     
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required to access personal tasks' });
+      res.status(401).json({ error: 'Authentication required to access personal tasks' });
+      return;
     }
     
     // Get user's tasks from database
     const userTasks = await getTaskLogs(userId);
-    return res.status(200).json(userTasks);
+    res.status(200).json(userTasks);
   } catch (error) {
     console.error('Error retrieving user tasks:', error);
-    return res.status(500).json({ error: 'Failed to retrieve user tasks' });
+    res.status(500).json({ error: 'Failed to retrieve user tasks' });
   }
 }) as RequestHandler);
 

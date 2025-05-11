@@ -41,15 +41,15 @@ const taskLogs = {};
 // Create router for tasks API
 const tasksRouter = Router();
 // Get a task status endpoint
-tasksRouter.get('/:taskId', ((req, res) => {
+tasksRouter.get('/:taskId', ((req, res, next) => {
     const { taskId } = req.params;
     if (!taskLogs[taskId]) {
         return res.status(404).json({ error: 'Task not found' });
     }
-    return res.status(200).json(taskLogs[taskId]);
+    res.status(200).json(taskLogs[taskId]);
 }));
 // List all tasks endpoint
-tasksRouter.get('/', ((req, res) => {
+tasksRouter.get('/', ((req, res, next) => {
     // Get user ID from the authenticated user (if available)
     const userId = req.user?.claims?.sub;
     // Use in-memory task logs for compatibility with existing code
@@ -57,26 +57,28 @@ tasksRouter.get('/', ((req, res) => {
     // If user is authenticated, filter tasks to show only their own
     if (userId) {
         const userTasks = tasks.filter(task => task.userId === userId);
-        return res.status(200).json(userTasks);
+        res.status(200).json(userTasks);
+        return;
     }
     // Otherwise, show all tasks
-    return res.status(200).json(tasks);
+    res.status(200).json(tasks);
 }));
 // List user's tasks from the database
-tasksRouter.get('/user', (async (req, res) => {
+tasksRouter.get('/user', (async (req, res, next) => {
     try {
         // Get user ID from the authenticated user (required)
         const userId = req.user?.claims?.sub;
         if (!userId) {
-            return res.status(401).json({ error: 'Authentication required to access personal tasks' });
+            res.status(401).json({ error: 'Authentication required to access personal tasks' });
+            return;
         }
         // Get user's tasks from database
         const userTasks = await getTaskLogs(userId);
-        return res.status(200).json(userTasks);
+        res.status(200).json(userTasks);
     }
     catch (error) {
         console.error('Error retrieving user tasks:', error);
-        return res.status(500).json({ error: 'Failed to retrieve user tasks' });
+        res.status(500).json({ error: 'Failed to retrieve user tasks' });
     }
 }));
 // Register tasks GET endpoints
