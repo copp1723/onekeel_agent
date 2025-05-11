@@ -6,7 +6,7 @@ import { chromium, Browser, Page } from 'playwright';
 import path from 'path';
 // This import is commented out because we're using a local implementation for testing
 // import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
-import { FlowStep, PlatformConfig, EnvVars } from '../types.js';
+import { FlowStep, EnvVars } from '../types.js';
 
 // Load platform configurations
 import config from '../../configs/platforms.json' assert { type: 'json' };

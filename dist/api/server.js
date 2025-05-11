@@ -174,12 +174,12 @@ app.post(['/submit-task', '/api/tasks'], async (req, res) => {
         const flightTool = checkFlightStatus();
         const extractTool = extractCleanContent();
         const summarizeTool = summarizeText(ekoApiKey);
-        toolsMap['crawlWebsite'] = crawlTool;
-        toolsMap['checkFlightStatus'] = flightTool;
-        toolsMap['extractCleanContent'] = extractTool;
-        toolsMap['summarizeText'] = summarizeTool;
+        toolsMap[TaskType.WebCrawling] = crawlTool;
+        toolsMap[TaskType.FlightStatus] = flightTool;
+        toolsMap[TaskType.WebContentExtraction] = extractTool;
+        toolsMap[TaskType.SummarizeText] = summarizeTool;
         let result;
-        let toolUsed = 'unknown';
+        let toolUsed = TaskType.Unknown;
         // Handle multi-step execution
         if (parsedTask.type === TaskType.MultiStep && parsedTask.plan) {
             // Execute the plan using the execution engine
@@ -372,19 +372,19 @@ async function processTask(taskId, taskText, userId) {
         }
         const flightTool = checkFlightStatus();
         tools.push(flightTool);
-        toolsMap['checkFlightStatus'] = flightTool;
+        toolsMap[TaskType.FlightStatus] = flightTool;
         const extractTool = extractCleanContent();
         tools.push(extractTool);
-        toolsMap['extractCleanContent'] = extractTool;
+        toolsMap[TaskType.WebContentExtraction] = extractTool;
         const summarizeTool = summarizeText(ekoApiKey);
         tools.push(summarizeTool);
-        toolsMap['summarizeText'] = summarizeTool;
+        toolsMap[TaskType.SummarizeText] = summarizeTool;
         const dealerLoginTool = dealerLogin();
         tools.push(dealerLoginTool);
-        toolsMap['dealerLogin'] = dealerLoginTool;
+        toolsMap[TaskType.DealerLogin] = dealerLoginTool;
         const crmReportTool = fetchCRMReportTool();
         tools.push(crmReportTool);
-        toolsMap['fetchCRMReport'] = crmReportTool;
+        toolsMap[TaskType.FetchCRMReport] = crmReportTool;
         // Initialize Eko agent with the appropriate tools
         const eko = new Eko({
             llms,
