@@ -1,0 +1,51 @@
+Here’s what’s really going on and where to go from here—no fluff:
+
+1. Database timeouts still aren’t your parser’s fault
+You’ve tweaked timeouts and SSL, you’ve restarted, you’ve even spun up a little test-db.ts script—but your server still can’t make a raw TCP connection to port 5432 on Supabase. That means Replit is most likely blocking outbound Postgres ports.
+Next move:
+• Switch to Supabase’s HTTP client. Drop the postgres library entirely and use @supabase/supabase-js over HTTPS. It’ll sidestep port 5432 entirely. For example:
+import { createClient } from '@supabase/supabase-js'
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!,
+  { auth: { persistSession: false } }
+)
+const { data, error } = await supabase.from('plans').select('id').limit(1)
+• Or move your data to Replit’s built‑in Postgres (which uses port 5432/SSL but is whitelisted). Either way, don’t waste another hour fighting the network.
+
+2. Your parser tests work, but the server isn’t using them
+You proved in test-pattern-match.js that your regex matches—yet the live server still logs “unknown.” That tells me your src/services/taskParser.ts isn’t actually the file your API is importing. You were creating taskParser-fix.ts, editing taskParser.ts, and even making a server-fix.js—but unless you’ve wired your server entrypoint to load that updated code (and recompiled/transpiled it), none of it runs.
+Next move:
+Confirm the module resolution path.
+
+
+Add a console.log('💥 using TASK-PARSER-FIX') at the top of both your old and new parser files. Restart the server and see which one prints.
+
+
+Unify to a single source of truth.
+
+
+Delete the old taskParser.js/taskParser-fix.ts confusion. Keep only src/services/taskParser.ts, import it from your server with the exact same relative path you’re editing.
+
+
+Rebuild/Restart correctly.
+
+
+If you’re using TS, ensure you run tsc (or your build script) before starting node dist/api/server.js. Don’t just restart node src/api/server.js—that won’t pick up TS changes.
+
+
+Smoke‑test immediately on startup.
+
+
+Right after your parser import in server.js, add:
+
+
+console.log('Parser test:', parseTask('Fetch yesterday’s sales report from VinSolutions for dealer ABC123'))
+
+
+
+
+That log will prove once and for all that you’re loading the exact code you think you are.
+
+
+
