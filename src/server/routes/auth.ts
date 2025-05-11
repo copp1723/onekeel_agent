@@ -16,7 +16,7 @@ interface AuthRequest extends Request {
 const authRouter = Router();
 
 // Get the current user's information
-authRouter.get('/user', isAuthenticated, async (req: Request, res: Response) => {
+authRouter.get('/user', isAuthenticated, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.claims?.sub;
     

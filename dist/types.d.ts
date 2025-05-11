@@ -54,6 +54,8 @@ export interface CrawlWebsiteArgs {
     url: string;
     depth?: number;
     maxPages?: number;
+    excludeUrls?: string[];
+    includeUrls?: string[];
     [key: string]: any;
 }
 /**

@@ -256,11 +256,11 @@ app.post('/submit-task', async (req, res) => {
                 const plan = {
                     steps: [
                         {
-                            tool: 'extractCleanContent',
+                            tool: TaskType.ExtractContent,
                             input: { url }
                         },
                         {
-                            tool: 'summarizeText',
+                            tool: TaskType.SummarizeText,
                             input: { text: '{{step0.output.content}}' }
                         }
                     ]

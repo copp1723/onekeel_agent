@@ -60,6 +60,8 @@ export interface CrawlWebsiteArgs {
   url: string;
   depth?: number;
   maxPages?: number;
+  excludeUrls?: string[];
+  includeUrls?: string[];
   [key: string]: any; // Allow for additional properties to prevent type errors
 }
 
