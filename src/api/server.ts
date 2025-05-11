@@ -460,9 +460,9 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
     tools.push(dealerLoginTool);
     toolsMap['dealerLogin'] = dealerLoginTool;
     
-    const fetchCRMReportTool = fetchCRMReport();
-    tools.push(fetchCRMReportTool);
-    toolsMap['fetchCRMReport'] = fetchCRMReportTool;
+    const crmReportTool = fetchCRMReportTool();
+    tools.push(crmReportTool);
+    toolsMap['fetchCRMReport'] = crmReportTool;
     
     // Initialize Eko agent with the appropriate tools
     const eko = new Eko({ 
@@ -564,7 +564,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
         type: TaskType.FetchCRMReport,
         timestamp: new Date().toISOString(),
         message: "Task processed with CRM report extraction agent",
-        data: await fetchCRMReportTool.handler(crmReportParams)
+        data: await crmReportTool.handler(crmReportParams)
       };
       toolUsed = 'fetchCRMReport';
     }
