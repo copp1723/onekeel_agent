@@ -400,10 +400,12 @@ async function processTask(taskId, taskText, userId) {
         tools.push(crmReportTool);
         toolsMap[TaskType.FetchCRMReport] = crmReportTool;
         // Initialize Eko agent with the appropriate tools
-        const eko = new Eko({
+        // Create a valid EkoConfig object
+        const config = {
             llms,
-            tools
-        });
+            // Remove the direct tools property as it's not part of EkoConfig
+        };
+        const eko = new Eko(config);
         let result;
         let toolUsed = parsedTask.type;
         // Handle multi-step tasks with execution plan
