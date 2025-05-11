@@ -294,7 +294,7 @@ app.post('/submit-task', async (req: Request, res: Response): Promise<void> => {
         data: await crawlTool.handler({
           url: parsedTask.parameters.url || 'https://example.com', // Default URL as fallback
           depth: parsedTask.parameters.depth,
-          maxPages: parsedTask.parameters.maxPages
+          ...(parsedTask.parameters.maxPages ? { maxPages: parsedTask.parameters.maxPages } : {})
         })
       };
       toolUsed = TaskType.WebCrawling.toString();
@@ -395,10 +395,11 @@ app.post('/submit-task', async (req: Request, res: Response): Promise<void> => {
       userId: userId
     });
     
-    return res.status(500).json({ 
+    res.status(500).json({ 
       success: false, 
       error: error.message || 'Task execution failed' 
     });
+    return;
   }
 });
 
@@ -674,7 +675,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
 }
 
 // Test endpoint for parser
-app.post('/test-parser', async (req: Request, res: Response): Promise<void> => {
+app.post('/test-parser', async (req: Request, res: Response) => {
   const { task } = req.body;
   
   if (!task || typeof task !== 'string') {
@@ -686,7 +687,8 @@ app.post('/test-parser', async (req: Request, res: Response): Promise<void> => {
     // Get the API key
     const ekoApiKey = process.env.EKO_API_KEY;
     if (!ekoApiKey) {
-      return res.status(500).json({ error: 'API key not available' });
+      res.status(500).json({ error: 'API key not available' });
+      return;
     }
     
     // Parse the task
@@ -694,14 +696,16 @@ app.post('/test-parser', async (req: Request, res: Response): Promise<void> => {
     const parsedTask = await parseTask(task, ekoApiKey);
     
     // Return the parsed result including any errors
-    return res.status(200).json({
+    res.status(200).json({
       task,
       parsed: parsedTask,
       hasError: !!parsedTask.error
     });
+    return;
   } catch (error: any) {
     console.error('Error in test parser:', error);
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
+    return;
   }
 });
 
