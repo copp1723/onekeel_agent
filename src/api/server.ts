@@ -1,7 +1,7 @@
 import express, { Request as ExpressRequest, Response, Router, RequestHandler, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { Eko, LLMs, mergeTools } from '@eko-ai/eko';
+import { Eko, LLMs, type EkoConfig } from '@eko-ai/eko';
 import { crawlWebsite } from '../tools/crawlWebsite.js';
 import { checkFlightStatus } from '../tools/checkFlightStatus.js';
 import { extractCleanContent } from '../tools/extractCleanContent.js';
@@ -490,16 +490,13 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
     toolsMap[TaskType.FetchCRMReport] = crmReportTool;
     
     // Initialize Eko agent with the appropriate tools
-    // Create a valid EkoConfig object
-    const config: EkoConfig = {
-      llms,
-      // Remove the direct tools property as it's not part of EkoConfig
-    };
-    
-    const eko = new Eko(config);
+    const eko = new Eko({
+      llms
+    });
     
     let result;
-    let toolUsed = parsedTask.type;
+    // Initialize toolUsed as a string representation of the task type
+    let toolUsed = parsedTask.type.toString();
     
     // Handle multi-step tasks with execution plan
     if (parsedTask.type === TaskType.MultiStep && parsedTask.plan) {
