@@ -143,29 +143,33 @@ export const isAuthenticated = async (req, res, next) => {
     // Skip auth check in dev mode if env vars are missing
     if (!process.env.REPLIT_DOMAINS) {
         console.warn("Auth check bypassed in dev mode");
-        return next();
+        next();
+        return;
     }
     const user = req.user;
-    if (!req.isAuthenticated() || !user?.expires_at) {
-        return res.status(401).json({ message: "Unauthorized" });
+    if (!req.isAuthenticated || !req.isAuthenticated() || !user?.expires_at) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
     }
     const now = Math.floor(Date.now() / 1000);
     if (now <= user.expires_at) {
-        return next();
+        next();
+        return;
     }
     const refreshToken = user.refresh_token;
     if (!refreshToken) {
-        return res.redirect("/api/login");
+        res.redirect("/api/login");
+        return;
     }
     try {
         const config = await getOidcConfig();
         const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
         updateUserSession(user, tokenResponse);
-        return next();
+        next();
     }
     catch (error) {
         console.error("Token refresh error:", error);
-        return res.redirect("/api/login");
+        res.redirect("/api/login");
     }
 };
 //# sourceMappingURL=replitAuth.js.map

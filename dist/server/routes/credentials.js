@@ -9,12 +9,11 @@ credentialsRouter.get('/', isAuthenticated, async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
-            res.status(401).json({ message: 'Unauthorized - User ID not found' });
-            return;
+            return res.status(401).json({ message: 'Unauthorized - User ID not found' });
         }
         const credentials = await storage.listCredentials(userId);
         // Return credentials without sensitive fields
-        res.json(credentials.map(cred => ({
+        return res.json(credentials.map(cred => ({
             id: cred.id,
             userId: cred.userId,
             site: cred.site,
@@ -24,7 +23,7 @@ credentialsRouter.get('/', isAuthenticated, async (req, res) => {
     }
     catch (error) {
         console.error('Error fetching credentials:', error);
-        res.status(500).json({ message: 'Failed to fetch credentials' });
+        return res.status(500).json({ message: 'Failed to fetch credentials' });
     }
 });
 // Save a new credential
@@ -32,13 +31,11 @@ credentialsRouter.post('/', isAuthenticated, async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
-            res.status(401).json({ message: 'Unauthorized - User ID not found' });
-            return;
+            return res.status(401).json({ message: 'Unauthorized - User ID not found' });
         }
         const { site, username, password } = req.body;
         if (!site || !username || !password) {
-            res.status(400).json({ message: 'Site, username, and password are required' });
-            return;
+            return res.status(400).json({ message: 'Site, username, and password are required' });
         }
         const credential = await storage.saveCredential({
             userId,
@@ -46,7 +43,7 @@ credentialsRouter.post('/', isAuthenticated, async (req, res) => {
             username,
             password
         });
-        res.status(201).json({
+        return res.status(201).json({
             id: credential.id,
             userId: credential.userId,
             site: credential.site,
@@ -56,7 +53,7 @@ credentialsRouter.post('/', isAuthenticated, async (req, res) => {
     }
     catch (error) {
         console.error('Error saving credential:', error);
-        res.status(500).json({ message: 'Failed to save credential' });
+        return res.status(500).json({ message: 'Failed to save credential' });
     }
 });
 // Delete a credential
