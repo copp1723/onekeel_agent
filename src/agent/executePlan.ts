@@ -1,6 +1,7 @@
 import { EkoTool } from '../tools/extractCleanContent.js';
 import { db } from '../shared/db.js';
 import { plans, steps } from '../shared/schema.js';
+import { eq } from 'drizzle-orm';
 
 export interface PlanStep {
   tool: string;
@@ -80,7 +81,7 @@ export async function executePlan(
             output: output,
             status: 'completed' 
           })
-          .where(steps.id.equals(stepId));
+          .where(eq(steps.id, stepId));
         
         stepResults.push({ output, stepId });
         console.log(`Step ${i} completed successfully`);
@@ -94,7 +95,7 @@ export async function executePlan(
             status: 'failed',
             error: errorMessage
           })
-          .where(steps.id.equals(stepId));
+          .where(eq(steps.id, stepId));
         
         stepResults.push({ 
           output: null, 
