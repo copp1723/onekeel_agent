@@ -10,13 +10,15 @@ authRouter.get('/user', isAuthenticated, async (req: Request, res: Response) => 
     const userId = req.user?.claims?.sub;
     
     if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized - User ID not found' });
+      res.status(401).json({ message: 'Unauthorized - User ID not found' });
+      return;
     }
     
     const user = await storage.getUser(userId);
     
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: 'User not found' });
+      return;
     }
     
     // Return user without sensitive information
