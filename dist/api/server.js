@@ -102,7 +102,8 @@ app.post('/submit-task', async (req, res) => {
     // Get the Eko API key for validation (used in both async and sync paths)
     const ekoApiKey = process.env.EKO_API_KEY;
     if (!ekoApiKey) {
-        return res.status(500).json({ error: 'API key not available' });
+        res.status(500).json({ error: 'API key not available' });
+        return;
     }
     // For the async API, validate the task before accepting it
     const isAsync = req.path === '/api/tasks';
@@ -114,9 +115,10 @@ app.post('/submit-task', async (req, res) => {
             if (parsedTask.error) {
                 console.error("❌ Task parser validation error:", parsedTask.error);
                 // Return a 400 Bad Request with the specific error message
-                return res.status(400).json({
+                res.status(400).json({
                     error: parsedTask.error
                 });
+                return;
             }
             // Generate a unique ID for this task
             const taskId = crypto.randomUUID();
@@ -138,16 +140,18 @@ app.post('/submit-task', async (req, res) => {
                 taskLogs[taskId].completedAt = new Date().toISOString();
             });
             // Return the task ID immediately
-            return res.status(201).json({
+            res.status(201).json({
                 id: taskId,
                 message: 'Task submitted successfully'
             });
+            return;
         }
         catch (error) {
             console.error("Error during task validation:", error);
-            return res.status(500).json({
+            res.status(500).json({
                 error: error.message || "Error validating task"
             });
+            return;
         }
     }
     // For synchronous execution (submit-task), execute immediately 
@@ -155,7 +159,8 @@ app.post('/submit-task', async (req, res) => {
         // Get the Eko API key
         const ekoApiKey = process.env.EKO_API_KEY;
         if (!ekoApiKey) {
-            return res.status(500).json({ error: 'API key not available' });
+            res.status(500).json({ error: 'API key not available' });
+            return;
         }
         // Get the Firecrawl API key for web crawling tasks
         const firecrawlApiKey = await getApiKey('firecrawl') || 'demo_firecrawl_key';
@@ -169,7 +174,8 @@ app.post('/submit-task', async (req, res) => {
         if (parsedTask.error) {
             console.error(`❌ Task parser error (${taskId}):`, parsedTask.error);
             console.log("Returning 400 Bad Request with error message");
-            return res.status(400).json({ success: false, error: parsedTask.error });
+            res.status(400).json({ success: false, error: parsedTask.error });
+            return;
         }
         // Create tools map
         const toolsMap = {};
