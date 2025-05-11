@@ -1,0 +1,94 @@
+## 🎟 Prompt Integration Handoff: Automotive Analyst Prompt
+
+### 📦 Context
+
+We are now ready to integrate a finalized, domain-specific system prompt for generating LLM-based insights from automotive dealership data. This is **not Watchdog-specific** — it is a generalized analyst prompt for interpreting CRM exports (e.g., VinSolutions, DealerSocket).
+
+This task involves preparing a generic prompt module, wiring it into the LLM pipeline, and enabling dynamic prompt selection by task intent.
+
+---
+
+### ✅ What Exists
+
+* `automotiveInsightSystemPrompt.md` was reviewed and finalized
+* Converted into TypeScript: `automotiveAnalystPrompt.ts`
+* Export name is now: `automotiveAnalystSystemPrompt`
+* The prompt is stripped of Watchdog branding and generalized for any platform
+
+---
+
+### 📋 Task Scope
+
+#### 1. **Create Prompt Module**
+
+File: `src/prompts/automotiveAnalystPrompt.ts`
+
+```ts
+export const automotiveAnalystSystemPrompt = `
+[PASTE CLEANED PROMPT TEXT HERE]
+`;
+```
+
+#### 2. **Inject Prompt into LLM Request**
+
+Modify any insight generation function (e.g., `generateInsightsFromCSV.ts`) to include:
+
+```ts
+import { automotiveAnalystSystemPrompt } from '../prompts/automotiveAnalystPrompt';
+
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [
+    { role: 'system', content: automotiveAnalystSystemPrompt },
+    { role: 'user', content: `Here is the validated CRM export:` }
+  ],
+  temperature: 0.2,
+  response_format: { type: 'json_object' }
+});
+```
+
+#### 3. **Optional (but recommended): Add Prompt Router**
+
+Create: `src/prompts/promptRouter.ts`
+
+```ts
+import { automotiveAnalystSystemPrompt } from './automotiveAnalystPrompt';
+
+export function getPromptByIntent(intent: string): string {
+  switch (intent) {
+    case 'automotive_analysis':
+      return automotiveAnalystSystemPrompt;
+    default:
+      throw new Error(`No prompt defined for intent: ${intent}`);
+  }
+}
+```
+
+Replace direct prompt imports with:
+
+```ts
+const systemPrompt = getPromptByIntent('automotive_analysis');
+```
+
+---
+
+### ✅ Acceptance Criteria
+
+* [ ] Prompt is reusable, clearly named, and free of Watchdog-specific language
+* [ ] LLM flow accepts and injects system prompt correctly
+* [ ] Response is parsed as structured JSON (title, description, actionItems)
+* [ ] Optional: prompt router supports multiple prompt intents
+
+---
+
+### 🧠 Why This Matters
+
+This system prompt is the brain behind the business insights. Integrating it cleanly ensures:
+
+* LLM outputs are consistent, targeted, and relevant to the auto retail space
+* The prompt logic is modular, testable, and easily extendable
+* Future prompt sets (F\&I, service, marketing) can be added without refactoring core logic
+
+---
+
+Let me know when you're ready to wire in the actual insight generation call or if you need a companion test script.
