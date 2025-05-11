@@ -4,9 +4,12 @@ import postgres from 'postgres';
 console.log("Testing direct database connection...");
 console.log("DATABASE_URL:", process.env.DATABASE_URL ? 'Available (hidden)' : 'Not available');
 
+// Use the newer connection parameters
 const sql = postgres(process.env.DATABASE_URL, { 
   ssl: { rejectUnauthorized: false },
-  timeout: 30000,  // 30 second timeout
+  idle_timeout: 30,
+  connect_timeout: 30,
+  max_lifetime: 60 * 5, // 5 minutes
   debug: true  // Verbose debugging
 });
 

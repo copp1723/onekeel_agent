@@ -20,6 +20,10 @@ args = "AI Agent Demo"
 task = "workflow.run"
 args = "Multi-Step Demo"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Fixed Server Demo"
+
 [[workflows.workflow]]
 name = "AI Agent Demo"
 author = "agent"
@@ -37,6 +41,14 @@ author = "agent"
 task = "shell.exec"
 args = "node src/multistep-demo.js"
 waitForPort = 3000
+
+[[workflows.workflow]]
+name = "Fixed Server Demo"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node run-fixed-server.js"
 
 [deployment]
 run = ["sh", "-c", "npm install dotenv axios drizzle-orm postgres fellou-eko typescript ts-node && npx tsc && node dist/index.js"]

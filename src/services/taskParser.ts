@@ -36,7 +36,7 @@ export interface ParsedTask {
 export async function parseTask(task: string, ekoApiKey: string): Promise<ParsedTask> {
   // For a simple implementation, we'll use a rule-based approach
   // In a more complex system, you would use the LLM for this
-  console.log('taskParser.ts loaded!'); // Confirm this file is used
+  console.log('⚠️ FIXED taskParser.ts loaded! ⚠️'); // Confirm this file is used - ALWAYS LOOK FOR THIS LOG
   
   const taskLower = task.toLowerCase();
   const taskHash = crypto.createHash('md5').update(task).digest('hex').substring(0, 8);
@@ -44,15 +44,48 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   console.log(`[${taskHash}] 🔎 Task parser analyzing: ${task}`);
   console.log(`[${taskHash}] Task lowercase: "${taskLower}"`);
   
-  // 1) Direct VinSolutions CRM report shortcut
-  if (/fetch\s+(?:yesterday['']s\s+)?sales\s+report\s+from\s+vinsolutions/i.test(task)) {
+  // Log all pattern tests for debugging
+  console.log('Pattern components:', {
+    fetch: taskLower.includes('fetch'),
+    yesterday: taskLower.includes('yesterday'),
+    sales: taskLower.includes('sales'),
+    report: taskLower.includes('report'),
+    from: taskLower.includes('from'),
+    vinsolutions: taskLower.includes('vinsolutions'),
+    dealer: taskLower.includes('dealer')
+  });
+  
+  // 1) HARDCODED Direct VinSolutions CRM report shortcut with EXACT regex pattern
+  const vinSolutionsPattern = /fetch\s+(?:yesterday['']s\s+)?sales\s+report\s+from\s+vinsolutions/i;
+  const isVinSolutionsMatch = vinSolutionsPattern.test(task);
+  console.log('VinSolutions pattern match test:', isVinSolutionsMatch);
+  
+  if (isVinSolutionsMatch) {
     const dealerMatch = task.match(/dealer\s+([A-Za-z0-9]+)/i);
-    console.log('☑️ VinSolutions shortcut matched');
+    const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123'; // Default for testing
+    console.log('☑️ VinSolutions shortcut matched with dealerId:', dealerId);
     return {
       type: TaskType.FetchCRMReport,
       parameters: {
         site: 'vinsolutions',
-        dealerId: dealerMatch ? dealerMatch[1] : 'ABC123' // Default for testing
+        dealerId
+      },
+      original: task
+    };
+  }
+  
+  // Alternative detection method that looks for individual keywords
+  if (taskLower.includes('sales') && 
+      taskLower.includes('report') && 
+      taskLower.includes('vinsolutions')) {
+    console.log('☑️ VinSolutions keyword match detected');
+    const dealerMatch = task.match(/dealer\s+([A-Za-z0-9]+)/i);
+    const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123'; // Default for testing
+    return {
+      type: TaskType.FetchCRMReport,
+      parameters: {
+        site: 'vinsolutions',
+        dealerId
       },
       original: task
     };
