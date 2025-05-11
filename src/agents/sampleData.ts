@@ -2,6 +2,7 @@
  * Sample Data Provider
  * Provides sample data for testing CRM report flows without real credentials
  */
+import { CRMPlatform } from '../types.js';
 
 /**
  * Returns a sample CSV report for the specified dealer ID
@@ -10,14 +11,14 @@
  * @param platform - CRM platform (VinSolutions or VAUTO)
  * @returns Sample CSV data
  */
-export function getSampleReport(dealerId: string, platform: string = 'VinSolutions'): string {
+export function getSampleReport(dealerId: string, platform: CRMPlatform = 'VinSolutions'): string {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   
   const formattedDate = yesterday.toISOString().split('T')[0]; // YYYY-MM-DD format
   
-  if (platform.toLowerCase() === 'vinsolutions') {
+  if (platform === 'VinSolutions') {
     // Sample VinSolutions sales report
     return `Date,DealerID,SalesRep,Customer,VIN,Vehicle,SalePrice,TradeIn,Profit
 ${formattedDate},${dealerId},John Smith,Customer 1,1HGCM82633A123456,2023 Honda Accord,32500,Yes,3200
@@ -42,7 +43,7 @@ ${formattedDate},${dealerId},S12349,5TDZA3DC1CS123459,Toyota,Sienna,2022,10,3450
  * @param platform - CRM platform (VinSolutions or VAUTO)
  * @returns Path to the temporary file
  */
-export async function createSampleReportFile(dealerId: string, platform: string = 'VinSolutions'): Promise<string> {
+export async function createSampleReportFile(dealerId: string, platform: CRMPlatform = 'VinSolutions'): Promise<string> {
   const fs = await import('fs/promises');
   const path = await import('path');
   const os = await import('os');

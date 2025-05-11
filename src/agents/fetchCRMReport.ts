@@ -4,14 +4,7 @@
  */
 import { runFlow } from './runFlow.js';
 import * as fs from 'fs';
-import * as path from 'path';
-
-interface CRMReportOptions {
-  platform: string;
-  dealerId: string;
-  reportType?: string;
-  dateRange?: string;
-}
+import { CRMPlatform, CRMReportOptions, EnvVars } from '../types.js';
 
 /**
  * Fetches a CRM report from the specified platform
@@ -39,10 +32,10 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
   
   try {
     // Normalize platform name for configuration lookup
-    const normalizedPlatform = platform.toLowerCase() === 'vinsolutions' ? 'VinSolutions' : 'VAUTO';
+    const normalizedPlatform = platform.toLowerCase() === 'vinsolutions' ? 'VinSolutions' : 'VAUTO' as CRMPlatform;
     
     // Get environment variables based on platform
-    const envVars: Record<string, string> = {};
+    const envVars: EnvVars = {};
     
     if (normalizedPlatform === 'VinSolutions') {
       // For VinSolutions, we need username, password and OTP email credentials
@@ -61,16 +54,17 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
     
     console.log(`CRM report fetched successfully. File path: ${filePath}`);
     return filePath;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`Error fetching CRM report from ${platform}:`, error);
-    throw new Error(`Failed to fetch CRM report: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to fetch CRM report: ${errorMessage}`);
   }
 }
 
 /**
  * Helper to check if environment variable exists and add it to the envVars object
  */
-function checkAndAssignEnvVar(envVars: Record<string, string>, name: string): void {
+function checkAndAssignEnvVar(envVars: EnvVars, name: string): void {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Required environment variable ${name} is not set`);
@@ -121,8 +115,9 @@ export async function parseCRMReport(filePath: string): Promise<Record<string, a
       headers,
       data
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`Error parsing CRM report:`, error);
-    throw new Error(`Failed to parse CRM report: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse CRM report: ${errorMessage}`);
   }
 }

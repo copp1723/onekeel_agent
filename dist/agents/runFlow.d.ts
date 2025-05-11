@@ -1,13 +1,3 @@
-export interface FlowStep {
-    action: string;
-    selector?: string;
-    value?: string;
-    args?: string[];
-    rowSelector?: string;
-    buttonSelector?: string;
-    saveAs?: string;
-    clickAfter?: string;
-}
 /**
  * Main function to execute a platform-specific flow
  * @param platform - The platform name to execute (e.g., "VinSolutions", "VAUTO")
