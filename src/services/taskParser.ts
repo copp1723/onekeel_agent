@@ -2,6 +2,7 @@ import { Eko, LLMs } from '@eko-ai/eko';
 import { ExecutionPlan, PlanStep } from '../agent/executePlan.js';
 import { db } from '../shared/db.js';
 import { plans } from '../shared/schema.js';
+import * as crypto from 'crypto';
 
 // Define the task types the agent can handle
 export enum TaskType {
@@ -35,7 +36,7 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   // For a simple implementation, we'll use a rule-based approach
   // In a more complex system, you would use the LLM for this
   const taskLower = task.toLowerCase();
-  const taskHash = require('crypto').createHash('md5').update(task).digest('hex').substring(0, 8);
+  const taskHash = crypto.createHash('md5').update(task).digest('hex').substring(0, 8);
   
   console.log(`[${taskHash}] 🔎 Task parser analyzing: ${task}`);
   console.log(`[${taskHash}] Task lowercase: "${taskLower}"`);
