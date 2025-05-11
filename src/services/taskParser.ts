@@ -123,6 +123,8 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
     
     if (url) {
       // Create a complete multi-step plan with detailed configuration
+      let multiStepPlan: ParsedTask;
+      
       try {
         // First, create a plan entry in the database
         const [planRecord] = await db.insert(plans).values({
@@ -132,7 +134,7 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
         const planId = planRecord.id;
         console.log(`Created plan record with ID: ${planId}`);
         
-        const multiStepPlan = {
+        multiStepPlan = {
           type: TaskType.MultiStep,
           parameters: { url },
           original: task,
@@ -162,7 +164,7 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
         };
       } catch (error) {
         console.error('Error creating plan record:', error);
-        const multiStepPlan = {
+        multiStepPlan = {
           type: TaskType.MultiStep,
           parameters: { url },
           original: task,
@@ -187,6 +189,7 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
             ]
           }
         };
+      }
       
       console.log('Generated multi-step plan:', JSON.stringify(multiStepPlan, null, 2));
       return multiStepPlan;
@@ -463,12 +466,36 @@ export async function parseTaskWithLLM(task: string, ekoApiKey: string): Promise
         
         // Check if this is a multi-step task with a plan
         if (parsed.type === 'multi_step' && parsed.plan && parsed.plan.steps) {
-          return {
-            type: TaskType.MultiStep,
-            parameters: parsed.parameters || {},
-            original: task,
-            plan: parsed.plan as ExecutionPlan
-          };
+          try {
+            // Create a plan entry in database
+            const [planRecord] = await db.insert(plans).values({
+              task: task
+            }).returning({ id: plans.id });
+            
+            const planId = planRecord.id;
+            console.log(`Created plan record with ID: ${planId} (LLM-generated)`);
+            
+            // Add plan ID to execution plan
+            parsed.plan.planId = planId;
+            parsed.plan.taskText = task;
+            
+            return {
+              type: TaskType.MultiStep,
+              parameters: parsed.parameters || {},
+              original: task,
+              planId: planId,
+              plan: parsed.plan as ExecutionPlan
+            };
+          } catch (dbError) {
+            console.error('Error creating plan record:', dbError);
+            
+            return {
+              type: TaskType.MultiStep,
+              parameters: parsed.parameters || {},
+              original: task,
+              plan: parsed.plan as ExecutionPlan
+            };
+          }
         }
         
         return {
