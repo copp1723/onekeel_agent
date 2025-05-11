@@ -2,7 +2,64 @@
  * Sample Data Provider
  * Provides sample data for testing CRM report flows without real credentials
  */
-import { CRMPlatform } from '../types.js';
+import { CRMPlatform, FlowStep, PlatformConfig } from '../types.js';
+
+/**
+ * Returns a sample platform configuration for testing
+ * Uses the same structure as the real platforms.json config
+ * @param platform - CRM platform (VinSolutions or VAUTO)
+ * @returns Sample platform configuration
+ */
+export function getSamplePlatformConfig(platform: CRMPlatform): PlatformConfig {
+  if (platform === 'VinSolutions') {
+    return {
+      loginSteps: [
+        { action: "goto", args: ["https://crm.vinsolutions.com/login"] },
+        { action: "fill", selector: "#username", value: "{{VIN_SOLUTIONS_USERNAME}}" },
+        { action: "fill", selector: "#password", value: "{{VIN_SOLUTIONS_PASSWORD}}" },
+        { action: "click", selector: "button[type='submit']" }
+      ],
+      otpStep: {
+        action: "otpEmail",
+        selector: "input[name='otp']",
+        clickAfter: "button:has-text('Verify')"
+      },
+      navigationSteps: [
+        { action: "click", selector: "nav >> text=Insights" },
+        { action: "click", selector: "label:has-text('Most Popular')" }
+      ],
+      downloadSteps: [
+        {
+          action: "download",
+          rowSelector: "tr:has-text('Dealership Performance Dashboard')",
+          buttonSelector: "button[aria-label='Download']",
+          saveAs: "report.csv"
+        }
+      ]
+    };
+  } else {
+    return {
+      loginSteps: [
+        { action: "goto", args: ["https://login.vauto.com"] },
+        { action: "fill", selector: "input[name='username']", value: "{{VAUTO_USERNAME}}" },
+        { action: "fill", selector: "input[name='password']", value: "{{VAUTO_PASSWORD}}" },
+        { action: "click", selector: "button#loginButton" }
+      ],
+      navigationSteps: [
+        { action: "click", selector: "a:has-text('Reports')" },
+        { action: "click", selector: "span:has-text('Inventory Reports')" }
+      ],
+      downloadSteps: [
+        {
+          action: "download",
+          rowSelector: "tr:has-text('Inventory Status')",
+          buttonSelector: "button.download-button",
+          saveAs: "inventory.csv"
+        }
+      ]
+    };
+  }
+}
 
 /**
  * Returns a sample CSV report for the specified dealer ID
