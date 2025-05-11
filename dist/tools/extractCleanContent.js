@@ -1,9 +1,9 @@
 import { spawn } from 'child_process';
-import path from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-// Get the directory name using ES module approach
+// Compute __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = dirname(__filename);
 /**
  * Creates an extractCleanContent tool that uses Python's trafilatura to extract clean text from webpages
  * @returns A tool object that can be registered with Eko
@@ -30,8 +30,9 @@ export function extractCleanContent() {
                 }
                 // Make sure the URL has a protocol
                 const url = args.url.startsWith('http') ? args.url : `https://${args.url}`;
-                // Get the path to the Python script (relative to the current file)
-                const scriptPath = path.resolve(__dirname, 'extract_content.py');
+                // Get the path to the Python script in the src directory
+                // In production, __dirname points to dist/tools, so we need to go up to the root and back to src/tools
+                const scriptPath = join(process.cwd(), 'src', 'tools', 'extract_content.py');
                 // Execute the Python script
                 const result = await runPythonScript(scriptPath, [url]);
                 // Parse the result
