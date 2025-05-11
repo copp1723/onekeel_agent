@@ -20,6 +20,7 @@ export interface ParsedTask {
   original: string;
   plan?: ExecutionPlan; // For multi-step tasks
   error?: string; // Optional error message for invalid tasks
+  planId?: string; // Database ID for the execution plan
 }
 
 /**

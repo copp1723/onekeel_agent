@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
-import { apiKeys, taskLogs, dealerCredentials } from '../shared/schema.js';
+import { apiKeys, taskLogs, dealerCredentials, plans, steps } from '../shared/schema.js';
 import crypto from 'crypto';
 
 // Load environment variables
@@ -50,6 +50,30 @@ async function setupDatabase() {
         tool TEXT NOT NULL,
         status TEXT NOT NULL,
         output JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Create the plans table if it doesn't exist
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS plans (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        task TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Create the steps table if it doesn't exist
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS steps (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        plan_id UUID NOT NULL REFERENCES plans(id),
+        step_index INTEGER NOT NULL,
+        tool TEXT NOT NULL,
+        input JSON NOT NULL,
+        output JSON,
+        status TEXT DEFAULT 'pending',
+        error TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
