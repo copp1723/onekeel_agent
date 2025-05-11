@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { isAuthenticated } from '../replitAuth.js';
 import { storage } from '../storage.js';
+// Type cast to help with TypeScript compatibility
+const routeHandler = (fn) => fn;
 const authRouter = Router();
 // Get the current user's information
-authRouter.get('/user', isAuthenticated, async (req, res) => {
+authRouter.get('/user', isAuthenticated, routeHandler(async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
@@ -29,6 +31,6 @@ authRouter.get('/user', isAuthenticated, async (req, res) => {
         console.error('Error fetching user:', error);
         res.status(500).json({ message: 'Failed to fetch user' });
     }
-});
+}));
 export default authRouter;
 //# sourceMappingURL=auth.js.map
