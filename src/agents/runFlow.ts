@@ -6,7 +6,7 @@ import { chromium, Browser, Page } from 'playwright';
 import path from 'path';
 // This import is commented out because we're using a local implementation for testing
 // import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
-import { FlowStep, PlatformConfig, CRMPlatform, EnvVars } from '../types.js';
+import { FlowStep, PlatformConfig, EnvVars } from '../types.js';
 
 // Load platform configurations
 import config from '../../configs/platforms.json' assert { type: 'json' };
@@ -14,12 +14,10 @@ import config from '../../configs/platforms.json' assert { type: 'json' };
 // Maximum number of retries for flow execution
 const MAX_RETRIES = 1;
 
-/**
- * Validates that all required environment variables are present
- * @param platform - The platform name to validate variables for
- * @param envVars - Environment variables object
- * @throws Error if any required variables are missing
- */
+// Note: The function below has been replaced by direct validation in runFlow
+// We're keeping it here as reference for a more sophisticated validation approach
+// that extracts placeholders from the step configuration
+/*
 function validateEnvironmentVariables(platform: string, envVars: EnvVars): void {
   // Get all placeholder values from the config
   const platformConfig = (config as Record<string, PlatformConfig>)[platform];
@@ -60,6 +58,7 @@ function validateEnvironmentVariables(platform: string, envVars: EnvVars): void 
     throw new Error(`Missing required environment variables for ${platform}: ${missingVars.join(', ')}`);
   }
 }
+*/
 
 /**
  * Interpolates environment variables into string values
@@ -79,77 +78,93 @@ function interpolateVariables(text: string, envVars: EnvVars): string {
  * @param envVars - Environment variables needed for the flow
  * @returns Path to the downloaded file
  */
-export async function runFlow(platform: CRMPlatform, envVars: EnvVars): Promise<string> {
-  // Validate that all required environment variables are present
-  validateEnvironmentVariables(platform, envVars);
+export async function runFlow(
+  platform: keyof typeof config,
+  envVars: EnvVars
+): Promise<string> {
+  // Validate env vars up front
+  const missing = Object.entries(envVars)
+    .filter(([_, v]) => !v)
+    .map(([k]) => k);
+  if (missing.length) {
+    throw new Error(`runFlow: missing env vars: ${missing.join(', ')}`);
+  }
 
   // Get platform-specific configuration
-  const platformConfig = (config as Record<string, PlatformConfig>)[platform];
+  const platformConfig = config[platform] as {
+    loginSteps: FlowStep[];
+    otpStep?: FlowStep;
+    navigationSteps: FlowStep[];
+    downloadSteps: FlowStep[];
+  };
+  
   if (!platformConfig) {
     throw new Error(`Platform "${platform}" not found in configuration`);
   }
 
-  // Retry logic wrapper
-  const MAX_RETRIES = 1;
+  let lastError: unknown;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let browser: Browser | undefined;
     try {
       // Launch browser
-      const browser = await chromium.launch({ headless: true });
-      const page = await browser.newPage();
-      
-      try {
-        console.log(`Executing ${platform} flow (attempt ${attempt + 1})...`);
+      browser = await chromium.launch({ headless: true });
+      const page: Page = await browser.newPage();
 
-        // 1. Execute login steps
-        console.log('Executing login steps...');
-        for (const step of platformConfig.loginSteps) {
-          await executeStep(page, step, envVars);
-        }
+      console.log(`Executing ${platform} flow (attempt ${attempt + 1})...`);
 
-        // 2. Execute OTP step if present
-        if (platformConfig.otpStep) {
-          console.log('Executing OTP step...');
-          await executeOTPStep(page, platformConfig.otpStep, envVars);
-        }
-
-        // 3. Execute navigation steps
-        console.log('Executing navigation steps...');
-        for (const step of platformConfig.navigationSteps) {
-          await executeStep(page, step, envVars);
-        }
-
-        // 4. Execute download steps
-        console.log('Executing download steps...');
-        let downloadPath = '';
-        for (const step of platformConfig.downloadSteps) {
-          downloadPath = await executeDownloadStep(page, step, envVars);
-        }
-
-        // Flow completed successfully
-        console.log(`${platform} flow completed successfully`);
-        
-        return downloadPath;
-      } finally {
-        // Always close the browser
-        await browser.close();
+      // 1. Execute login steps
+      console.log('Executing login steps...');
+      for (const step of platformConfig.loginSteps) {
+        await executeStep(page, step, envVars);
       }
-    } catch (error: unknown) {
-      console.error(`Error running ${platform} flow (attempt ${attempt + 1}):`, error);
+
+      // 2. Execute OTP step if present
+      if (platformConfig.otpStep) {
+        console.log('Executing OTP step...');
+        await executeOTPStep(page, platformConfig.otpStep, envVars);
+      }
+
+      // 3. Execute navigation steps
+      console.log('Executing navigation steps...');
+      for (const step of platformConfig.navigationSteps) {
+        await executeStep(page, step, envVars);
+      }
+
+      // 4. Execute download steps
+      console.log('Executing download steps...');
+      let downloadPath = '';
+      for (const step of platformConfig.downloadSteps) {
+        downloadPath = await executeDownloadStep(page, step, envVars);
+      }
+
+      // Flow completed successfully
+      console.log(`${platform} flow completed successfully`);
+      await browser.close();
+      return downloadPath;
       
-      // If this was the last retry, throw the error
-      if (attempt === MAX_RETRIES) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to execute ${platform} flow after ${MAX_RETRIES + 1} attempts: ${errorMessage}`);
+    } catch (err: unknown) {
+      lastError = err;
+      console.error(`runFlow [${platform}] attempt ${attempt} failed:`, err);
+      if (browser) await browser.close();
+      
+      if (attempt < MAX_RETRIES) {
+        console.log(`runFlow: retrying (${attempt + 1}/${MAX_RETRIES})…`);
+        // Add delay before retry
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        continue;
       }
       
-      // Otherwise, retry after a delay
-      console.log(`Retrying in 3 seconds...`);
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Exhausted retries
+      throw new Error(
+        `runFlow: failed after ${MAX_RETRIES + 1} attempts: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     }
   }
 
-  // This should never be reached due to the throw in the loop
-  throw new Error(`Unexpected error in flow execution for ${platform}`);
+  // This should never be reached, but TypeScript needs it
+  throw lastError;
 }
 
 /**
@@ -158,7 +173,7 @@ export async function runFlow(platform: CRMPlatform, envVars: EnvVars): Promise<
  * @param step - Flow step to execute
  * @param envVars - Environment variables for interpolation
  */
-async function executeStep(page: any, step: FlowStep, envVars: EnvVars): Promise<void> {
+async function executeStep(page: Page, step: FlowStep, envVars: EnvVars): Promise<void> {
   console.log(`Executing action: ${step.action}`);
 
   switch (step.action) {
@@ -202,7 +217,7 @@ async function executeStep(page: any, step: FlowStep, envVars: EnvVars): Promise
  * @param step - OTP flow step
  * @param envVars - Environment variables for interpolation
  */
-async function executeOTPStep(page: any, step: FlowStep, envVars: EnvVars): Promise<void> {
+async function executeOTPStep(page: Page, step: FlowStep, envVars: EnvVars): Promise<void> {
   if (step.action !== 'otpEmail') {
     throw new Error(`Expected otpEmail action for OTP step, got: ${step.action}`);
   }
@@ -236,7 +251,7 @@ async function executeOTPStep(page: any, step: FlowStep, envVars: EnvVars): Prom
  * @param envVars - Environment variables for interpolation
  * @returns Path to the downloaded file
  */
-async function executeDownloadStep(page: any, step: FlowStep, _envVars: EnvVars): Promise<string> {
+async function executeDownloadStep(page: Page, step: FlowStep, _envVars: EnvVars): Promise<string> {
   if (step.action !== 'download') {
     throw new Error(`Expected download action for download step, got: ${step.action}`);
   }
@@ -257,7 +272,7 @@ async function executeDownloadStep(page: any, step: FlowStep, _envVars: EnvVars)
   // Click the download button and wait for download
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    row.locator(step.buttonSelector).click()
+    page.click(`${step.rowSelector} ${step.buttonSelector}`)
   ]);
 
   // Save the file
