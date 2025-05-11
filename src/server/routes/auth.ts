@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
 import { isAuthenticated } from '../replitAuth.js';
 import { storage } from '../storage.js';
 
@@ -13,10 +13,13 @@ interface AuthRequest extends Request {
   };
 }
 
+// Type cast to help with TypeScript compatibility
+const routeHandler = (fn: (req: AuthRequest, res: Response) => Promise<void> | void): RequestHandler => fn as RequestHandler;
+
 const authRouter = Router();
 
 // Get the current user's information
-authRouter.get('/user', isAuthenticated, async (req: AuthRequest, res: Response): Promise<void> => {
+authRouter.get('/user', isAuthenticated, routeHandler(async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.claims?.sub;
     
@@ -46,6 +49,6 @@ authRouter.get('/user', isAuthenticated, async (req: AuthRequest, res: Response)
     console.error('Error fetching user:', error);
     res.status(500).json({ message: 'Failed to fetch user' });
   }
-});
+}));
 
 export default authRouter;

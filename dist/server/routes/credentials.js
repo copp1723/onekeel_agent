@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { storage } from '../storage.js';
 import { isAuthenticated } from '../replitAuth.js';
+// Type cast to help with TypeScript compatibility
+const routeHandler = (fn) => fn;
 const credentialsRouter = Router();
 // Middleware to ensure routes are protected
 credentialsRouter.use(isAuthenticated);
 // Get all credentials for the current user
-credentialsRouter.get('/', isAuthenticated, async (req, res) => {
+credentialsRouter.get('/', isAuthenticated, routeHandler(async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
@@ -26,9 +28,9 @@ credentialsRouter.get('/', isAuthenticated, async (req, res) => {
         console.error('Error fetching credentials:', error);
         res.status(500).json({ message: 'Failed to fetch credentials' });
     }
-});
+}));
 // Save a new credential
-credentialsRouter.post('/', isAuthenticated, async (req, res) => {
+credentialsRouter.post('/', isAuthenticated, routeHandler(async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
@@ -58,9 +60,9 @@ credentialsRouter.post('/', isAuthenticated, async (req, res) => {
         console.error('Error saving credential:', error);
         res.status(500).json({ message: 'Failed to save credential' });
     }
-});
+}));
 // Delete a credential
-credentialsRouter.delete('/:id', isAuthenticated, async (req, res) => {
+credentialsRouter.delete('/:id', isAuthenticated, routeHandler(async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
@@ -83,6 +85,6 @@ credentialsRouter.delete('/:id', isAuthenticated, async (req, res) => {
         console.error('Error deleting credential:', error);
         res.status(500).json({ message: 'Failed to delete credential' });
     }
-});
+}));
 export default credentialsRouter;
 //# sourceMappingURL=credentials.js.map
