@@ -508,6 +508,37 @@ async function processTask(taskId: string, taskText: string): Promise<void> {
   }
 }
 
+// Test endpoint for parser
+app.post('/test-parser', async (req: Request, res: Response) => {
+  const { task } = req.body;
+  
+  if (!task || typeof task !== 'string') {
+    return res.status(400).json({ error: 'Task is required and must be a string' });
+  }
+  
+  try {
+    // Get the API key
+    const ekoApiKey = process.env.EKO_API_KEY;
+    if (!ekoApiKey) {
+      return res.status(500).json({ error: 'API key not available' });
+    }
+    
+    // Parse the task
+    console.log('TEST PARSER - Task:', task);
+    const parsedTask = await parseTask(task, ekoApiKey);
+    
+    // Return the parsed result including any errors
+    return res.status(200).json({
+      task,
+      parsed: parsedTask,
+      hasError: !!parsedTask.error
+    });
+  } catch (error: any) {
+    console.error('Error in test parser:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
