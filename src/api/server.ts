@@ -85,6 +85,16 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
     return res.status(400).json({ error: 'Task is required and must be a string' });
   }
   
+  // Get user ID from the authenticated user (if available)
+  const userId = req.user?.claims?.sub;
+  
+  // Log authentication status for debugging
+  if (userId) {
+    console.log(`Task submitted by authenticated user: ${userId}`);
+  } else {
+    console.log('Task submitted by unauthenticated user');
+  }
+  
   // Get the Eko API key for validation (used in both async and sync paths)
   const ekoApiKey = process.env.EKO_API_KEY;
   if (!ekoApiKey) {
@@ -122,7 +132,7 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
       };
       
       // Process the task asynchronously
-      processTask(taskId, task).catch(error => {
+      processTask(taskId, task, userId).catch(error => {
         console.error(`Error processing task ${taskId}:`, error);
         taskLogs[taskId].status = 'failed';
         taskLogs[taskId].error = error.message;
@@ -298,7 +308,8 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
       userInput: task,
       tool: toolUsed,
       status: 'success',
-      output: result
+      output: result,
+      userId: userId
     });
     
     // Return the immediate result
@@ -312,7 +323,8 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
       userInput: task,
       tool: 'unknown',
       status: 'error',
-      output: { error: error.message || String(error) }
+      output: { error: error.message || String(error) },
+      userId: userId
     });
     
     return res.status(500).json({ 
@@ -323,9 +335,9 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
 });
 
 // Process a task asynchronously
-async function processTask(taskId: string, taskText: string): Promise<void> {
+async function processTask(taskId: string, taskText: string, userId?: string): Promise<void> {
   try {
-    console.log(`Processing task: ${taskId}`);
+    console.log(`Processing task: ${taskId}${userId ? ` for user: ${userId}` : ''}`);
     // Update task status
     taskLogs[taskId].status = 'processing';
     
