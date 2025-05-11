@@ -6,6 +6,8 @@ import { chromium } from 'playwright';
 import path from 'path';
 // Load platform configurations
 import config from '../../configs/platforms.json' assert { type: 'json' };
+// Maximum number of retries for flow execution
+const MAX_RETRIES = 1;
 /**
  * Validates that all required environment variables are present
  * @param platform - The platform name to validate variables for
