@@ -153,21 +153,21 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: any, cb: (err: any, user: any) => void) => cb(null, user));
   passport.deserializeUser((user: any, cb: (err: any, user: any) => void) => cb(null, user));
 
-  app.get("/api/login", (req: AuthRequest, res: ExpressResponse, next: NextFunction) => {
+  app.get("/api/login", (req: AuthRequest, res: ExpressResponse, next: NextFunction): void => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
-  app.get("/api/callback", (req: AuthRequest, res: ExpressResponse, next: NextFunction) => {
+  app.get("/api/callback", (req: AuthRequest, res: ExpressResponse, next: NextFunction): void => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
   });
 
-  app.get("/api/logout", (req: AuthRequest, res: ExpressResponse) => {
+  app.get("/api/logout", (req: AuthRequest, res: ExpressResponse): void => {
     if (req.logout) {
       req.logout(() => {
         res.redirect(
@@ -186,36 +186,40 @@ export async function setupAuth(app: Express) {
 }
 
 // Authentication middleware for protected routes
-export const isAuthenticated: RequestHandler = async (req: AuthRequest, res: ExpressResponse, next: NextFunction) => {
+export const isAuthenticated: RequestHandler = async (req: any, res: ExpressResponse, next: NextFunction): Promise<void> => {
   // Skip auth check in dev mode if env vars are missing
   if (!process.env.REPLIT_DOMAINS) {
     console.warn("Auth check bypassed in dev mode");
-    return next();
+    next();
+    return;
   }
 
   const user = req.user;
 
-  if (!req.isAuthenticated() || !user?.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
+  if (!req.isAuthenticated || !req.isAuthenticated() || !user?.expires_at) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
 
   const now = Math.floor(Date.now() / 1000);
   if (now <= user.expires_at) {
-    return next();
+    next();
+    return;
   }
 
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
-    return res.redirect("/api/login");
+    res.redirect("/api/login");
+    return;
   }
 
   try {
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
-    return next();
+    next();
   } catch (error) {
     console.error("Token refresh error:", error);
-    return res.redirect("/api/login");
+    res.redirect("/api/login");
   }
 };
