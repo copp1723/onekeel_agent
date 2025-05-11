@@ -83,30 +83,33 @@ credentialsRouter.post('/', isAuthenticated, async (req: Request, res: Response)
 });
 
 // Delete a credential
-credentialsRouter.delete('/:id', isAuthenticated, async function(req: Request, res: Response) {
+credentialsRouter.delete('/:id', isAuthenticated, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.claims?.sub;
     
     if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized - User ID not found' });
+      res.status(401).json({ message: 'Unauthorized - User ID not found' });
+      return;
     }
     
     const credentialId = req.params.id;
     
     if (!credentialId) {
-      return res.status(400).json({ message: 'Credential ID is required' });
+      res.status(400).json({ message: 'Credential ID is required' });
+      return;
     }
     
     const result = await storage.deleteCredential(credentialId, userId);
     
     if (!result) {
-      return res.status(404).json({ message: 'Credential not found or not owned by user' });
+      res.status(404).json({ message: 'Credential not found or not owned by user' });
+      return;
     }
     
-    return res.json({ message: 'Credential deleted successfully' });
+    res.json({ message: 'Credential deleted successfully' });
   } catch (error) {
     console.error('Error deleting credential:', error);
-    return res.status(500).json({ message: 'Failed to delete credential' });
+    res.status(500).json({ message: 'Failed to delete credential' });
   }
 });
 

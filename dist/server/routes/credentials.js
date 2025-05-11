@@ -28,15 +28,17 @@ credentialsRouter.get('/', isAuthenticated, async (req, res) => {
     }
 });
 // Save a new credential
-credentialsRouter.post('/', isAuthenticated, async function (req, res) {
+credentialsRouter.post('/', isAuthenticated, async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
-            return res.status(401).json({ message: 'Unauthorized - User ID not found' });
+            res.status(401).json({ message: 'Unauthorized - User ID not found' });
+            return;
         }
         const { site, username, password } = req.body;
         if (!site || !username || !password) {
-            return res.status(400).json({ message: 'Site, username, and password are required' });
+            res.status(400).json({ message: 'Site, username, and password are required' });
+            return;
         }
         const credential = await storage.saveCredential({
             userId,
@@ -44,7 +46,7 @@ credentialsRouter.post('/', isAuthenticated, async function (req, res) {
             username,
             password
         });
-        return res.status(201).json({
+        res.status(201).json({
             id: credential.id,
             userId: credential.userId,
             site: credential.site,
@@ -54,29 +56,32 @@ credentialsRouter.post('/', isAuthenticated, async function (req, res) {
     }
     catch (error) {
         console.error('Error saving credential:', error);
-        return res.status(500).json({ message: 'Failed to save credential' });
+        res.status(500).json({ message: 'Failed to save credential' });
     }
 });
 // Delete a credential
-credentialsRouter.delete('/:id', isAuthenticated, async function (req, res) {
+credentialsRouter.delete('/:id', isAuthenticated, async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
-            return res.status(401).json({ message: 'Unauthorized - User ID not found' });
+            res.status(401).json({ message: 'Unauthorized - User ID not found' });
+            return;
         }
         const credentialId = req.params.id;
         if (!credentialId) {
-            return res.status(400).json({ message: 'Credential ID is required' });
+            res.status(400).json({ message: 'Credential ID is required' });
+            return;
         }
         const result = await storage.deleteCredential(credentialId, userId);
         if (!result) {
-            return res.status(404).json({ message: 'Credential not found or not owned by user' });
+            res.status(404).json({ message: 'Credential not found or not owned by user' });
+            return;
         }
-        return res.json({ message: 'Credential deleted successfully' });
+        res.json({ message: 'Credential deleted successfully' });
     }
     catch (error) {
         console.error('Error deleting credential:', error);
-        return res.status(500).json({ message: 'Failed to delete credential' });
+        res.status(500).json({ message: 'Failed to delete credential' });
     }
 });
 export default credentialsRouter;
