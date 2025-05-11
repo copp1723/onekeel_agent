@@ -62,9 +62,10 @@ app.post('/api/tasks', async (req, res) => {
       // Log to our persistent store as well
       logTask({
         userInput: task,
-        tool: taskLogs[taskId].taskType,
+        tool: String(taskLogs[taskId].taskType),
         status: 'success',
-        output: taskLogs[taskId].result
+        output: taskLogs[taskId].result,
+        userId: undefined
       }).catch(err => console.error('Failed to log completion to database:', err));
       
     }, 2000);
@@ -123,12 +124,13 @@ app.post('/submit-task', async (req, res) => {
     // Log task attempt
     await logTask({
       userInput: task,
-      tool: taskType,
+      tool: String(taskType),
       status: 'success', // Let's be optimistic
       output: { 
         simulatedResult: true,
         message: "This is a simulated result for direct execution (Phase 3). API key required for actual processing."
-      }
+      },
+      userId: undefined
     });
     
     // Return a simulated response
