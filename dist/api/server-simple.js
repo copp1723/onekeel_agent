@@ -64,10 +64,10 @@ app.get('/api/tasks/:taskId', (req, res) => {
     res.status(200).json(taskLogs[taskId]);
 });
 // API endpoint to list all tasks
-app.get('/api/tasks', async (req, res) => {
+app.get('/api/tasks', async (_req, res) => {
     try {
         // Try to get logs from database first
-        const dbLogs = await getTaskLogs();
+        const logs = await getTaskLogs();
         // Also include in-memory tasks
         const memoryTasks = Object.values(taskLogs);
         // Combine and deduplicate (prefer memory versions)
@@ -138,7 +138,7 @@ app.post('/submit-task', async (req, res) => {
     }
 });
 // API health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
     res.status(200).json({
         status: 'up',
         version: '1.0.0',
