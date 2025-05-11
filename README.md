@@ -153,7 +153,15 @@ With the Phase 2 extensions, the agent supports multiple tools and task types:
    "Login to the dealer portal for dealer ABC123"
    ```
 
-The agent will automatically parse the task intent using either rule-based or LLM-powered parsing, select the appropriate tool, and execute the task.
+5. **Multi-Step Tasks** (New):
+   ```
+   "Summarize the content from https://example.com"
+   ```
+   This will automatically:
+   - Extract clean content from the URL
+   - Summarize the extracted content
+
+The agent will automatically parse the task intent using either rule-based or LLM-powered parsing, select the appropriate tool, and execute the task. For multi-step tasks, the agent will create and execute a plan with multiple steps in sequence.
 
 ### API Usage
 
@@ -166,6 +174,10 @@ You can also use the REST API to submit tasks and retrieve results. Start the AP
 
 #### Direct Task Execution API (v2)
 - `POST /submit-task` - Submit a task and wait for completion (returns the result or error)
+
+#### Multi-Step Demo API (v3)
+- `POST http://localhost:3000/summarize` - Extract and summarize content from a URL
+- `GET http://localhost:3000/health` - Health check endpoint
 
 Example POST request to /submit-task:
 
@@ -189,6 +201,36 @@ Example response:
 }
 ```
 
+Example POST request to the multi-step summarize endpoint:
+
+```bash
+curl -X POST http://localhost:3000/summarize \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "result": {
+    "url": "https://example.com",
+    "originalContent": "This domain is for use in illustrative examples in documents...",
+    "summary": "This domain is used for illustrative examples in documentation...",
+    "stats": {
+      "originalLength": 172,
+      "summaryLength": 146,
+      "compressionRatio": "85%"
+    },
+    "steps": [
+      {"name": "extract", "status": "success"},
+      {"name": "summarize", "status": "success"}
+    ]
+  }
+}
+```
+
 All task executions are logged to the database with the following information:
 - User input (original task)
 - Tool used for execution
@@ -206,9 +248,14 @@ All task executions are logged to the database with the following information:
 
 ### Extended Components (Phase 2)
 - `src/tools/checkFlightStatus.ts` - Flight status checking tool
+- `src/tools/extractCleanContent.ts` - Clean content extraction using trafilatura
+- `src/tools/summarizeText.ts` - Text summarization using LLM
 - `src/services/taskParser.ts` - Task parsing and intent recognition
 - `src/api/server.ts` - REST API for task submission and management
 - `src/scripts/insert-firecrawl-key.ts` - Utility to add Firecrawl API key
+- `src/agent/executePlan.ts` - Multi-step execution engine
+- `src/summaryExtractor.js` - Extract and summarize workflow
+- `src/multistep-demo.js` - Dedicated multi-step demo endpoint
 
 ### Logging & Database Components (Phase 3)
 - `src/shared/db.ts` - Database connection and Drizzle ORM setup
