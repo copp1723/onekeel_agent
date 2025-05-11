@@ -2,7 +2,8 @@
  * Fixed task parser implementation
  * With direct pattern matching for CRM report requests
  */
-import { TaskType, type ParsedTask } from './taskParser.js';
+import { type ParsedTask } from './taskParser.js';
+import { TaskType } from '../types.js';
 
 /**
  * Simple parser function that directly handles VinSolutions CRM report requests

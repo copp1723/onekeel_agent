@@ -6,10 +6,10 @@
 /**
  * Retrieves an OTP code from email
  * @param username - Email account username
- * @param password - Email account password
+ * @param _password - Email account password (not used in simplified implementation)
  * @returns Promise resolving to the OTP code or null if not found
  */
-export async function getEmailOTP(username: string, password: string): Promise<string | null> {
+export async function getEmailOTP(username: string, _password: string): Promise<string | null> {
   try {
     console.log(`Attempting to retrieve OTP from email account: ${username}`);
     
