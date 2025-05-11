@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { logTask, getTaskLogs } from '../shared/logger.js';
+import { TaskType } from '../types.js';
 // Load environment variables
 dotenv.config();
 // Initialize Express app
@@ -22,8 +23,8 @@ app.post('/api/tasks', async (req, res) => {
         taskLogs[taskId] = {
             id: taskId,
             task,
-            taskType: task.toLowerCase().includes('crawl') ? 'web_crawling' :
-                task.toLowerCase().includes('flight') ? 'flight_status' : 'unknown',
+            taskType: task.toLowerCase().includes('crawl') ? TaskType.WebCrawling :
+                task.toLowerCase().includes('flight') ? TaskType.FlightStatus : TaskType.Unknown,
             status: 'pending',
             createdAt: new Date().toISOString()
         };
@@ -42,9 +43,10 @@ app.post('/api/tasks', async (req, res) => {
             // Log to our persistent store as well
             logTask({
                 userInput: task,
-                tool: taskLogs[taskId].taskType,
+                tool: String(taskLogs[taskId].taskType),
                 status: 'success',
-                output: taskLogs[taskId].result
+                output: taskLogs[taskId].result,
+                userId: undefined
             }).catch(err => console.error('Failed to log completion to database:', err));
         }, 2000);
     }
@@ -92,12 +94,13 @@ app.post('/submit-task', async (req, res) => {
         // Log task attempt
         await logTask({
             userInput: task,
-            tool: taskType,
+            tool: String(taskType),
             status: 'success', // Let's be optimistic
             output: {
                 simulatedResult: true,
                 message: "This is a simulated result for direct execution (Phase 3). API key required for actual processing."
-            }
+            },
+            userId: undefined
         });
         // Return a simulated response
         return res.status(200).json({

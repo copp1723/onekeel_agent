@@ -5,15 +5,16 @@ const credentialsRouter = Router();
 // Middleware to ensure routes are protected
 credentialsRouter.use(isAuthenticated);
 // Get all credentials for the current user
-credentialsRouter.get('/', isAuthenticated, async function (req, res) {
+credentialsRouter.get('/', isAuthenticated, async (req, res) => {
     try {
         const userId = req.user?.claims?.sub;
         if (!userId) {
-            return res.status(401).json({ message: 'Unauthorized - User ID not found' });
+            res.status(401).json({ message: 'Unauthorized - User ID not found' });
+            return;
         }
         const credentials = await storage.listCredentials(userId);
         // Return credentials without sensitive fields
-        return res.json(credentials.map(cred => ({
+        res.json(credentials.map(cred => ({
             id: cred.id,
             userId: cred.userId,
             site: cred.site,
@@ -23,7 +24,7 @@ credentialsRouter.get('/', isAuthenticated, async function (req, res) {
     }
     catch (error) {
         console.error('Error fetching credentials:', error);
-        return res.status(500).json({ message: 'Failed to fetch credentials' });
+        res.status(500).json({ message: 'Failed to fetch credentials' });
     }
 });
 // Save a new credential
