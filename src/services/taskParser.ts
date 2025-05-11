@@ -36,11 +36,121 @@ export interface ParsedTask {
 export async function parseTask(task: string, ekoApiKey: string): Promise<ParsedTask> {
   // For a simple implementation, we'll use a rule-based approach
   // In a more complex system, you would use the LLM for this
+  console.log('taskParser.ts loaded!'); // Confirm this file is used
+  
   const taskLower = task.toLowerCase();
   const taskHash = crypto.createHash('md5').update(task).digest('hex').substring(0, 8);
   
   console.log(`[${taskHash}] 🔎 Task parser analyzing: ${task}`);
   console.log(`[${taskHash}] Task lowercase: "${taskLower}"`);
+  
+  // 1) Direct VinSolutions CRM report shortcut
+  if (/fetch\s+(?:yesterday['']s\s+)?sales\s+report\s+from\s+vinsolutions/i.test(task)) {
+    const dealerMatch = task.match(/dealer\s+([A-Za-z0-9]+)/i);
+    console.log('☑️ VinSolutions shortcut matched');
+    return {
+      type: TaskType.FetchCRMReport,
+      parameters: {
+        site: 'vinsolutions',
+        dealerId: dealerMatch ? dealerMatch[1] : 'ABC123' // Default for testing
+      },
+      original: task
+    };
+  }
+
+  // Add direct pattern matches for CRM report requests as a quick fix
+  // VinSolutions specific
+  if (taskLower.includes('vinsolutions') && taskLower.includes('report') && taskLower.includes('dealer')) {
+    console.log(`[${taskHash}] 🎯 Direct match: VinSolutions CRM report request detected`);
+    
+    // Extract dealer ID
+    const dealerIdMatch = task.match(/dealer\s+(\w+)/i);
+    const dealerId = dealerIdMatch ? dealerIdMatch[1] : 'ABC123'; // Default for testing
+    
+    console.log(`[${taskHash}] Dealer ID: ${dealerId}`);
+    
+    // Check for date specification
+    const dateParam: any = {};
+    
+    // Check for explicit date
+    const dateMatch = task.match(/for\s+(\d{4}-\d{2}-\d{2})/i) || 
+                    task.match(/on\s+(\d{4}-\d{2}-\d{2})/i);
+    
+    if (dateMatch) {
+      dateParam.date = dateMatch[1];
+      console.log(`[${taskHash}] Using specified date: ${dateParam.date}`);
+    } 
+    // Check for "yesterday" keyword
+    else if (taskLower.includes('yesterday')) {
+      // Default setting - service will use yesterday's date
+      console.log(`[${taskHash}] Using yesterday's date`);
+    }
+    
+    // Return a direct task match
+    return {
+      type: TaskType.FetchCRMReport,
+      parameters: {
+        site: 'vinsolutions',
+        dealerId,
+        ...dateParam
+      },
+      original: task
+    };
+  }
+  
+  // More generic sales report detection
+  if ((taskLower.includes('sales report') || 
+      (taskLower.includes('sales') && taskLower.includes('report'))) && 
+      (taskLower.includes('dealer') || taskLower.includes('dealership') || taskLower.includes('crm'))) {
+    
+    console.log(`[${taskHash}] 🎯 Direct match: Generic sales report request detected`);
+    
+    // Extract dealer ID or set default
+    const dealerIdMatch = task.match(/dealer(?:ship)?\s+(\w+)/i);
+    const dealerId = dealerIdMatch ? dealerIdMatch[1] : 'ABC123'; // Default for testing
+    
+    console.log(`[${taskHash}] Using dealer ID: ${dealerId}`);
+    
+    // Try to detect CRM system, default to VinSolutions
+    let site = 'vinsolutions';
+    const crmSystems = ['vinsolutions', 'dealersocket', 'elead', 'cdk'];
+    for (const system of crmSystems) {
+      if (taskLower.includes(system)) {
+        site = system;
+        break;
+      }
+    }
+    
+    console.log(`[${taskHash}] Using CRM system: ${site}`);
+    
+    // Check for date specification
+    const dateParam: any = {};
+    
+    // Check for explicit date
+    const dateMatch = task.match(/for\s+(\d{4}-\d{2}-\d{2})/i) || 
+                    task.match(/on\s+(\d{4}-\d{2}-\d{2})/i);
+    
+    if (dateMatch) {
+      dateParam.date = dateMatch[1];
+      console.log(`[${taskHash}] Using specified date: ${dateParam.date}`);
+    } 
+    // Check for "yesterday" keyword
+    else if (taskLower.includes('yesterday')) {
+      // Default setting - service will use yesterday's date
+      console.log(`[${taskHash}] Using yesterday's date`);
+    }
+    
+    // Return a direct task match
+    return {
+      type: TaskType.FetchCRMReport,
+      parameters: {
+        site,
+        dealerId,
+        ...dateParam
+      },
+      original: task
+    };
+  }
   
   // Log keyword detection more clearly
   const hasKeywords = {

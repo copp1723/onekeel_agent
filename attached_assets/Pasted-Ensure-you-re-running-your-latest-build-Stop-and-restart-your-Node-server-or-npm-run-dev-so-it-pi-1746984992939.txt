@@ -1,0 +1,52 @@
+Ensure you’re running your latest build
+
+Stop and restart your Node server (or npm run dev) so it picks up your code changes.
+
+Confirm via a small console.log('taskParser loaded') at the top of taskParser.ts to verify you’re editing the live file.
+
+Seed‑lock the CRM report case as the first branch
+Insert this at the very top of your parser function—before any of your regex chains or keyword maps—so it can never miss it:
+
+ts
+Copy
+Edit
+// taskParser.ts
+export function parseTask(taskText: string): ParsedTask {
+  // 1) Direct VinSolutions CRM report shortcut
+  if (/fetch\s+(?:yesterday['’]s\s+)?sales\s+report\s+from\s+vinsolutions/i.test(taskText)) {
+    const dealerMatch = taskText.match(/dealer\s+([A-Za-z0-9]+)/i);
+    return {
+      type: 'multiStepExtractAndSummarize',
+      parameters: {
+        source: 'VinSolutions',
+        date: 'yesterday',
+        dealerId: dealerMatch ? dealerMatch[1] : undefined
+      },
+      original: taskText
+    };
+  }
+
+  // 2) …your existing detection logic…
+}
+Restart and re‑exercise
+
+Restart the server so your code changes actually load.
+
+Send the same POST /submit-task request.
+
+Watch the logs: you should immediately see your shortcut branch firing (you can add a console.log('☑️ VinSolutions shortcut matched') inside that if to prove it).
+
+Re‑test DB connectivity in isolation
+While the parser fix is in flight, create a tiny script in your workspace:
+
+ts
+Copy
+Edit
+// test-db.ts
+import postgres from 'postgres';
+const sql = postgres(process.env.DATABASE_URL!, { ssl:{rejectUnauthorized:false}, timeout:30000 });
+sql`SELECT 1`.then(() => console.log('DB ok')).catch(e => console.error('DB fail', e));
+Run node test-db.ts from the Replit shell. If it still times out, you know the DB fix hasn’t applied yet—don’t mix that with parser debugging.
+
+Why this works
+By short‑circuiting on the exact phrase pattern, you guarantee that any “Fetch yesterday’s sales report from VinSolutions…” prompt becomes a multiStepExtractAndSummarize task, no matter what the rest of your logic is doing. Once you see your shortcut hit in the logs, you can fold it back into a more generalized rule set if you want—but at least you’ll know the code is actually running and being picked up.
