@@ -1,0 +1,77 @@
+Here’s Ticket #7 ready for your tracker. Once it’s in motion, I’ll draft Ticket #8 right afterward.
+
+⸻
+
+🎟 Ticket #7: Implement ingestScheduledReport.ts (IMAP Email Ingestion)
+
+Context
+Before falling back to Playwright automation, AgentFlow should attempt to fetch CRM reports delivered via scheduled email (e.g., from no-reply@vinsolutions.com). This service connects to a mailbox, scans for new messages, downloads attachments, and returns the file path.
+
+⸻
+
+📋 Requirements
+	1.	IMAP Connection
+	•	Use imap-simple configured via environment variables:
+	•	EMAIL_HOST (e.g. imap.gmail.com)
+	•	EMAIL_PORT (e.g. 993)
+	•	EMAIL_USER
+	•	EMAIL_PASS
+	•	EMAIL_TLS (boolean YAML/JSON string)
+	•	Connect to INBOX (or configurable folder) and search for unseen messages from the target sender.
+	2.	Attachment Handling
+	•	For each matched email:
+	•	Download all attachments.
+	•	Save into envVars.DOWNLOAD_DIR (ensure directory exists).
+	•	Generate unique filenames, e.g.
+
+${platform}_${Date.now()}_${originalFilename}
+
+
+	3.	Post‑Processing
+	•	Mark each processed message as seen, or move to a “processed” folder.
+	•	If no new messages found, throw a ReportNotFoundError (or return null, per your preference).
+	4.	Return Value
+	•	On success: the function resolves with the first downloaded file path (string).
+	•	On no report: throws ReportNotFoundError.
+	•	On connection/fatal errors: throws with clear, logged error.
+	5.	Logging & Errors
+	•	Use the shared logger for:
+	•	Connection open/close
+	•	Number of emails scanned
+	•	File paths saved
+	•	Wrap IMAP calls in try/catch and propagate errors cleanly.
+	6.	Typing & Testing
+	•	Signature in src/agents/ingestScheduledReport.ts:
+
+export async function ingestScheduledReport(
+  platform: string,
+  downloadDir: string
+): Promise<string | null>;
+
+
+	•	Unit tests in src/agents/ingestScheduledReport.test.ts, mocking imap-simple to cover:
+	•	No matching emails
+	•	Single email, single attachment
+	•	Multiple emails/attachments
+
+⸻
+
+✅ Acceptance Criteria
+	•	Code compiles cleanly under --strict TS (npx tsc --noEmit).
+	•	Successfully connects to IMAP and handles auth errors.
+	•	Downloads attachments to DOWNLOAD_DIR with correct naming.
+	•	Marks processed messages seen (or moves them).
+	•	Returns first file path or throws ReportNotFoundError.
+	•	Full unit-test coverage (≥ 80%).
+	•	CI passes (TS + tests).
+
+⸻
+
+📌 Metadata
+	•	Assignees: AgentFlow Dev Team
+	•	Labels: feature typescript crm-ingestion critical
+	•	Branch: feature/ingest-scheduled-report
+
+⸻
+
+Once this is underway, let me know and I’ll hand off Ticket #8: the hybrid execution (email-first, fallback to runFlow).
