@@ -32,9 +32,10 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   // For a simple implementation, we'll use a rule-based approach
   // In a more complex system, you would use the LLM for this
   const taskLower = task.toLowerCase();
+  const taskHash = require('crypto').createHash('md5').update(task).digest('hex').substring(0, 8);
   
-  console.log('Parsing task:', task);
-  console.log('Task keywords:', 
+  console.log(`[${taskHash}] 🔎 Task parser analyzing: ${task}`);
+  console.log(`[${taskHash}] Keywords:`, 
     'summarize:', taskLower.includes('summarize'),
     'summary:', taskLower.includes('summary'),
     'content:', taskLower.includes('content'),
@@ -293,7 +294,49 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
     };
   }
   
-  // For anything else or if detection fails, return unknown
+  // For anything else or if detection fails, check for summarize-related keywords
+  if (taskLower.includes('summarize') || taskLower.includes('summary')) {
+    console.log(`[${taskHash}] ⚠️ MISSING URL: Detected summarize keywords but no URL matched patterns`);
+    
+    // Try once more for URL patterns with a more lenient regex
+    const lenientMatch = taskLower.match(/\b([a-z0-9-]+\.)+[a-z]{2,}\b/i);
+    if (lenientMatch) {
+      console.log(`[${taskHash}] 🔍 Found possible domain with lenient regex:`, lenientMatch[0]);
+      
+      // Try to construct a multi-step plan with this domain
+      const url = 'https://' + lenientMatch[0];
+      
+      return {
+        type: TaskType.MultiStep,
+        parameters: { url },
+        original: task,
+        plan: {
+          steps: [
+            {
+              tool: 'extractCleanContent',
+              input: { url }
+            },
+            {
+              tool: 'summarizeText',
+              input: { text: '{{step0.output.content}}' }
+            }
+          ]
+        }
+      };
+    }
+    
+    // No URL found, return error
+    console.log(`[${taskHash}] ❌ ERROR: No valid URL detected in summarize task`);
+    return {
+      type: TaskType.Unknown,
+      parameters: {},
+      original: task,
+      error: 'No valid URL detected in task. Please include a URL.'
+    };
+  }
+  
+  // Default case
+  console.log(`[${taskHash}] ℹ️ Task type not recognized, marking as unknown`);
   return {
     type: TaskType.Unknown,
     parameters: {},

@@ -109,14 +109,16 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
     
     // Parse the task to determine what type it is
     const parsedTask = await parseTask(task, ekoApiKey);
-    console.log(`Task executed directly: ${crypto.randomUUID()} - ${parsedTask.type}`);
+    const taskId = crypto.randomUUID();
+    console.log(`Task executed directly: ${taskId} - ${parsedTask.type}`);
     console.log('Task text:', task);
     console.log('Parsed task:', JSON.stringify(parsedTask, null, 2));
     
     // Check if there was a parsing error
     if (parsedTask.error) {
-      console.error("❌ Task parser error:", parsedTask.error);
-      return res.status(400).json({ error: parsedTask.error });
+      console.error(`❌ Task parser error (${taskId}):`, parsedTask.error);
+      console.log("Returning 400 Bad Request with error message");
+      return res.status(400).json({ success: false, error: parsedTask.error });
     }
     
     // Create tools map
