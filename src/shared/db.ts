@@ -6,12 +6,19 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Define the database connection
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is not set');
+let connectionString = process.env.DATABASE_URL;
+
+// If we have individual Replit PostgreSQL environment variables, use those instead
+if (process.env.PGHOST && process.env.PGPORT && process.env.PGUSER && 
+    process.env.PGPASSWORD && process.env.PGDATABASE) {
+  connectionString = `postgres://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
+  console.log('Using Replit PostgreSQL environment variables for database connection');
+} else if (!connectionString) {
+  throw new Error('No database connection information available');
 }
 
 // Create a postgres client with the connection string
+console.log(`Connecting to database: ${connectionString.replace(/:[^:]+@/, ':***@')}`);
 const client = postgres(connectionString);
 
 // Export the Drizzle DB instance
