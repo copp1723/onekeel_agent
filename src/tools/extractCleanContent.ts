@@ -1,11 +1,5 @@
-import { Eko } from '@eko-ai/eko';
 import { spawn } from 'child_process';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-// Compute __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from 'path';
 
 // Define the interface for the tool's arguments
 interface ExtractCleanContentArgs {
