@@ -523,7 +523,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
         message: "Task processed with simulated agent",
         data: await extractTool.handler(parsedTask.parameters)
       };
-      toolUsed = 'extractCleanContent';
+      toolUsed = TaskType.ExtractContent.toString();
     } 
     else if (parsedTask.type === TaskType.SummarizeText) {
       result = {
@@ -532,16 +532,16 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
         message: "Task processed with simulated agent",
         data: await summarizeTool.handler(parsedTask.parameters)
       };
-      toolUsed = 'summarizeText';
+      toolUsed = TaskType.SummarizeText.toString();
     }
     else if (parsedTask.type === TaskType.WebCrawling) {
       result = {
         type: TaskType.WebCrawling,
         timestamp: new Date().toISOString(),
         message: "Task processed with simulated agent",
-        data: await crawlTool.handler(parsedTask.parameters)
+        data: await toolsMap[TaskType.WebCrawling].handler(parsedTask.parameters)
       };
-      toolUsed = 'crawlWebsite';
+      toolUsed = TaskType.CrawlWebsite.toString();
     }
     else if (parsedTask.type === TaskType.FlightStatus) {
       result = {
@@ -550,7 +550,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
         message: "Task processed with simulated agent",
         data: await flightTool.handler(parsedTask.parameters)
       };
-      toolUsed = 'checkFlightStatus';
+      toolUsed = TaskType.FlightStatus.toString();
     }
     else if (parsedTask.type === TaskType.DealerLogin) {
       // For dealer login tasks, we need to include the user ID in the parameters
@@ -566,7 +566,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
         message: "Task processed with dealer login agent",
         data: await dealerLoginTool.handler(dealerLoginParams)
       };
-      toolUsed = 'dealerLogin';
+      toolUsed = TaskType.DealerLogin.toString();
     }
     else if (parsedTask.type === TaskType.FetchCRMReport) {
       // For CRM report tasks, we need to include the user ID in the parameters
@@ -582,7 +582,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
         message: "Task processed with CRM report extraction agent",
         data: await crmReportTool.handler(crmReportParams)
       };
-      toolUsed = 'fetchCRMReport';
+      toolUsed = TaskType.FetchCRMReport.toString();
     }
     else if (parsedTask.type === TaskType.Unknown) {
       // Handle unknown task type with possible error message
@@ -594,7 +594,7 @@ async function processTask(taskId: string, taskText: string, userId?: string): P
           message: parsedTask.error || "Task type not supported yet"
         }
       };
-      toolUsed = 'unknown';
+      toolUsed = TaskType.Unknown.toString();
     } else {
       // For other tasks, use the Eko agent
       result = await eko.run(taskText);
