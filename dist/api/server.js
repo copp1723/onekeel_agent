@@ -130,7 +130,7 @@ app.post('/submit-task', async (req, res) => {
                 taskType: parsedTask.type, // Set the detected type immediately
                 status: 'pending',
                 createdAt: new Date().toISOString(),
-                userId: userId // Include the user ID if available
+                ...(userId ? { userId } : {}) // Only include userId if it exists
             };
             // Process the task asynchronously
             processTask(taskId, task, userId).catch(error => {
@@ -311,7 +311,8 @@ app.post('/submit-task', async (req, res) => {
             userId: userId
         });
         // Return the immediate result
-        return res.status(200).json({ success: true, result });
+        res.status(200).json({ success: true, result });
+        return;
     }
     catch (error) {
         console.error('Error executing task:', error);
