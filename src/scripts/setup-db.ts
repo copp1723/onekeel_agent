@@ -2,7 +2,10 @@ import dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
-import { apiKeys, taskLogs, dealerCredentials, plans, steps, users, sessions } from '../shared/schema.js';
+import { apiKeys } from '../shared/schema.js';
+// Importing schema definitions only for type checking
+// We use raw SQL for table creation instead of schema-based migrations
+// import { taskLogs, dealerCredentials, plans, steps, users, sessions } from '../shared/schema.js';
 import crypto from 'crypto';
 
 // Load environment variables
