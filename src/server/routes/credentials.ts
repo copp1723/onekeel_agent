@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, RequestHandler } from 'express';
 import { Request as ExpressRequest } from 'express';
 import { storage } from '../storage.js';
 import { isAuthenticated } from '../replitAuth.js';
@@ -14,13 +14,16 @@ interface Request extends ExpressRequest {
   };
 }
 
+// Type cast to help with TypeScript compatibility
+const routeHandler = (fn: (req: Request, res: Response) => Promise<void> | void): RequestHandler => fn as RequestHandler;
+
 const credentialsRouter = Router();
 
 // Middleware to ensure routes are protected
 credentialsRouter.use(isAuthenticated);
 
 // Get all credentials for the current user
-credentialsRouter.get('/', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+credentialsRouter.get('/', isAuthenticated, routeHandler(async (req: Request, res: Response) => {
   try {
     const userId = req.user?.claims?.sub;
     
@@ -43,10 +46,10 @@ credentialsRouter.get('/', isAuthenticated, async (req: Request, res: Response):
     console.error('Error fetching credentials:', error);
     res.status(500).json({ message: 'Failed to fetch credentials' });
   }
-});
+}));
 
 // Save a new credential
-credentialsRouter.post('/', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+credentialsRouter.post('/', isAuthenticated, routeHandler(async (req: Request, res: Response) => {
   try {
     const userId = req.user?.claims?.sub;
     
@@ -80,10 +83,10 @@ credentialsRouter.post('/', isAuthenticated, async (req: Request, res: Response)
     console.error('Error saving credential:', error);
     res.status(500).json({ message: 'Failed to save credential' });
   }
-});
+}));
 
 // Delete a credential
-credentialsRouter.delete('/:id', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+credentialsRouter.delete('/:id', isAuthenticated, routeHandler(async (req: Request, res: Response) => {
   try {
     const userId = req.user?.claims?.sub;
     
@@ -111,6 +114,6 @@ credentialsRouter.delete('/:id', isAuthenticated, async (req: Request, res: Resp
     console.error('Error deleting credential:', error);
     res.status(500).json({ message: 'Failed to delete credential' });
   }
-});
+}));
 
 export default credentialsRouter;
