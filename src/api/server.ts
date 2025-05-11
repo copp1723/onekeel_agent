@@ -182,41 +182,53 @@ app.post(['/submit-task', '/api/tasks'], async (req: Request, res: Response) => 
       };
       toolUsed = 'checkFlightStatus';
     }
-    // Explicitly handle summarize tasks with URL as multi-step
-    else if ((task.toLowerCase().includes('summarize') || task.toLowerCase().includes('summary')) && 
-        (task.toLowerCase().includes('content') || task.toLowerCase().includes('of')) && 
-        task.match(/https?:\/\/[^\s]+/)) {
-      const urlMatch = task.match(/https?:\/\/[^\s]+/);
-      const url = urlMatch ? urlMatch[0] : '';
+    // For testing purposes, check if the task is about summarizing content
+    else if ((task.toLowerCase().includes('summarize') || task.toLowerCase().includes('summary'))) {
+      console.log("Detected summarize keyword in:", task);
       
-      console.log(`Creating multi-step plan manually for task: "${task}"`);
-      
-      // Create a multi-step plan
-      const plan = {
-        steps: [
-          {
-            tool: 'extractCleanContent',
-            input: { url }
-          },
-          {
-            tool: 'summarizeText',
-            input: { text: '{{step0.output.content}}' }
-          }
-        ]
-      };
-      
-      // Execute the plan
-      console.log('Executing manually created plan');
-      const executionResult = await executePlan(plan, toolsMap);
-      
-      result = {
-        type: 'multi_step',
-        timestamp: new Date().toISOString(),
-        message: "Task executed with multi-step execution",
-        data: executionResult.finalOutput
-      };
-      
-      toolUsed = 'extractCleanContent,summarizeText';
+      // Check if it also has a URL
+      if (task.match(/https?:\/\/[^\s]+/)) {
+        console.log("Also found URL in task");
+        const urlMatch = task.match(/https?:\/\/[^\s]+/);
+        const url = urlMatch ? urlMatch[0] : '';
+        
+        console.log(`Creating multi-step plan manually for task: "${task}"`);
+        
+        // Create a multi-step plan
+        const plan = {
+          steps: [
+            {
+              tool: 'extractCleanContent',
+              input: { url }
+            },
+            {
+              tool: 'summarizeText',
+              input: { text: '{{step0.output.content}}' }
+            }
+          ]
+        };
+        
+        // Execute the plan
+        console.log('Executing manually created plan');
+        const executionResult = await executePlan(plan, toolsMap);
+        
+        result = {
+          type: 'multi_step',
+          timestamp: new Date().toISOString(),
+          message: "Task executed with multi-step execution",
+          data: executionResult.finalOutput
+        };
+        
+        toolUsed = 'extractCleanContent,summarizeText';
+      } else {
+        console.log("No URL found in summarize task");
+        result = {
+          type: 'error',
+          timestamp: new Date().toISOString(),
+          message: "Cannot summarize without a URL",
+          data: { error: "Please provide a URL to summarize content from" }
+        };
+      }
     }
     else {
       result = {

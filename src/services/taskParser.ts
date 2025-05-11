@@ -33,9 +33,12 @@ export async function parseTask(task: string, ekoApiKey: string): Promise<Parsed
   const taskLower = task.toLowerCase();
   
   // Check for multi-step tasks that involve extracting content and then summarizing
+  // This also catches common variations like "summarize content of URL" or "get summary of URL"
   if ((taskLower.includes('extract') && taskLower.includes('content') && 
        (taskLower.includes('summarize') || taskLower.includes('summary'))) ||
-      (taskLower.includes('summarize') && taskLower.includes('content of'))) {
+      ((taskLower.includes('summarize') || taskLower.includes('summary')) && 
+       (taskLower.includes('content of') || taskLower.includes('content from') || 
+        taskLower.includes('from') || taskLower.includes('of') || taskLower.includes('text')))) {
     
     const urlMatch = task.match(/https?:\/\/[^\s]+/);
     const url = urlMatch ? urlMatch[0] : '';
