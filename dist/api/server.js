@@ -400,14 +400,12 @@ async function processTask(taskId, taskText, userId) {
         tools.push(crmReportTool);
         toolsMap[TaskType.FetchCRMReport] = crmReportTool;
         // Initialize Eko agent with the appropriate tools
-        // Create a valid EkoConfig object
-        const config = {
-            llms,
-            // Remove the direct tools property as it's not part of EkoConfig
-        };
-        const eko = new Eko(config);
+        const eko = new Eko({
+            llms
+        });
         let result;
-        let toolUsed = parsedTask.type;
+        // Initialize toolUsed as a string representation of the task type
+        let toolUsed = parsedTask.type.toString();
         // Handle multi-step tasks with execution plan
         if (parsedTask.type === TaskType.MultiStep && parsedTask.plan) {
             console.log(`Executing multi-step plan for task: "${taskText}"`);
