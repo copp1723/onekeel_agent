@@ -38,12 +38,16 @@ export function fetchCRMReportTool() {
             try {
                 console.log(`Fetching CRM report for dealer ${dealerId} from ${site}...`);
                 // Use the fetchCRMReport function with the provided arguments
-                const filePath = await fetchCRMReport({
+                const reportOptions = {
                     platform: site,
-                    dealerId,
-                    reportType,
-                    dateRange
-                });
+                    dealerId
+                };
+                // Only add optional properties if they're defined
+                if (reportType)
+                    reportOptions.reportType = reportType;
+                if (dateRange)
+                    reportOptions.dateRange = dateRange;
+                const filePath = await fetchCRMReport(reportOptions);
                 // Parse the CSV/Excel report
                 const parsedReport = await parseCRMReport(filePath);
                 // Return the parsed data
@@ -57,11 +61,12 @@ export function fetchCRMReportTool() {
             }
             catch (error) {
                 console.error(`Error fetching CRM report:`, error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
                 return {
                     success: false,
-                    message: `Failed to fetch CRM report: ${error.message}`,
+                    message: `Failed to fetch CRM report: ${errorMessage}`,
                     dealerId,
-                    error: error.message
+                    error: errorMessage
                 };
             }
         }

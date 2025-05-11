@@ -4,6 +4,7 @@
  */
 import { fetchCRMReport, parseCRMReport } from '../agents/fetchCRMReport.js';
 import { EkoTool } from './extractCleanContent.js';
+import { CRMReportOptions } from '../types.js';
 
 interface FetchCRMReportArgs {
   site: string; // CRM platform (VinSolutions, VAUTO)
@@ -49,12 +50,16 @@ export function fetchCRMReportTool(): EkoTool {
         console.log(`Fetching CRM report for dealer ${dealerId} from ${site}...`);
         
         // Use the fetchCRMReport function with the provided arguments
-        const filePath = await fetchCRMReport({
+        const reportOptions: CRMReportOptions = {
           platform: site,
-          dealerId,
-          reportType,
-          dateRange
-        });
+          dealerId
+        };
+        
+        // Only add optional properties if they're defined
+        if (reportType) reportOptions.reportType = reportType;
+        if (dateRange) reportOptions.dateRange = dateRange;
+        
+        const filePath = await fetchCRMReport(reportOptions);
         
         // Parse the CSV/Excel report
         const parsedReport = await parseCRMReport(filePath);
@@ -67,13 +72,15 @@ export function fetchCRMReportTool(): EkoTool {
           reportFile: filePath,
           reportData: parsedReport
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`Error fetching CRM report:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
         return {
           success: false,
-          message: `Failed to fetch CRM report: ${error.message}`,
+          message: `Failed to fetch CRM report: ${errorMessage}`,
           dealerId,
-          error: error.message
+          error: errorMessage
         };
       }
     }

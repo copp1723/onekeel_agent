@@ -177,7 +177,8 @@ async function executeOTPStep(page, step, envVars) {
     if (step.action !== 'otpEmail') {
         throw new Error(`Expected otpEmail action for OTP step, got: ${step.action}`);
     }
-    // Get the OTP code from email
+    // Get the OTP code from email using the local implementation
+    // Note: In production, we would use the imported fetchEmailOTP instead
     const otpCode = await getEmailOTP(envVars.OTP_EMAIL_USER);
     if (!otpCode) {
         throw new Error('Failed to retrieve OTP code from email');
@@ -200,7 +201,7 @@ async function executeOTPStep(page, step, envVars) {
  * @param envVars - Environment variables for interpolation
  * @returns Path to the downloaded file
  */
-async function executeDownloadStep(page, step, envVars) {
+async function executeDownloadStep(page, step, _envVars) {
     if (step.action !== 'download') {
         throw new Error(`Expected download action for download step, got: ${step.action}`);
     }
