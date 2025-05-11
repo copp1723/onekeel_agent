@@ -1,4 +1,4 @@
-import axios from 'axios';
+// Flight status tool implementation
 
 // Define the interface for the tool arguments
 interface CheckFlightStatusArgs {

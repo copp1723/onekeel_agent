@@ -1,3 +1,4 @@
+// Flight status tool implementation
 /**
  * Creates a checkFlightStatus tool to get flight information
  * @returns A tool object that can be registered with Eko

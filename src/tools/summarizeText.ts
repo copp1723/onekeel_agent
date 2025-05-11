@@ -1,4 +1,4 @@
-import { Eko, LLMs } from '@eko-ai/eko';
+// Summarize text tool implementation
 import { EkoTool } from './extractCleanContent.js';
 import OpenAI from 'openai';
 
@@ -12,7 +12,7 @@ interface SummarizeTextArgs {
  * @param ekoApiKey - The Eko API key (not used with direct OpenAI integration)
  * @returns A tool object that can be registered with Eko
  */
-export function summarizeText(ekoApiKey: string): EkoTool {
+export function summarizeText(_unused: string): EkoTool {
   return {
     name: 'summarizeText',
     description: 'Creates a concise summary of provided text content',
@@ -69,7 +69,7 @@ export function summarizeText(ekoApiKey: string): EkoTool {
           max_tokens: 350,
         });
         
-        const summary = response.choices[0].message.content.trim();
+        const summary = response.choices[0].message?.content?.trim() || 'No summary available';
         
         return {
           summary: summary,

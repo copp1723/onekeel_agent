@@ -1,9 +1,5 @@
 import { spawn } from 'child_process';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-// Compute __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from 'path';
 /**
  * Creates an extractCleanContent tool that uses Python's trafilatura to extract clean text from webpages
  * @returns A tool object that can be registered with Eko

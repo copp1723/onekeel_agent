@@ -4,4 +4,4 @@ import { EkoTool } from './extractCleanContent.js';
  * @param ekoApiKey - The Eko API key (not used with direct OpenAI integration)
  * @returns A tool object that can be registered with Eko
  */
-export declare function summarizeText(ekoApiKey: string): EkoTool;
+export declare function summarizeText(_unused: string): EkoTool;
