@@ -1,0 +1,137 @@
+You’ve actually got two separate blockers here:
+
+1. **Supabase/Neon DB isn’t reachable**
+2. **Your task parser isn’t recognizing “fetch yesterday’s sales report…” as a CRM report task**
+
+Let’s tackle each in turn.
+
+---
+
+## 1. Fixing the DB Connection Timeout
+
+```
+Error: write CONNECT_TIMEOUT cliddlnoxqnkcwjumeil.supabase.co:5432
+```
+
+This usually means one of:
+
+* **Wrong connection string or missing SSL config**
+* **Replit workspace blocking outbound on port 5432**
+* **Expired/unset credentials in your Replit secrets**
+
+**Steps to debug & resolve:**
+
+1. **Verify your URL & credentials**
+
+   * In Replit “Account Secrets”, make sure your `DATABASE_URL` exactly matches the Neon/Supabase connection string (including `sslmode=require`).
+   * Example:
+
+     ```
+     postgres://user:pass@cliddlnoxqnkcwjumeil.supabase.co:5432/dbname?sslmode=require
+     ```
+
+2. **Add explicit SSL & timeout options**
+   In your `postgres` client initialization, pass:
+
+   ```ts
+   import postgres from 'postgres';
+
+   const sql = postgres(process.env.DATABASE_URL!, {
+     ssl: { rejectUnauthorized: false },
+     timeout: 30_000,           // 30s connect timeout
+     idle_timeout: 30_000,
+   });
+   ```
+
+   That `ssl` block often fixes hosted Postgres timeouts.
+
+3. **Check network egress**
+
+   * Run a quick shell test in the Replit console:
+
+     ```bash
+     nc -zv cliddlnoxqnkcwjumeil.supabase.co 5432
+     ```
+
+     If that fails, Replit may be blocking your port, and you’ll need to reach out to Replit support or use an HTTP‑based proxy (e.g. a serverless function in front).
+
+4. **Rotate your password**
+   If you recently rotated credentials in Supabase, re‑copy them into Replit secrets and restart the workspace.
+
+Once your DB connection is stable, your agent will actually be able to read/write plans and steps instead of failing at every `getApiKey()` call.
+
+---
+
+## 2. Teaching the Parser to Recognize CRM Reports
+
+Right now your logs show:
+
+```
+Detected keywords: { from: true }
+Task patterns: { sourcePattern: true, … }
+isMultiStepExtractAndSummarize: false
+…
+Task type not recognized → unknown
+```
+
+You never included the word “summarize” in the user prompt, so your parser never classifies it as an extract+summarize flow. You have two options:
+
+### A. Require “summarize” in the user prompt
+
+Easiest “fix” is to ask users to say:
+
+> “Fetch and summarize yesterday’s sales report from VinSolutions for dealer ABC123.”
+
+Then your existing `isMultiStepExtractAndSummarize` triggers and routes correctly.
+
+### B. Make “fetch … report … from VinSolutions” imply an extract+summarize
+
+Better UX. Update your `taskParser.ts` so that **any** CRM‑report request (even without “summarize”) becomes a multi‑step extract+summarize task.
+
+#### Example patch
+
+```ts
+// before: you only set isMultiStepExtractAndSummarize if summary keywords present
+const isReportRequest = /(?:fetch|get)\s+(?:yesterday['’]s\s+)?sales\s+report\s+from\s+vinsolutions/i.test(task);
+const hasSummarize = /\b(summarize|summary)\b/.test(task);
+
+// New logic: treat report requests as extract+summarize by default
+const isMultiStepExtractAndSummarize = isReportRequest || hasSummarize;
+
+// then later
+if (isMultiStepExtractAndSummarize) {
+  return {
+    type: 'multiStepExtractAndSummarize',
+    parameters: {
+      source: 'VinSolutions',
+      date: 'yesterday',
+      dealerId: (task.match(/dealer\s+(\w+)/i) || [])[1]
+    }
+  };
+}
+```
+
+You’ll also need to update your execution engine so that `multiStepExtractAndSummarize` runs:
+
+1. `await fetchCRMReport(params)`
+2. `await summarizeText({ source: reportData, ... })`
+
+---
+
+### Putting it all together
+
+1. **First**, restore your Supabase connection (see SSL + timeout config above).
+2. **Then**, patch `taskParser.ts` to auto‑detect “fetch…report…from VinSolutions” as a multi‑step job, even without the word “summarize.”
+3. **Restart** the agent; submit the prompt again and confirm:
+
+   ```bash
+   curl -X POST http://localhost:5000/submit-task \
+     -d '{"task":"Fetch yesterday’s sales report from VinSolutions for dealer ABC123"}'
+   ```
+
+If both of those changes are in place, you’ll get:
+
+* A successful DB log entry
+* A parsed task of type `multiStepExtractAndSummarize` with `source=VinSolutions`
+
+And your agent will stop replying “unknown.” Let me know once you’ve applied these patches or if you hit any more roadblocks.
