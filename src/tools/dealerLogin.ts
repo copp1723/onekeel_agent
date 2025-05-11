@@ -69,28 +69,89 @@ export function dealerLogin(): EkoTool {
           };
         }
 
-        // In a real implementation, we would perform the actual login request
-        // to the dealer's system using the stored credentials
+        // Determine the API endpoint for the login attempt
+        let apiEndpoint = args.siteUrl || null;
         
-        // Simulate a login request (replace with actual API call)
-        // const loginResponse = await axios.post(`${args.siteUrl || 'https://api.dealer.example.com'}/login`, {
-        //   username: credentials.username,
-        //   password: credentials.password
-        // });
+        // Try to determine a default endpoint based on the dealer ID if no URL was provided
+        if (!apiEndpoint) {
+          // Map common dealer systems to their login endpoints
+          // In a production system, this would come from a database
+          const dealerEndpoints: Record<string, string> = {
+            'dealersocket': 'https://login.dealersocket.com/api/auth',
+            'dealertrack': 'https://auth.dealertrack.com/login',
+            'cdkglobal': 'https://auth.cdkglobal.com/login',
+            'reynolds': 'https://login.reyrey.com/authentication'
+          };
+          
+          // Check if the dealer ID contains a known system name
+          const matchedSystem = Object.keys(dealerEndpoints).find(system => 
+            dealerId.toLowerCase().includes(system.toLowerCase())
+          );
+          
+          if (matchedSystem) {
+            apiEndpoint = dealerEndpoints[matchedSystem];
+            console.log(`Using default endpoint for ${matchedSystem}: ${apiEndpoint}`);
+          } else {
+            apiEndpoint = 'https://api.dealer-system.com/login'; // Generic fallback
+          }
+        }
         
-        // For demonstration, we'll simulate a successful login
-        const simulatedToken = `${Buffer.from(dealerId).toString('base64')}.${Date.now()}`;
-        const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+        // Log the login attempt with sensitive details masked
+        console.log(`Attempting login for dealer ${dealerId} with user ${credentials.username.substring(0, 2)}***`);
         
-        console.log(`Successfully logged in to dealer ${dealerId} using credentials for user ${userId}`);
-        
-        return {
-          success: true,
-          dealerId,
-          message: 'Successfully authenticated with dealer system',
-          token: simulatedToken,
-          expiresAt
-        };
+        try {
+          // In a production system, this would be a real API call
+          // Here we'll simulate the network request with a timeout
+          // to mimic a realistic login flow
+          
+          // Simulate network latency
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          // For now, we just simulate a successful login
+          // In a real implementation, we would perform the actual login request:
+          
+          /*
+          const loginResponse = await axios.post(apiEndpoint, {
+            username: credentials.username,
+            password: credentials.password,
+            dealerId: dealerId
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'DealerAssistant/1.0'
+            }
+          });
+          
+          // Handle the response
+          const isSuccessful = loginResponse.status === 200;
+          const responseData = loginResponse.data;
+          const authToken = responseData.token || responseData.access_token;
+          */
+          
+          // Generate a simulated token (in production this would come from the API)
+          const simulatedToken = `${Buffer.from(dealerId).toString('base64')}.${Date.now()}`;
+          const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+          
+          console.log(`Successfully logged in to dealer ${dealerId} using credentials for user ${userId}`);
+          
+          return {
+            success: true,
+            dealerId,
+            message: 'Successfully authenticated with dealer system',
+            token: simulatedToken,
+            expiresAt,
+            apiEndpoint // Include the endpoint used for reference
+          };
+        } catch (loginError: any) {
+          console.error(`Login error for dealer ${dealerId}:`, loginError);
+          
+          return {
+            success: false,
+            dealerId,
+            message: 'Authentication failed with dealer system',
+            error: loginError.message || 'Unknown login error'
+          };
+        }
       } catch (error: any) {
         console.error('Error in dealer login:', error);
         
