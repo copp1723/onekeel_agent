@@ -8,6 +8,7 @@ import {
   uuid,
   boolean,
   serial,
+  integer,
 } from "drizzle-orm/pg-core";
 
 // Session storage table.
