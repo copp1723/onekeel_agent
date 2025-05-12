@@ -1,0 +1,134 @@
+Ticket #13 — Task Scheduler for Automated Workflows
+Goal:
+Automatically trigger and manage recurring execution of defined workflows without manual intervention.
+
+Schema Definition
+Create a schedules table in Supabase (via migration):
+Column
+Type
+Notes
+id
+UUID (PK)
+Unique schedule identifier
+workflowId
+UUID (FK)
+References workflows.id
+cron
+Text
+Cron expression (e.g., "0 7 * * *" for daily at 7 AM)
+lastRunAt
+Timestamp
+Timestamp of last successful invocation
+enabled
+Boolean
+Whether this schedule is active
+createdAt
+Timestamp
+Auto‑set on insert
+updatedAt
+Timestamp
+Auto‑set on update
+
+
+Tasks
+Data Model & Migrations
+
+
+Write a Supabase SQL migration to create the schedules table.
+
+
+Define a TypeScript interface/model for Schedule.
+
+
+Scheduler Service
+
+
+On application startup, query all enabled schedules.
+
+
+For each, register a repeatable job:
+
+
+Option A: Use BullMQ’s repeatable jobs, calling runWorkflow(workflowId).
+
+
+Option B: Use node-cron, invoking the same runWorkflow controller.
+
+
+After each run, update lastRunAt and record any errors.
+
+
+Integration with Workflow Runner
+
+
+Ensure runWorkflow(workflowId) is idempotent (skips or locks if already running).
+
+
+Handle errors: mark schedule run errors in logs; do not disable schedule unless critical.
+
+
+API Endpoints
+
+
+POST   /api/schedules → Create a new schedule (body: { workflowId, cron, enabled }).
+
+
+GET    /api/schedules → List all schedules.
+
+
+GET    /api/schedules/:id → Get single schedule with its last run metadata.
+
+
+PATCH  /api/schedules/:id → Update cron or toggle enabled.
+
+
+DELETE /api/schedules/:id → Remove a schedule.
+
+
+Testing
+
+
+Unit tests for the service that:
+
+
+Reads schedules and registers jobs correctly.
+
+
+Invokes runWorkflow at the correct times (use fake timers).
+
+
+Updates lastRunAt on success.
+
+
+Honors enabled flag.
+
+
+E2E test:
+
+
+Create a schedule via API.
+
+
+Advance time or trigger the repeatable job.
+
+
+Verify the corresponding workflow advances state.
+
+
+
+Acceptance Criteria
+Creation & Management: Schedules can be created, edited, fetched, and deleted via the API.
+
+
+Automated Execution: Enabled schedules automatically invoke runWorkflow according to their cron expressions.
+
+
+State Tracking: lastRunAt is updated after each successful run; errors are logged without crashing.
+
+
+Safety: No concurrent executions of the same workflow—concurrency is guarded.
+
+
+Test Coverage: All core behaviors are covered by unit and E2E tests.
+
+

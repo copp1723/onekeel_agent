@@ -90,4 +90,17 @@ export const workflows = pgTable("workflows", {
     index("idx_workflows_status").on(table.status),
     index("idx_workflows_user").on(table.userId),
 ]);
+// Scheduler for automated workflow execution
+export const schedules = pgTable("schedules", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id").references(() => workflows.id, { onDelete: 'cascade' }),
+    cron: text("cron").notNull(), // Cron expression for schedule
+    lastRunAt: timestamp("last_run_at"),
+    enabled: boolean("enabled").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+    index("idx_schedules_workflow_id").on(table.workflowId),
+    index("idx_schedules_enabled").on(table.enabled),
+]);
 //# sourceMappingURL=schema.js.map
