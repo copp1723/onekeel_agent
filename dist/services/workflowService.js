@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Import step handlers
 import { stepHandlers } from './stepHandlers.js';
 // Import email service
-import { sendWorkflowCompletionEmail } from './workflowEmailService.js';
+import { sendWorkflowCompletionEmail, configureEmailNotifications } from './workflowEmailService.js';
 /**
  * Create a new workflow
  */
@@ -97,19 +97,26 @@ export async function runWorkflow(workflowId) {
                 .returning();
             // Send completion email if workflow has a notification email configured
             try {
-                // Check if workflow has notification settings in its context
-                const context = finalWorkflow.context ?
-                    (typeof finalWorkflow.context === 'string' ?
-                        JSON.parse(finalWorkflow.context) :
-                        finalWorkflow.context) :
-                    {};
-                // If notification emails are configured, send completion email
-                if (context.notifyEmail) {
-                    const recipients = Array.isArray(context.notifyEmail)
-                        ? context.notifyEmail
-                        : [context.notifyEmail];
-                    console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
-                    await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+                // First try to send using the new email notification system
+                const result = await sendWorkflowCompletionEmail(finalWorkflow.id);
+                if (!result.success) {
+                    // If no notification settings found in the database, fall back to context-based notifications
+                    const context = finalWorkflow.context ?
+                        (typeof finalWorkflow.context === 'string' ?
+                            JSON.parse(finalWorkflow.context) :
+                            finalWorkflow.context) :
+                        {};
+                    // If notification emails are configured in context, send completion email
+                    if (context.notifyEmail) {
+                        const recipients = Array.isArray(context.notifyEmail)
+                            ? context.notifyEmail
+                            : [context.notifyEmail];
+                        console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
+                        await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+                    }
+                }
+                else {
+                    console.log(`Workflow completion email sent: ${result.message}`);
                 }
             }
             catch (emailError) {
@@ -322,9 +329,10 @@ export async function getWorkflows(status, userId) {
  * Configure email notifications for a workflow
  * @param workflowId The ID of the workflow
  * @param emails A single email address or array of email addresses
- * @returns The updated workflow
+ * @param options Additional options for notifications
+ * @returns The updated workflow with notification settings
  */
-export async function configureWorkflowNotifications(workflowId, emails) {
+export async function configureWorkflowNotifications(workflowId, emails, options = {}) {
     try {
         // Get the workflow
         const [workflow] = await db
@@ -334,18 +342,20 @@ export async function configureWorkflowNotifications(workflowId, emails) {
         if (!workflow) {
             throw new Error(`Workflow ${workflowId} not found`);
         }
-        // Get current context
+        // Process email to get a single recipient
+        const recipientEmail = Array.isArray(emails) ? emails[0] : emails;
+        // For backward compatibility, also store in context
         const context = workflow.context ?
             (typeof workflow.context === 'string' ?
                 JSON.parse(workflow.context) :
                 workflow.context) :
             {};
-        // Update the context with notification emails
+        // Update the context with notification emails for legacy support
         const updatedContext = {
             ...context,
             notifyEmail: emails
         };
-        // Update the workflow
+        // Update the workflow context
         const [updatedWorkflow] = await db.update(workflows)
             .set({
             context: updatedContext,
@@ -353,6 +363,8 @@ export async function configureWorkflowNotifications(workflowId, emails) {
         })
             .where(eq(workflows.id, workflowId))
             .returning();
+        // Configure notifications in the new email notification system
+        await configureEmailNotifications(workflowId, recipientEmail, options);
         return updatedWorkflow;
     }
     catch (error) {
