@@ -1,90 +1,147 @@
-import { Router } from 'express';
-import { storage } from '../storage.js';
+/**
+ * Credential management routes
+ * Handles CRUD operations for user credentials with authentication
+ */
+import express from 'express';
 import { isAuthenticated } from '../replitAuth.js';
-// Type cast to help with TypeScript compatibility
-const routeHandler = (fn) => fn;
-const credentialsRouter = Router();
-// Middleware to ensure routes are protected
-credentialsRouter.use(isAuthenticated);
-// Get all credentials for the current user
-credentialsRouter.get('/', isAuthenticated, routeHandler(async (req, res) => {
+import { addCredential, getCredentials, getCredentialById, updateCredential, deleteCredential } from '../../services/credentialVault.js';
+const router = express.Router();
+// All routes require authentication
+router.use(isAuthenticated);
+/**
+ * Get all credentials for the authenticated user
+ * Optional platform filter
+ */
+router.get('/', async (req, res) => {
     try {
-        const userId = req.user?.claims?.sub;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized - User ID not found' });
-            return;
-        }
-        const credentials = await storage.listCredentials(userId);
-        // Return credentials without sensitive fields
-        res.json(credentials.map(cred => ({
-            id: cred.id,
-            userId: cred.userId,
-            site: cred.site,
-            username: cred.username,
-            createdAt: cred.createdAt
-        })));
+        const userId = req.user.claims.sub;
+        const platform = req.query.platform;
+        const results = await getCredentials(userId, platform);
+        // Map results to safe response objects (don't send IVs to client)
+        const response = results.map(({ credential, data }) => ({
+            id: credential.id,
+            platform: credential.platform,
+            label: credential.label,
+            created: credential.createdAt,
+            updated: credential.updatedAt,
+            hasRefreshToken: !!credential.refreshToken,
+            data
+        }));
+        res.json(response);
     }
     catch (error) {
-        console.error('Error fetching credentials:', error);
-        res.status(500).json({ message: 'Failed to fetch credentials' });
+        console.error('Error getting credentials:', error);
+        res.status(500).json({ error: 'Failed to retrieve credentials' });
     }
-}));
-// Save a new credential
-credentialsRouter.post('/', isAuthenticated, routeHandler(async (req, res) => {
+});
+/**
+ * Get a specific credential by ID
+ */
+router.get('/:id', async (req, res) => {
     try {
-        const userId = req.user?.claims?.sub;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized - User ID not found' });
-            return;
+        const userId = req.user.claims.sub;
+        const credentialId = req.params.id;
+        const { credential, data } = await getCredentialById(credentialId, userId);
+        res.json({
+            id: credential.id,
+            platform: credential.platform,
+            label: credential.label,
+            created: credential.createdAt,
+            updated: credential.updatedAt,
+            hasRefreshToken: !!credential.refreshToken,
+            data
+        });
+    }
+    catch (error) {
+        if (error.message.includes('not found') || error.message.includes('access denied')) {
+            res.status(404).json({ error: 'Credential not found' });
         }
-        const { site, username, password } = req.body;
-        if (!site || !username || !password) {
-            res.status(400).json({ message: 'Site, username, and password are required' });
-            return;
+        else {
+            console.error('Error getting credential:', error);
+            res.status(500).json({ error: 'Failed to retrieve credential' });
         }
-        const credential = await storage.saveCredential({
-            userId,
-            site,
-            username,
-            password
+    }
+});
+/**
+ * Add a new credential
+ */
+router.post('/', async (req, res) => {
+    try {
+        const userId = req.user.claims.sub;
+        const { platform, label, data, refreshToken, refreshTokenExpiry } = req.body;
+        // Validate required fields
+        if (!platform || !data) {
+            return res.status(400).json({ error: 'Platform and credential data are required' });
+        }
+        // Create credential
+        const credential = await addCredential(userId, platform, data, {
+            label,
+            refreshToken,
+            refreshTokenExpiry: refreshTokenExpiry ? new Date(refreshTokenExpiry) : undefined
         });
         res.status(201).json({
             id: credential.id,
-            userId: credential.userId,
-            site: credential.site,
-            username: credential.username,
-            createdAt: credential.createdAt
+            platform: credential.platform,
+            label: credential.label,
+            created: credential.createdAt
         });
     }
     catch (error) {
-        console.error('Error saving credential:', error);
-        res.status(500).json({ message: 'Failed to save credential' });
+        console.error('Error creating credential:', error);
+        res.status(500).json({ error: 'Failed to create credential' });
     }
-}));
-// Delete a credential
-credentialsRouter.delete('/:id', isAuthenticated, routeHandler(async (req, res) => {
+});
+/**
+ * Update a credential
+ */
+router.put('/:id', async (req, res) => {
     try {
-        const userId = req.user?.claims?.sub;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized - User ID not found' });
-            return;
-        }
+        const userId = req.user.claims.sub;
         const credentialId = req.params.id;
-        if (!credentialId) {
-            res.status(400).json({ message: 'Credential ID is required' });
-            return;
+        const { label, data, refreshToken, refreshTokenExpiry, active } = req.body;
+        // Update credential
+        const credential = await updateCredential(credentialId, userId, data, {
+            label,
+            refreshToken,
+            refreshTokenExpiry: refreshTokenExpiry ? new Date(refreshTokenExpiry) : undefined,
+            active
+        });
+        res.json({
+            id: credential.id,
+            platform: credential.platform,
+            label: credential.label,
+            updated: credential.updatedAt
+        });
+    }
+    catch (error) {
+        if (error.message.includes('not found') || error.message.includes('access denied')) {
+            res.status(404).json({ error: 'Credential not found' });
         }
-        const result = await storage.deleteCredential(credentialId, userId);
-        if (!result) {
-            res.status(404).json({ message: 'Credential not found or not owned by user' });
-            return;
+        else {
+            console.error('Error updating credential:', error);
+            res.status(500).json({ error: 'Failed to update credential' });
         }
-        res.json({ message: 'Credential deleted successfully' });
+    }
+});
+/**
+ * Delete a credential (soft delete)
+ */
+router.delete('/:id', async (req, res) => {
+    try {
+        const userId = req.user.claims.sub;
+        const credentialId = req.params.id;
+        const success = await deleteCredential(credentialId, userId);
+        if (success) {
+            res.status(204).send();
+        }
+        else {
+            res.status(404).json({ error: 'Credential not found' });
+        }
     }
     catch (error) {
         console.error('Error deleting credential:', error);
-        res.status(500).json({ message: 'Failed to delete credential' });
+        res.status(500).json({ error: 'Failed to delete credential' });
     }
-}));
-export default credentialsRouter;
+});
+export default router;
 //# sourceMappingURL=credentials.js.map
