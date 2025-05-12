@@ -1,0 +1,41 @@
+'use client';
+
+import React from 'react';
+import CredentialForm from '@/components/CredentialForm';
+import CredentialsList from '@/components/CredentialsList';
+import TaskForm from '@/components/TaskForm';
+import Link from 'next/link';
+
+export default function Home() {
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-primary-600">Insight Engine</h1>
+        <p className="text-neutral-600 mt-2">Generate valuable insights from your automotive CRM data</p>
+      </header>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <CredentialForm />
+        </div>
+        <div>
+          <CredentialsList />
+        </div>
+      </div>
+      
+      <div className="mt-8">
+        <TaskForm />
+      </div>
+      
+      <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
+        <h2>Recent Analyses</h2>
+        <Link 
+          href="/results" 
+          className="inline-block mt-2 text-primary-500 hover:text-primary-700 font-medium"
+        >
+          View All Results →
+        </Link>
+      </div>
+    </div>
+  );
+}
