@@ -4,12 +4,12 @@
  */
 
 import { db } from '../shared/db.js';
-import { schedules, type Schedule } from '../shared/schema.js';
+import { schedules, taskLogs, type Schedule } from '../shared/schema.js';
 import { runWorkflow, getWorkflow } from './workflowService.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import cron from 'node-cron';
-import { jobQueue } from './jobQueue.js';
+import { enqueueJob } from './jobQueue.js';
 
 // Map to keep track of active schedules and their node-cron tasks
 const activeSchedules = new Map<string, ReturnType<typeof cron.schedule>>();
@@ -266,16 +266,25 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
       .where(eq(schedules.id, schedule.id));
     
     // Execute the workflow using the job queue for better reliability
-    await jobQueue.add('runScheduledWorkflow', {
-      scheduleId: schedule.id,
-      workflowId: schedule.workflowId
-    }, {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 5000 // 5s, 10s, 20s
-      }
+    // Create a task log entry for this scheduled run
+    const taskId = uuidv4();
+    
+    // Create a task log entry
+    await db.insert(taskLogs).values({
+      id: taskId,
+      taskType: 'scheduledWorkflow',
+      taskText: `Run scheduled workflow: ${schedule.workflowId}`,
+      taskData: {
+        scheduleId: schedule.id,
+        workflowId: schedule.workflowId,
+        cron: schedule.cron
+      },
+      status: 'pending',
+      createdAt: new Date()
     });
+    
+    // Enqueue the job with the task ID
+    await enqueueJob(taskId, 5); // Priority 5 for scheduled jobs
     
     console.log(`Scheduled workflow ${schedule.workflowId} execution queued`);
   } catch (error) {
