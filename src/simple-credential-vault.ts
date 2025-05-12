@@ -126,8 +126,9 @@ export function decryptData(encryptedData: string, iv: string): any {
       // Return as string if not valid JSON
       return decrypted.toString('utf8');
     }
-  } catch (error) {
-    throw new Error(`Decryption failed: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Decryption failed: ${errorMessage}`);
   }
 }
 

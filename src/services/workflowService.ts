@@ -120,27 +120,50 @@ export async function runWorkflow(workflowId: string): Promise<Workflow> {
       // Send completion email if workflow has a notification email configured
       try {
         // First try to send using the new email notification system
-        const result = await sendWorkflowCompletionEmail(finalWorkflow.id);
+        const result = await sendWorkflowCompletionEmail(finalWorkflow.id, []);
         
-        if (!result.success) {
-          // If no notification settings found in the database, fall back to context-based notifications
-          const context = finalWorkflow.context ? 
-            (typeof finalWorkflow.context === 'string' ? 
-              JSON.parse(finalWorkflow.context) : 
-              finalWorkflow.context as Record<string, any>) : 
-            {};
-          
-          // If notification emails are configured in context, send completion email
-          if (context.notifyEmail) {
-            const recipients = Array.isArray(context.notifyEmail) 
-              ? context.notifyEmail 
-              : [context.notifyEmail];
+        if (typeof result === 'boolean') {
+          // Handle old boolean return type for backwards compatibility
+          if (!result) {
+            // Fall back to context-based notifications
+            const context = finalWorkflow.context ? 
+              (typeof finalWorkflow.context === 'string' ? 
+                JSON.parse(finalWorkflow.context) : 
+                finalWorkflow.context as Record<string, any>) : 
+              {};
             
-            console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
-            await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+            // If notification emails are configured in context, send completion email
+            if (context.notifyEmail) {
+              const recipients = Array.isArray(context.notifyEmail) 
+                ? context.notifyEmail 
+                : [context.notifyEmail];
+              
+              console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
+              await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+            }
           }
-        } else {
-          console.log(`Workflow completion email sent: ${result.message}`);
+        } else if (result && 'success' in result) {
+          // Handle object return type with success property
+          if (!result.success) {
+            // Fall back to context-based notifications
+            const context = finalWorkflow.context ? 
+              (typeof finalWorkflow.context === 'string' ? 
+                JSON.parse(finalWorkflow.context) : 
+                finalWorkflow.context as Record<string, any>) : 
+              {};
+            
+            // If notification emails are configured in context, send completion email
+            if (context.notifyEmail) {
+              const recipients = Array.isArray(context.notifyEmail) 
+                ? context.notifyEmail 
+                : [context.notifyEmail];
+              
+              console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
+              await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+            }
+          } else if (result.message) {
+            console.log(`Workflow completion email sent: ${result.message}`);
+          }
         }
       } catch (emailError) {
         // Log the error but don't fail the workflow
@@ -341,36 +364,29 @@ export async function deleteWorkflow(workflowId: string): Promise<boolean> {
  */
 export async function getWorkflows(status?: string, userId?: string | null): Promise<Workflow[]> {
   try {
-    // Start with the base query
-    const baseQuery = db.select().from(workflows);
+    // Build the query with filters
+    let query = db.select().from(workflows);
     
-    // Build the complete query with filters
-    let completeQuery = baseQuery;
+    // Apply filters conditionally
+    const conditions: any[] = [];
     
-    // Apply filters if provided
     if (status) {
-      // We need to cast the status to WorkflowStatus type
-      completeQuery = db.select().from(workflows).where(eq(workflows.status, status as WorkflowStatus));
+      conditions.push(eq(workflows.status, status as WorkflowStatus));
     }
     
     if (userId) {
-      if (status) {
-        // If we already have a status filter, add the userId filter
-        completeQuery = db.select().from(workflows)
-          .where(
-            and(
-              eq(workflows.status, status as WorkflowStatus),
-              eq(workflows.userId, userId)
-            )
-          );
-      } else {
-        // If we don't have a status filter, just add the userId filter
-        completeQuery = db.select().from(workflows).where(eq(workflows.userId, userId));
-      }
+      conditions.push(eq(workflows.userId, userId));
+    }
+    
+    // Apply all conditions if we have any
+    if (conditions.length === 1) {
+      query = query.where(conditions[0]);
+    } else if (conditions.length > 1) {
+      query = query.where(and(...conditions));
     }
     
     // Execute the query with ordering
-    const results = await completeQuery.orderBy(workflows.createdAt);
+    const results = await query.orderBy(workflows.createdAt);
     
     // Return the results in reverse chronological order
     return results.reverse();
