@@ -39,7 +39,8 @@ export function useTask(id: string) {
     enabled: !!id,
     refetchInterval: (data) => {
       // Poll every 3 seconds until task is completed or failed
-      return data?.status !== 'completed' && data?.status !== 'failed' ? 3000 : false;
+      if (!data) return 3000;
+      return data.status !== 'completed' && data.status !== 'failed' ? 3000 : false;
     },
   });
   
