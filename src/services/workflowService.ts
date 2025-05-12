@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Import step handlers
 import { stepHandlers } from './stepHandlers.js';
+// Import email service
+import { sendWorkflowCompletionEmail } from './workflowEmailService.js';
 
 /**
  * Create a new workflow
@@ -114,6 +116,29 @@ export async function runWorkflow(workflowId: string): Promise<Workflow> {
         })
         .where(eq(workflows.id, workflowId))
         .returning();
+      
+      // Send completion email if workflow has a notification email configured
+      try {
+        // Check if workflow has notification settings in its context
+        const context = finalWorkflow.context ? 
+          (typeof finalWorkflow.context === 'string' ? 
+            JSON.parse(finalWorkflow.context) : 
+            finalWorkflow.context as Record<string, any>) : 
+          {};
+        
+        // If notification emails are configured, send completion email
+        if (context.notifyEmail) {
+          const recipients = Array.isArray(context.notifyEmail) 
+            ? context.notifyEmail 
+            : [context.notifyEmail];
+          
+          console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
+          await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the workflow
+        console.error(`Failed to send completion email for workflow ${workflowId}:`, emailError);
+      }
       
       return finalWorkflow;
     }
@@ -300,6 +325,53 @@ export async function deleteWorkflow(workflowId: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('Error deleting workflow:', error);
+    throw error;
+  }
+}
+
+/**
+ * Configure email notifications for a workflow
+ * @param workflowId The ID of the workflow
+ * @param emails A single email address or array of email addresses
+ * @returns The updated workflow
+ */
+export async function configureWorkflowNotifications(workflowId: string, emails: string | string[]): Promise<Workflow> {
+  try {
+    // Get the workflow
+    const [workflow] = await db
+      .select()
+      .from(workflows)
+      .where(eq(workflows.id, workflowId));
+    
+    if (!workflow) {
+      throw new Error(`Workflow ${workflowId} not found`);
+    }
+    
+    // Get current context
+    const context = workflow.context ? 
+      (typeof workflow.context === 'string' ? 
+        JSON.parse(workflow.context) : 
+        workflow.context as Record<string, any>) : 
+      {};
+    
+    // Update the context with notification emails
+    const updatedContext = {
+      ...context,
+      notifyEmail: emails
+    };
+    
+    // Update the workflow
+    const [updatedWorkflow] = await db.update(workflows)
+      .set({
+        context: updatedContext,
+        updatedAt: new Date(),
+      })
+      .where(eq(workflows.id, workflowId))
+      .returning();
+    
+    return updatedWorkflow;
+  } catch (error) {
+    console.error('Error configuring workflow notifications:', error);
     throw error;
   }
 }

@@ -10,6 +10,7 @@ import { initializeJobQueue } from '../services/jobQueue.js';
 import { initializeScheduler } from '../services/schedulerService.js';
 import { initializeMailer } from '../services/mailerService.js';
 import jobsRouter from '../server/routes/jobs.js';
+import workflowsRouter from '../server/routes/workflows.js';
 
 // Load environment variables
 dotenv.config();
