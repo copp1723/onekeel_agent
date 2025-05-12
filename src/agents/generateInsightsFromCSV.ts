@@ -120,7 +120,42 @@ export async function generateInsightsFromCSV(
     return insightData;
     
   } catch (error) {
+    // Calculate duration on error
+    const endTime = Date.now();
+    const durationMs = endTime - startTime;
+    
+    // Prepare error message
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = 'Unknown error';
+    }
+    
+    // Log insight run with error
+    const insightRunData: InsightRunLogData = {
+      platform,
+      inputFile: csvFilePath,
+      promptIntent: intent,
+      promptVersion: 'error',
+      durationMs,
+      outputSummary: [],
+      error: errorMessage
+    };
+    logInsightRun(insightRunData);
+    
     console.error('Error generating insights:', error);
+    
+    // Save error details to results directory
+    const errorFilename = `insight_error_${Date.now()}`;
+    saveResult(platform, { error: errorMessage }, errorFilename, {
+      promptIntent: intent,
+      inputFile: csvFilePath,
+      durationMs,
+      status: 'error'
+    });
+    
+    // Re-throw with meaningful message
     if (error instanceof Error) {
       throw new Error(`Failed to generate insights: ${error.message}`);
     } else {
@@ -139,6 +174,13 @@ export async function generateInsightsFromCSVContent(
   csvContent: string,
   intent: string = 'automotive_analysis'
 ): Promise<InsightResponse> {
+  // Identify platform from content if possible
+  const platform = csvContent.includes('VinSolutions') ? 'VinSolutions' : 
+                  csvContent.includes('VAUTO') ? 'VAUTO' : 'Unknown';
+                  
+  // Timing data
+  const startTime = Date.now();
+  
   try {
     // Get appropriate system prompt based on intent
     const promptInfo = getPromptByIntent(intent);
@@ -170,6 +212,10 @@ export async function generateInsightsFromCSVContent(
       response_format: { type: 'json_object' }
     });
     
+    // Calculate duration
+    const endTime = Date.now();
+    const durationMs = endTime - startTime;
+    
     // Parse the response
     const content = response.choices[0].message.content;
     if (!content) {
@@ -184,10 +230,63 @@ export async function generateInsightsFromCSVContent(
       throw new Error('Invalid insight format: Missing required fields');
     }
     
+    // Log the insight run
+    const insightRunData: InsightRunLogData = {
+      platform,
+      promptIntent: intent,
+      promptVersion: promptInfo.version,
+      durationMs,
+      outputSummary: [insightData.title]
+    };
+    logInsightRun(insightRunData);
+    
+    // Save result to structured directory
+    const outputFilename = `insight_${Date.now()}`;
+    const outputPath = saveResult(platform, insightData, outputFilename, {
+      promptIntent: intent,
+      promptVersion: promptInfo.version,
+      durationMs,
+      sampleSize
+    });
+    console.log(`Insight saved to: ${outputPath}`);
+    
     return insightData;
     
   } catch (error) {
+    // Calculate duration on error
+    const endTime = Date.now();
+    const durationMs = endTime - startTime;
+    
+    // Prepare error message
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = 'Unknown error';
+    }
+    
+    // Log insight run with error
+    const insightRunData: InsightRunLogData = {
+      platform,
+      promptIntent: intent,
+      promptVersion: 'error',
+      durationMs,
+      outputSummary: [],
+      error: errorMessage
+    };
+    logInsightRun(insightRunData);
+    
     console.error('Error generating insights:', error);
+    
+    // Save error details to results directory
+    const errorFilename = `insight_error_${Date.now()}`;
+    saveResult(platform, { error: errorMessage }, errorFilename, {
+      promptIntent: intent,
+      durationMs,
+      status: 'error'
+    });
+    
+    // Re-throw with meaningful message
     if (error instanceof Error) {
       throw new Error(`Failed to generate insights: ${error.message}`);
     } else {
