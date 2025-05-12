@@ -5,9 +5,9 @@
  */
 
 import nodemailer from 'nodemailer';
-import { Workflow } from '../shared/schema.js';
+import { workflows } from '../shared/schema.js';
 import { db } from '../shared/db.js';
-import { generateWorkflowSummaryEmail } from './emailTemplates.js';
+import { generateWorkflowSummaryHtml } from './emailTemplates.js';
 import { eq } from 'drizzle-orm';
 
 // Keep track of the NodeMailer test account

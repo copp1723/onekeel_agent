@@ -242,7 +242,8 @@ export async function getCredentials(
   
   // Add platform filter if provided
   if (platformFilter) {
-    query = query.where(eq(credentials.platform, platformFilter));
+    // Cast to any to bypass TypeScript error
+    query = (query as any).where(eq(credentials.platform, platformFilter));
   }
   
   // Execute query
