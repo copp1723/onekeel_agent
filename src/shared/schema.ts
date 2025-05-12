@@ -1,93 +1,70 @@
-import { pgTable, text, varchar, uuid, timestamp, jsonb, json, integer, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  jsonb,
+  index,
+  uuid,
+  boolean,
+} from "drizzle-orm/pg-core";
 
-// Define the API keys table structure
-export const apiKeys = pgTable('api_keys', {
-  id: text('id').primaryKey().notNull(),
-  keyName: varchar('key_name', { length: 255 }).notNull().unique(),
-  keyValue: text('key_value').notNull(),
-});
-
-// Define the dealer credentials table structure
-export const dealerCredentials = pgTable('dealer_credentials', {
-  dealerId: text('dealer_id').primaryKey().notNull(),
-  username: text('username').notNull(),
-  password: text('password').notNull(),
-  apiEndpoint: text('api_endpoint'),
-  lastUsed: text('last_used'),
-});
-
-// Define the task logs table for execution tracking
-export const taskLogs = pgTable('task_logs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userInput: text('user_input').notNull(),
-  tool: text('tool').notNull(),
-  status: text('status').notNull(), // 'success' or 'error'
-  output: jsonb('output'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-// Define the plans table for multi-step execution plans
-export const plans = pgTable('plans', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  task: text('task').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-// Define the steps table for individual execution steps within a plan
-export const steps = pgTable('steps', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  planId: uuid('plan_id').references(() => plans.id).notNull(),
-  stepIndex: integer('step_index').notNull(),
-  tool: text('tool').notNull(),
-  input: json('input').notNull(),
-  output: json('output'),
-  status: text('status').default('pending'),
-  error: text('error'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-// Define the users table for Replit auth
-export const users = pgTable('users', {
-  id: varchar('id').primaryKey().notNull(), // Replit user ID
-  email: varchar('email').unique(),
-  firstName: varchar('first_name'),
-  lastName: varchar('last_name'),
-  profileImageUrl: varchar('profile_image_url'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
-
-// Define the sessions table for Replit auth
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
-  'sessions',
+  "sessions",
   {
-    sid: varchar('sid').primaryKey(),
-    sess: jsonb('sess').notNull(),
-    expire: timestamp('expire').notNull(),
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
   },
-  (table) => [index('IDX_session_expire').on(table.expire)],
+  (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// Define the credentials table for storing user credentials
-export const credentials = pgTable('credentials', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: varchar('user_id').notNull().references(() => users.id),
-  site: varchar('site', { length: 255 }).notNull(),
-  username: varchar('username', { length: 255 }).notNull(),
-  passwordEncrypted: text('password_encrypted').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-}, (table) => ({
-  // Create an index on userId and site for faster lookups
-  userSiteIdx: index('credential_user_site_idx').on(table.userId, table.site),
-}));
-
-// Update task logs to include user ID
-export const updatedTaskLogs = pgTable('task_logs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: varchar('user_id').references(() => users.id), // Add reference to user
-  userInput: text('user_input').notNull(),
-  tool: text('tool').notNull(),
-  status: text('status').notNull(), // 'success' or 'error'
-  output: jsonb('output'),
-  createdAt: timestamp('created_at').defaultNow(),
+// User storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Credential storage with encryption
+export const credentials = pgTable("credentials", {
+  id: uuid("id").defaultRandom().primaryKey().notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  platform: varchar("platform", { length: 50 }).notNull(),
+  label: varchar("label", { length: 100 }),
+  encryptedData: text("encrypted_data").notNull(),
+  iv: text("iv").notNull(), // Initialization vector for AES
+  refreshToken: text("refresh_token"),
+  refreshTokenExpiry: timestamp("refresh_token_expiry"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_credentials_user_platform").on(table.userId, table.platform),
+]);
+
+// Types
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+
+export type UpsertCredential = typeof credentials.$inferInsert;
+export type Credential = typeof credentials.$inferSelect;
+
+// Unencrypted credential data typings
+export interface CredentialData {
+  username?: string;
+  password?: string;
+  apiKey?: string;
+  apiSecret?: string;
+  tokenType?: string;
+  accessToken?: string;
+  dealerId?: string;
+  [key: string]: string | undefined;
+}
