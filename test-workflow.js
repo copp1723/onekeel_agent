@@ -31,7 +31,7 @@ async function testWorkflows() {
           name: 'Process Data',
           config: {
             operation: 'transform',
-            data: { sample: 'data' }
+            inputKey: 'initialData' // Reference the data in the context
           },
           maxRetries: 3,
           backoffFactor: 2
@@ -60,7 +60,15 @@ async function testWorkflows() {
       ],
       initialContext: {
         startedBy: 'test-script',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        initialData: {
+          sample: 'data',
+          values: [1, 2, 3, 4, 5],
+          metadata: {
+            source: 'test-workflow',
+            version: '1.0.0'
+          }
+        }
       }
     };
 
