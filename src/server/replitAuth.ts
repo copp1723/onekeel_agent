@@ -14,12 +14,34 @@ class MockStrategy {
   // Using _unused prefix to indicate these are stored but intentionally not used
   private _unusedOptions: any;
   private _unusedVerify: any;
+  public name: string = 'mock';
   
   constructor(_options: any, _verify: any) {
     console.error("WARNING: Using mock OpenID strategy - authentication will not work");
     // Store options and verify callback but don't use them in mock implementation
     this._unusedOptions = _options;
     this._unusedVerify = _verify;
+  }
+  
+  // Required method from Strategy interface
+  authenticate(req: any, options?: any): any {
+    return this.fail('Mock authentication not supported', 401);
+  }
+  
+  // Helper methods required by the authenticate method
+  fail(challenge: any, status?: number): any {
+    console.log('Mock strategy fail called');
+    return;
+  }
+  
+  success(user: any, info?: any): any {
+    console.log('Mock strategy success called');
+    return;
+  }
+  
+  error(err: any): any {
+    console.log('Mock strategy error called');
+    return;
   }
 }
 
@@ -130,6 +152,19 @@ export async function setupAuth(app: Express) {
     console.warn("Skipping full auth setup due to missing REPLIT_DOMAINS");
     // Still set up session handling for dev mode
     app.use(getSession());
+    
+    // Register a mock strategy with a proper name to avoid the error
+    const mockStrategy = new MockStrategy({}, () => {});
+    passport.use('mock', mockStrategy);
+    
+    // Initialize passport middleware
+    app.use(passport.initialize());
+    app.use(passport.session());
+    
+    // Simple serialization for dev mode
+    passport.serializeUser((user: any, cb: any) => cb(null, user));
+    passport.deserializeUser((user: any, cb: any) => cb(null, user));
+    
     return;
   }
 
@@ -165,7 +200,8 @@ export async function setupAuth(app: Express) {
       },
       verify,
     );
-    passport.use(strategy);
+    // Explicitly provide name as first argument
+    passport.use(`replitauth:${domain}`, strategy);
   }
 
   passport.serializeUser((user: any, cb: (err: any, user: any) => void) => cb(null, user));

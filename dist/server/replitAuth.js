@@ -11,11 +11,29 @@ class MockStrategy {
     // Using _unused prefix to indicate these are stored but intentionally not used
     _unusedOptions;
     _unusedVerify;
+    name = 'mock';
     constructor(_options, _verify) {
         console.error("WARNING: Using mock OpenID strategy - authentication will not work");
         // Store options and verify callback but don't use them in mock implementation
         this._unusedOptions = _options;
         this._unusedVerify = _verify;
+    }
+    // Required method from Strategy interface
+    authenticate(req, options) {
+        return this.fail('Mock authentication not supported', 401);
+    }
+    // Helper methods required by the authenticate method
+    fail(challenge, status) {
+        console.log('Mock strategy fail called');
+        return;
+    }
+    success(user, info) {
+        console.log('Mock strategy success called');
+        return;
+    }
+    error(err) {
+        console.log('Mock strategy error called');
+        return;
     }
 }
 // Define our strategy variable
@@ -97,6 +115,15 @@ export async function setupAuth(app) {
         console.warn("Skipping full auth setup due to missing REPLIT_DOMAINS");
         // Still set up session handling for dev mode
         app.use(getSession());
+        // Register a mock strategy with a proper name to avoid the error
+        const mockStrategy = new MockStrategy({}, () => { });
+        passport.use('mock', mockStrategy);
+        // Initialize passport middleware
+        app.use(passport.initialize());
+        app.use(passport.session());
+        // Simple serialization for dev mode
+        passport.serializeUser((user, cb) => cb(null, user));
+        passport.deserializeUser((user, cb) => cb(null, user));
         return;
     }
     app.set("trust proxy", 1);
@@ -123,7 +150,8 @@ export async function setupAuth(app) {
             scope: "openid email profile offline_access",
             callbackURL: `https://${domain}/api/callback`,
         }, verify);
-        passport.use(strategy);
+        // Explicitly provide name as first argument
+        passport.use(`replitauth:${domain}`, strategy);
     }
     passport.serializeUser((user, cb) => cb(null, user));
     passport.deserializeUser((user, cb) => cb(null, user));
