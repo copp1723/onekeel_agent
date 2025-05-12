@@ -67,7 +67,11 @@ export async function initializeJobQueue() {
     }
     
     console.log(`Attempting to connect to Redis at ${options.host}:${options.port}...`);
-    redisClient = new Redis(options);
+    // Import Redis dynamically to ensure ESM compatibility
+    const IORedis = await import('ioredis');
+    const RedisClient = IORedis.default;
+    // Use type assertion to avoid TypeScript errors
+    redisClient = new (RedisClient as any)(options);
     
     // Handle connection errors gracefully
     redisClient.on('error', (err: any) => {
@@ -85,8 +89,10 @@ export async function initializeJobQueue() {
     jobQueue = new Queue('taskProcessor', { connection: redisClient });
     
     try {
-      // In ESM, QueueScheduler is exported directly
-      const { QueueScheduler } = await import('bullmq');
+      // Import QueueScheduler directly from bullmq
+      const bullMQModule = await import('bullmq');
+      // Use type assertion to avoid TypeScript errors with ESM exports
+      const QueueScheduler = (bullMQModule as any).QueueScheduler;
       if (QueueScheduler) {
         scheduler = new QueueScheduler('taskProcessor', { connection: redisClient });
         console.log('QueueScheduler initialized successfully');
