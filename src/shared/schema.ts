@@ -113,6 +113,20 @@ export const workflows = pgTable("workflows", {
   index("idx_workflows_user").on(table.userId),
 ]);
 
+// Scheduler for automated workflow execution
+export const schedules = pgTable("schedules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workflowId: uuid("workflow_id").references(() => workflows.id, { onDelete: 'cascade' }),
+  cron: text("cron").notNull(), // Cron expression for schedule
+  lastRunAt: timestamp("last_run_at"),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_schedules_workflow_id").on(table.workflowId),
+  index("idx_schedules_enabled").on(table.enabled),
+]);
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -125,6 +139,9 @@ export type Plan = typeof plans.$inferSelect;
 
 export type UpsertWorkflow = typeof workflows.$inferInsert;
 export type Workflow = typeof workflows.$inferSelect;
+
+export type UpsertSchedule = typeof schedules.$inferInsert;
+export type Schedule = typeof schedules.$inferSelect;
 
 // Workflow step interfaces
 export type WorkflowStepType = 
