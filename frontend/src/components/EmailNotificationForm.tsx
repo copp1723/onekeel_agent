@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Button from './Button';
 import Input from './Input';
 
@@ -9,6 +11,7 @@ interface EmailNotificationFormProps {
 }
 
 export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotificationFormProps) {
+  const router = useRouter();
   const [email, setEmail] = useState(defaultEmail);
   const [error, setError] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
@@ -169,7 +172,7 @@ export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotifi
             </form>
             
             <div className="mt-6 pt-5 border-t border-gray-200">
-              <a 
+              <Link 
                 href="/email-logs" 
                 className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
               >
@@ -177,7 +180,7 @@ export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotifi
                 <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
                 </svg>
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -188,8 +191,8 @@ export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotifi
             <Button
               variant="outline"
               onClick={() => {
-                // Navigate to task creation or show a modal
-                window.location.href = '/tasks/new';
+                // Navigate to task creation using Next.js router
+                router.push('/tasks/new');
               }}
             >
               Go run a workflow →
