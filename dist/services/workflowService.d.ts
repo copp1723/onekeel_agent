@@ -23,3 +23,10 @@ export declare function resetWorkflow(workflowId: string): Promise<Workflow>;
  * Delete a workflow
  */
 export declare function deleteWorkflow(workflowId: string): Promise<boolean>;
+/**
+ * Configure email notifications for a workflow
+ * @param workflowId The ID of the workflow
+ * @param emails A single email address or array of email addresses
+ * @returns The updated workflow
+ */
+export declare function configureWorkflowNotifications(workflowId: string, emails: string | string[]): Promise<Workflow>;

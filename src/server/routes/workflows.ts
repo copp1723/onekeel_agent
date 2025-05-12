@@ -1,204 +1,119 @@
 /**
- * API Routes for Workflow Management
+ * Workflow Routes
+ * Handles API routes for workflow operations
  */
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import { 
-  createWorkflow, 
   getWorkflow, 
-  listWorkflows, 
-  runWorkflow, 
+  getWorkflows, 
   resetWorkflow, 
-  deleteWorkflow 
+  configureWorkflowNotifications 
 } from '../../services/workflowService.js';
-import { WorkflowStep, WorkflowStatus } from '../../shared/schema.js';
 import { isAuthenticated } from '../replitAuth.js';
 
-// Extend the Express Request type to include user claims
-declare global {
-  namespace Express {
-    interface User {
-      claims?: {
-        sub: string;
-        email?: string;
-        [key: string]: any;
-      };
-      [key: string]: any;
-    }
-  }
-}
+const router = express.Router();
 
-export const workflowRoutes = express.Router();
-
-// Create a new workflow
-workflowRoutes.post('/', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+/**
+ * Get all workflows (or filter by status)
+ */
+router.get('/', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const { steps, initialContext } = req.body;
+    const status = req.query.status as string | undefined;
+    const userId = req.user?.claims?.sub || null;
     
-    if (!steps || !Array.isArray(steps) || steps.length === 0) {
-      res.status(400).json({ message: 'Workflow must have at least one step' });
-      return;
-    }
-    
-    // Get user ID from authenticated request
-    const userId = req.user?.claims?.sub;
-    
-    const workflow = await createWorkflow(steps, initialContext, userId);
-    
-    res.status(201).json(workflow);
+    const workflows = await getWorkflows(status, userId);
+    res.json(workflows);
   } catch (error) {
-    console.error('Error creating workflow:', error);
-    res.status(500).json({ 
-      message: 'Failed to create workflow', 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    console.error('Error getting workflows:', error);
+    res.status(500).json({ error: 'Failed to get workflows' });
   }
 });
 
-// Get a specific workflow
-workflowRoutes.get('/:id', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+/**
+ * Get a workflow by ID
+ */
+router.get('/:id', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const workflow = await getWorkflow(id);
+    const workflowId = req.params.id;
+    const workflow = await getWorkflow(workflowId);
     
     if (!workflow) {
-      res.status(404).json({ message: 'Workflow not found' });
-      return;
+      return res.status(404).json({ error: 'Workflow not found' });
     }
     
-    // Check if user has access to this workflow
-    const userId = req.user?.claims?.sub;
-    if (workflow.userId && workflow.userId !== userId) {
-      res.status(403).json({ message: 'Access denied' });
-      return;
+    const userId = req.user?.claims?.sub || null;
+    
+    // If userId is provided and doesn't match, deny access
+    if (userId && workflow.userId && workflow.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
     }
     
     res.json(workflow);
   } catch (error) {
     console.error('Error getting workflow:', error);
-    res.status(500).json({ 
-      message: 'Failed to retrieve workflow', 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    res.status(500).json({ error: 'Failed to get workflow' });
   }
 });
 
-// List workflows
-workflowRoutes.get('/', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+/**
+ * Reset a workflow to pending status
+ */
+router.post('/:id/reset', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const status = req.query.status as WorkflowStatus | undefined;
+    const workflowId = req.params.id;
+    const workflow = await getWorkflow(workflowId);
     
-    // Get user ID from authenticated request
-    const userId = req.user?.claims?.sub;
-    
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
-    
-    const workflowList = await listWorkflows(status, userId, limit);
-    
-    res.json(workflowList);
-  } catch (error) {
-    console.error('Error listing workflows:', error);
-    res.status(500).json({ 
-      message: 'Failed to list workflows', 
-      error: error instanceof Error ? error.message : String(error) 
-    });
-  }
-});
-
-// Run a workflow (execute next step)
-workflowRoutes.post('/:id/run', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    
-    // Check if workflow exists and user has access
-    const existingWorkflow = await getWorkflow(id);
-    
-    if (!existingWorkflow) {
-      res.status(404).json({ message: 'Workflow not found' });
-      return;
+    if (!workflow) {
+      return res.status(404).json({ error: 'Workflow not found' });
     }
     
-    // Check if user has access to this workflow
-    const userId = req.user?.claims?.sub;
-    if (existingWorkflow.userId && existingWorkflow.userId !== userId) {
-      res.status(403).json({ message: 'Access denied' });
-      return;
+    const userId = req.user?.claims?.sub || null;
+    
+    // If userId is provided and doesn't match, deny access
+    if (userId && workflow.userId && workflow.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
     }
     
-    // Run the workflow
-    const updatedWorkflow = await runWorkflow(id);
-    
-    res.json(updatedWorkflow);
-  } catch (error) {
-    console.error('Error running workflow:', error);
-    res.status(500).json({ 
-      message: 'Failed to run workflow', 
-      error: error instanceof Error ? error.message : String(error) 
-    });
-  }
-});
-
-// Reset a workflow
-workflowRoutes.post('/:id/reset', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    
-    // Check if workflow exists and user has access
-    const existingWorkflow = await getWorkflow(id);
-    
-    if (!existingWorkflow) {
-      res.status(404).json({ message: 'Workflow not found' });
-      return;
-    }
-    
-    // Check if user has access to this workflow
-    const userId = req.user?.claims?.sub;
-    if (existingWorkflow.userId && existingWorkflow.userId !== userId) {
-      res.status(403).json({ message: 'Access denied' });
-      return;
-    }
-    
-    // Reset the workflow
-    const updatedWorkflow = await resetWorkflow(id);
-    
-    res.json(updatedWorkflow);
+    const resetResult = await resetWorkflow(workflowId);
+    res.json(resetResult);
   } catch (error) {
     console.error('Error resetting workflow:', error);
-    res.status(500).json({ 
-      message: 'Failed to reset workflow', 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    res.status(500).json({ error: 'Failed to reset workflow' });
   }
 });
 
-// Delete a workflow
-workflowRoutes.delete('/:id', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+/**
+ * Configure email notifications for a workflow
+ */
+router.post('/:id/notifications', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { emails } = req.body;
     
-    // Check if workflow exists and user has access
-    const existingWorkflow = await getWorkflow(id);
-    
-    if (!existingWorkflow) {
-      res.status(404).json({ message: 'Workflow not found' });
-      return;
+    if (!emails) {
+      return res.status(400).json({ error: 'Email addresses are required' });
     }
     
-    // Check if user has access to this workflow
-    const userId = req.user?.claims?.sub;
-    if (existingWorkflow.userId && existingWorkflow.userId !== userId) {
-      res.status(403).json({ message: 'Access denied' });
-      return;
+    const workflowId = req.params.id;
+    const workflow = await getWorkflow(workflowId);
+    
+    if (!workflow) {
+      return res.status(404).json({ error: 'Workflow not found' });
     }
     
-    // Delete the workflow
-    await deleteWorkflow(id);
+    const userId = req.user?.claims?.sub || null;
     
-    res.status(204).end();
+    // If userId is provided and doesn't match, deny access
+    if (userId && workflow.userId && workflow.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Configure notifications for the workflow
+    const updatedWorkflow = await configureWorkflowNotifications(workflowId, emails);
+    res.json(updatedWorkflow);
   } catch (error) {
-    console.error('Error deleting workflow:', error);
-    res.status(500).json({ 
-      message: 'Failed to delete workflow', 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    console.error('Error configuring workflow notifications:', error);
+    res.status(500).json({ error: 'Failed to configure workflow notifications' });
   }
 });
+
+export default router;
