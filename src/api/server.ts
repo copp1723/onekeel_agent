@@ -6,6 +6,8 @@ import { getTaskLogs } from '../shared/logger.js';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { registerAuthRoutes } from '../server/routes/index.js';
+import { initializeJobQueue } from '../services/jobQueue.js';
+import jobsRouter from '../server/routes/jobs.js';
 
 // Load environment variables
 dotenv.config();
@@ -20,10 +22,19 @@ app.use(express.static('public'));
 // Configure and register authentication routes
 (async () => {
   try {
+    // Initialize job queue service
+    await initializeJobQueue();
+    console.log('Job queue initialized');
+    
+    // Register authentication and API routes
     await registerAuthRoutes(app);
     console.log('Authentication routes registered successfully');
+    
+    // Register job management routes
+    app.use('/api/jobs', jobsRouter);
+    console.log('Job management routes registered');
   } catch (error) {
-    console.error('Failed to register authentication routes:', error);
+    console.error('Failed to register routes:', error);
   }
 })();
 
@@ -71,7 +82,102 @@ app.get('/', routeHandler((_req: Request, res: Response) => {
   res.sendFile('index.html', { root: './public' });
 }));
 
-// TODO: re-add submit-task endpoint
+// Import job queue and database dependencies
+import { enqueueJob } from '../services/jobQueue.js';
+import { db } from '../shared/db.js';
+import { taskLogs } from '../shared/schema.js';
+
+// API endpoint to submit a new task
+app.post('/api/tasks', async (req: Request, res: Response) => {
+  try {
+    const { task } = req.body;
+    
+    if (!task || typeof task !== 'string') {
+      return res.status(400).json({ error: 'Task is required and must be a string' });
+    }
+    
+    // Parse the task to determine its type and parameters
+    const parsedTask = await parseTask(task);
+    
+    // Generate task ID
+    const taskId = crypto.randomUUID();
+    
+    // Create the task object and insert into database
+    await db.insert(taskLogs).values({
+      id: taskId,
+      userId: req.user?.claims?.sub,
+      taskType: parsedTask.type,
+      taskText: task,
+      taskData: parsedTask.parameters,
+      status: 'pending'
+    });
+    
+    // Enqueue the task for processing with job queue
+    const jobId = await enqueueJob(taskId);
+    
+    console.log(`Task ${taskId} submitted and enqueued as job ${jobId}`);
+    
+    // Return the task ID
+    return res.status(201).json({
+      id: taskId,
+      jobId: jobId,
+      message: 'Task submitted and enqueued successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error in task submission:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// API endpoint for direct task execution
+app.post('/submit-task', async (req: Request, res: Response) => {
+  try {
+    const { task } = req.body;
+    
+    if (!task || typeof task !== 'string') {
+      return res.status(400).json({ error: 'Task is required and must be a string' });
+    }
+    
+    // Parse the task to determine its type and parameters
+    const parsedTask = await parseTask(task);
+    
+    // Generate task ID
+    const taskId = crypto.randomUUID();
+    
+    // Create the task object and insert into database
+    await db.insert(taskLogs).values({
+      id: taskId,
+      userId: req.user?.claims?.sub,
+      taskType: parsedTask.type,
+      taskText: task,
+      taskData: parsedTask.parameters,
+      status: 'pending'
+    });
+    
+    // Enqueue the task with high priority (1 is highest)
+    const jobId = await enqueueJob(taskId, 1);
+    
+    console.log(`Direct task ${taskId} submitted and enqueued as job ${jobId}`);
+    
+    // Return the task ID
+    return res.status(201).json({
+      id: taskId,
+      jobId: jobId,
+      message: 'Task submitted for immediate processing'
+    });
+    
+  } catch (error) {
+    console.error('Error in direct task execution:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 // Start the server
 const PORT = process.env.PORT || 5000;

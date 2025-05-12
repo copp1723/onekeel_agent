@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, timestamp, jsonb, index, uuid, boolean, serial, } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, jsonb, index, uuid, boolean, serial, integer, } from "drizzle-orm/pg-core";
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable("sessions", {
@@ -56,4 +56,20 @@ export const taskLogs = pgTable("task_logs", {
     createdAt: timestamp("created_at").defaultNow(),
     completedAt: timestamp("completed_at"),
 });
+// Job Queue for task retry and recovery
+export const jobs = pgTable("jobs", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id").references(() => taskLogs.id),
+    status: varchar("status", { length: 20 }).default("pending").notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    maxAttempts: integer("max_attempts").default(2).notNull(),
+    lastError: text("last_error"),
+    nextRunAt: timestamp("next_run_at").defaultNow().notNull(),
+    lastRunAt: timestamp("last_run_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+    index("idx_jobs_status").on(table.status),
+    index("idx_jobs_next_run_at").on(table.nextRunAt),
+]);
 //# sourceMappingURL=schema.js.map
