@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import { registerAuthRoutes } from '../server/routes/index.js';
 import { initializeJobQueue } from '../services/jobQueue.js';
 import { initializeScheduler } from '../services/schedulerService.js';
+import { initializeMailer } from '../services/mailerService.js';
 import jobsRouter from '../server/routes/jobs.js';
 
 // Load environment variables
@@ -30,6 +31,13 @@ app.use(express.static('public'));
     // Initialize the task scheduler
     await initializeScheduler();
     console.log('Task scheduler initialized');
+    
+    // Initialize email service if SendGrid API key is available
+    if (process.env.SENDGRID_API_KEY) {
+      initializeMailer();
+    } else {
+      console.warn('SendGrid API key not found; email functionality will be limited');
+    }
     
     // Register authentication and API routes
     await registerAuthRoutes(app);
