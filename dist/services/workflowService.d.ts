@@ -31,6 +31,10 @@ export declare function getWorkflows(status?: string, userId?: string | null): P
  * Configure email notifications for a workflow
  * @param workflowId The ID of the workflow
  * @param emails A single email address or array of email addresses
- * @returns The updated workflow
+ * @param options Additional options for notifications
+ * @returns The updated workflow with notification settings
  */
-export declare function configureWorkflowNotifications(workflowId: string, emails: string | string[]): Promise<Workflow>;
+export declare function configureWorkflowNotifications(workflowId: string, emails: string | string[], options?: {
+    sendOnCompletion?: boolean;
+    sendOnFailure?: boolean;
+}): Promise<Workflow>;
