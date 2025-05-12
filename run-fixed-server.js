@@ -194,11 +194,58 @@ app.post('/submit-task', async (req, res) => {
     });
   } catch (error) {
     console.error('Error in submit-task endpoint:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Failed to process task', 
-      error: error.message 
-    });
+    // Create a failed workflow record for tracking
+    try {
+      const failedWorkflowId = uuidv4();
+      const [failedWorkflow] = await db.insert(workflows).values({
+        id: failedWorkflowId,
+        name: 'Failed Task Execution',
+        type: 'task',
+        steps: [
+          { 
+            id: 'step1', 
+            name: 'Parse Task', 
+            type: 'parseTask', 
+            config: { task: req.body.task || 'unknown' } 
+          }
+        ],
+        status: 'failed',
+        currentStep: 0,
+        lastError: error.message,
+        context: {
+          startedBy: 'api',
+          timestamp: new Date().toISOString(),
+          task: req.body.task || 'unknown',
+          error: error.message
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastUpdated: new Date()
+      }).returning();
+      
+      // Process email notifications for this failed workflow
+      try {
+        const notificationResult = await processWorkflowStatusNotifications(failedWorkflowId);
+        console.log(`Email notification processing result for failed workflow:`, notificationResult);
+      } catch (emailError) {
+        console.error(`Error sending error notification for workflow ${failedWorkflowId}:`, emailError);
+        // Continue even if email sending fails
+      }
+      
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to process task', 
+        error: error.message,
+        workflowId: failedWorkflowId
+      });
+    } catch (secondaryError) {
+      console.error('Error creating failed workflow record:', secondaryError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to process task', 
+        error: error.message 
+      });
+    }
   }
 });
 
