@@ -27,14 +27,27 @@ export default function Home() {
         <TaskForm />
       </div>
       
-      <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-        <h2>Recent Analyses</h2>
-        <Link 
-          href="/results" 
-          className="inline-block mt-2 text-primary-500 hover:text-primary-700 font-medium"
-        >
-          View All Results →
-        </Link>
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold">Recent Analyses</h2>
+          <Link 
+            href="/results" 
+            className="inline-block mt-2 text-primary-500 hover:text-primary-700 font-medium"
+          >
+            View All Results →
+          </Link>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold">Email Notifications</h2>
+          <p className="text-neutral-600 mt-1 mb-2 text-sm">Configure notification settings for workflow completions</p>
+          <Link 
+            href="/email-notifications" 
+            className="inline-block mt-2 text-primary-500 hover:text-primary-700 font-medium"
+          >
+            Manage Notifications →
+          </Link>
+        </div>
       </div>
     </div>
   );
