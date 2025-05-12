@@ -43,14 +43,22 @@ let inMemoryMode = false;
 // Initialize job queue with retry capability
 export async function initializeJobQueue() {
   try {
-    // Use CommonJS require for Redis to avoid TypeScript/ESM issues
-    // This is more compatible than the ESM dynamic import approach
-    const Redis = require('ioredis');
+    // Check if we want to force in-memory mode
+    if (process.env.FORCE_IN_MEMORY_QUEUE === 'true') {
+      throw new Error('Forcing in-memory queue mode');
+    }
+    
+    // Dynamically import for ESM compatibility
+    const Redis = await import('ioredis').then(m => m.default);
     
     // Create Redis client with proper options typing
     const options: any = {
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379')
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      // Set a lower connection timeout to fail faster
+      connectTimeout: 5000,
+      // Don't keep reconnecting if we're in a Replit environment without Redis
+      maxRetriesPerRequest: 3
     };
     
     // Add password if available
@@ -58,7 +66,16 @@ export async function initializeJobQueue() {
       options.password = process.env.REDIS_PASSWORD;
     }
     
+    console.log(`Attempting to connect to Redis at ${options.host}:${options.port}...`);
     redisClient = new Redis(options);
+    
+    // Handle connection errors gracefully
+    redisClient.on('error', (err: any) => {
+      if (!inMemoryMode) {
+        console.log(`Redis connection error: ${err.message}`);
+      }
+    });
+    
     await redisClient.ping();
 
     // Get bullmq modules via require
@@ -97,43 +114,51 @@ export async function initializeJobQueue() {
 // Initialize a worker to process jobs
 function setupWorker() {
   if (!inMemoryMode && redisClient) {
-    // Use require to get Worker at runtime
-    const bullmq = require('bullmq');
-    const worker = new bullmq.Worker(
-      'taskProcessor',
-      async (job) => {
-        if (job && job.id && job.data) {
-          await processJob(job.id, job.data);
-        }
-      },
-      { connection: redisClient }
-    );
-
-    worker.on('completed', async (job) => {
-      if (job && job.id) {
-        await updateJobStatus(job.id, 'completed');
-      }
-    });
-
-    worker.on('failed', async (job, error) => {
-      if (!job || !job.id) return;
+    try {
+      // Use require to get Worker at runtime
+      const bullmq = require('bullmq');
       
-      const jobData = await getJobById(job.id);
-      if (!jobData) return;
+      // Create type-safe worker with correct typing
+      const worker: any = new bullmq.Worker(
+        'taskProcessor',
+        async (job: any) => {
+          if (job && job.id && job.data) {
+            await processJob(job.id, job.data);
+          }
+        },
+        { connection: redisClient }
+      );
 
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      // Handle job completion
+      worker.on('completed', async (job: any) => {
+        if (job && job.id) {
+          await updateJobStatus(job.id, 'completed');
+        }
+      });
 
-      if (jobData.attempts >= jobData.maxAttempts) {
-        await updateJobStatus(job.id, 'failed', errorMessage);
-      } else {
-        // Schedule retry
-        const backoffDelay = Math.pow(2, jobData.attempts) * 5000; // Exponential backoff
-        const nextRunAt = new Date(Date.now() + backoffDelay);
-        await updateJobForRetry(job.id, errorMessage, nextRunAt);
-      }
-    });
+      // Handle job failures
+      worker.on('failed', async (job: any, error: any) => {
+        if (!job || !job.id) return;
+        
+        const jobData = await getJobById(job.id);
+        if (!jobData) return;
 
-    console.log('BullMQ worker initialized');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        if (jobData.attempts >= jobData.maxAttempts) {
+          await updateJobStatus(job.id, 'failed', errorMessage);
+        } else {
+          // Schedule retry
+          const backoffDelay = Math.pow(2, jobData.attempts) * 5000; // Exponential backoff
+          const nextRunAt = new Date(Date.now() + backoffDelay);
+          await updateJobForRetry(job.id, errorMessage, nextRunAt);
+        }
+      });
+
+      console.log('BullMQ worker initialized');
+    } catch (error: any) {
+      console.warn('Failed to initialize BullMQ worker:', error.message);
+    }
   } else {
     // In-memory job processing using setInterval
     console.log('In-memory job processor initialized');
