@@ -71,7 +71,8 @@ export default function TaskForm() {
   };
 
   // Get platforms from credentials
-  const platforms = [...new Set(credentials.map(cred => cred.platform))].map(platform => ({
+  const uniquePlatforms = Array.from(new Set(credentials.map(cred => cred.platform)));
+  const platforms = uniquePlatforms.map(platform => ({
     value: platform,
     label: platform,
   }));
