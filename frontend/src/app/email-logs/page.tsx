@@ -125,19 +125,22 @@ export default function EmailLogsPage() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <header className="mb-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-primary-600">Email Logs</h1>
+        <h1 className="text-3xl font-bold text-primary-600 mb-2">Email Logs</h1>
+        
+        {/* Back to notifications link with button styling */}
+        <div className="mb-4">
           <Link 
             href="/email-notifications" 
-            className="text-primary-500 hover:text-primary-700 font-medium flex items-center"
+            className="inline-flex items-center px-4 py-2 bg-white border border-neutral-300 rounded-md text-sm font-medium text-neutral-700 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
             Back to Notifications
           </Link>
         </div>
-        <p className="text-neutral-600 mt-2">View and manage email delivery status</p>
+        
+        <p className="text-neutral-600">View and manage email delivery status</p>
       </header>
       
       {error && (
