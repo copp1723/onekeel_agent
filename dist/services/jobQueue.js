@@ -19,6 +19,8 @@ const redisOptions = {
 let redisClient = null;
 let jobQueue = null;
 let scheduler = null;
+// Export jobQueue for use in other services
+export { jobQueue };
 const inMemoryJobs = [];
 let inMemoryMode = false;
 // Initialize job queue with retry capability

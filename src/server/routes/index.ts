@@ -2,6 +2,7 @@ import { Express } from 'express';
 import authRouter from './auth.js';
 import credentialsRouter from './credentials.js';
 import { workflowRoutes } from './workflows.js';
+import { registerScheduleRoutes } from './schedules.js';
 import { setupAuth } from '../replitAuth.js';
 
 /**
@@ -17,5 +18,8 @@ export async function registerAuthRoutes(app: Express): Promise<void> {
   app.use('/api/credentials', credentialsRouter);
   app.use('/api/workflows', workflowRoutes);
   
-  console.log('Auth and workflow routes registered');
+  // Register schedule routes
+  registerScheduleRoutes(app);
+  
+  console.log('Auth, workflow, and schedule routes registered');
 }

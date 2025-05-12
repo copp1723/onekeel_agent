@@ -1,3 +1,5 @@
+declare let jobQueue: any;
+export { jobQueue };
 type InMemoryJob = {
     id: string;
     taskId: string;
@@ -59,4 +61,3 @@ export declare function listJobs(status?: string, limit?: number): Promise<InMem
  */
 export declare function retryJob(jobId: string): Promise<boolean>;
 export declare function shutdown(): Promise<void>;
-export {};

@@ -22,6 +22,9 @@ let redisClient: any = null;
 let jobQueue: any = null;
 let scheduler: any = null;
 
+// Export jobQueue for use in other services
+export { jobQueue };
+
 // Use in-memory fallback for dev environments without Redis
 type InMemoryJob = {
   id: string;
