@@ -1,4 +1,4 @@
-import { users, credentials, updatedTaskLogs as taskLogs } from '../shared/schema.js';
+import { users, credentials, taskLogs } from '../shared/schema.js';
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type Credential = typeof credentials.$inferSelect;

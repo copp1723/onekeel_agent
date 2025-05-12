@@ -12,9 +12,9 @@ import { type CredentialData, type Credential } from '../shared/schema.js';
  * @returns Created credential (with encrypted data)
  */
 export declare function addCredential(userId: string, platform: string, data: CredentialData, options?: {
-    label?: string;
-    refreshToken?: string;
-    refreshTokenExpiry?: Date;
+    label?: string | undefined;
+    refreshToken?: string | undefined;
+    refreshTokenExpiry?: Date | undefined;
 }): Promise<Credential>;
 /**
  * Get credential by ID
@@ -45,10 +45,10 @@ export declare function getCredentials(userId: string, platform?: string): Promi
  * @returns Updated credential
  */
 export declare function updateCredential(id: string, userId: string, data?: CredentialData, options?: {
-    label?: string;
-    refreshToken?: string;
-    refreshTokenExpiry?: Date;
-    active?: boolean;
+    label?: string | undefined;
+    refreshToken?: string | undefined;
+    refreshTokenExpiry?: Date | undefined;
+    active?: boolean | undefined;
 }): Promise<Credential>;
 /**
  * Delete credential (soft delete by setting active=false)

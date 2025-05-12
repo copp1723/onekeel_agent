@@ -53,7 +53,8 @@ router.get('/:id', async (req, res) => {
         });
     }
     catch (error) {
-        if (error.message.includes('not found') || error.message.includes('access denied')) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        if (errorMessage.includes('not found') || errorMessage.includes('access denied')) {
             res.status(404).json({ error: 'Credential not found' });
         }
         else {
@@ -114,7 +115,8 @@ router.put('/:id', async (req, res) => {
         });
     }
     catch (error) {
-        if (error.message.includes('not found') || error.message.includes('access denied')) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        if (errorMessage.includes('not found') || errorMessage.includes('access denied')) {
             res.status(404).json({ error: 'Credential not found' });
         }
         else {

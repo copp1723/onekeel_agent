@@ -7,6 +7,7 @@ import {
   index,
   uuid,
   boolean,
+  serial,
 } from "drizzle-orm/pg-core";
 
 // Session storage table.
@@ -50,12 +51,40 @@ export const credentials = pgTable("credentials", {
   index("idx_credentials_user_platform").on(table.userId, table.platform),
 ]);
 
+// Execution plans for multi-step tasks
+export const plans = pgTable("plans", {
+  id: serial("id").primaryKey(),
+  task: text("task").notNull(),
+  status: varchar("status", { length: 20 }).default("pending"),
+  result: jsonb("result"),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Task logs for tracking tasks and their execution
+export const taskLogs = pgTable("task_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id"),
+  taskType: varchar("task_type", { length: 50 }).notNull(),
+  taskText: text("task_text").notNull(),
+  taskData: jsonb("task_data"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  result: jsonb("result"),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
 export type UpsertCredential = typeof credentials.$inferInsert;
 export type Credential = typeof credentials.$inferSelect;
+
+export type UpsertPlan = typeof plans.$inferInsert;
+export type Plan = typeof plans.$inferSelect;
 
 // Unencrypted credential data typings
 export interface CredentialData {
