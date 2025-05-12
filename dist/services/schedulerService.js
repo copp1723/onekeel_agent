@@ -231,18 +231,45 @@ async function executeScheduledWorkflow(schedule) {
         // Create a task log entry for this scheduled run
         const taskId = uuidv4();
         // Create a task log entry
-        await db.insert(taskLogs).values({
-            id: taskId,
-            taskType: 'scheduledWorkflow',
-            taskText: `Run scheduled workflow: ${schedule.workflowId}`,
-            taskData: {
-                scheduleId: schedule.id,
-                workflowId: schedule.workflowId,
-                cron: schedule.cron
-            },
-            status: 'pending',
-            createdAt: new Date()
-        });
+        try {
+            await db.insert(taskLogs).values({
+                id: taskId,
+                taskType: 'scheduledWorkflow',
+                taskText: `Run scheduled workflow: ${schedule.workflowId}`,
+                taskData: {
+                    scheduleId: schedule.id,
+                    workflowId: schedule.workflowId,
+                    cron: schedule.cron
+                },
+                status: 'pending',
+                createdAt: new Date()
+            });
+        }
+        catch (insertError) {
+            // If there was an error with the insert, try a different approach
+            console.log('Error inserting task log, trying alternative approach:', insertError);
+            // Try with user_id if that's what's missing (detected from logs)
+            try {
+                await db.insert(taskLogs).values({
+                    id: taskId,
+                    taskType: 'scheduledWorkflow',
+                    taskText: `Run scheduled workflow: ${schedule.workflowId}`,
+                    taskData: {
+                        scheduleId: schedule.id,
+                        workflowId: schedule.workflowId,
+                        cron: schedule.cron
+                    },
+                    status: 'pending',
+                    createdAt: new Date(),
+                    // Add user_id if schema requires it
+                    userId: 'system-scheduler'
+                });
+            }
+            catch (secondError) {
+                console.error('Second attempt at inserting task log failed:', secondError);
+                throw secondError; // Re-throw the error to be caught by the outer catch
+            }
+        }
         // Enqueue the job with the task ID
         await enqueueJob(taskId, 5); // Priority 5 for scheduled jobs
         console.log(`Scheduled workflow ${schedule.workflowId} execution queued`);

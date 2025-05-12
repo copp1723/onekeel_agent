@@ -99,11 +99,90 @@ After running insight generation, you'll have:
 - Review quality scores to identify areas for prompt improvement
 - Analyze performance metrics to detect bottlenecks
 
+# Task Scheduler for Automated Workflows
+
+## Overview
+
+This release adds a powerful task scheduler system that enables automated execution of workflows based on cron expressions. This feature provides the foundation for automating recurring tasks such as data extraction, report generation, and insight analysis.
+
+## Key Features
+
+### 1. Cron-based Scheduling
+
+- Schedule workflows using standard cron expressions
+- Flexible timing options (minutely, hourly, daily, weekly, etc.)
+- Persistent storage of schedules in the database
+
+### 2. Job Queue Integration
+
+- Integration with the job queue for reliable execution
+- Automatic retries for failed scheduled tasks
+- Prioritization of scheduled workflows
+
+### 3. API Management
+
+- Complete RESTful API for schedule management
+- Authentication-protected endpoints
+- Full CRUD operations for schedules
+
+### 4. Schedule Lifecycle Management
+
+- Schedule enabling/disabling
+- Execution tracking and logging
+- Automatic restart on server initialization
+
+## How to Use
+
+### Creating a Schedule
+
+```typescript
+// Run a workflow every day at 8:00 AM
+const schedule = await createSchedule(
+  'workflow-uuid-here',
+  '0 8 * * *',
+  true // enabled
+);
+```
+
+### API Endpoints
+
+- `POST /api/schedules` - Create a new schedule
+- `GET /api/schedules` - List all schedules
+- `GET /api/schedules/:id` - Get a schedule by ID
+- `PATCH /api/schedules/:id` - Update a schedule
+- `DELETE /api/schedules/:id` - Delete a schedule
+
+### Testing
+
+Use the `test-scheduler.js` script to verify scheduler functionality:
+
+```bash
+node test-scheduler.js
+```
+
+## File Structure
+
+```
+├── src/
+│   ├── services/
+│   │   ├── schedulerService.ts    # Core scheduler implementation
+│   │   ├── workflowService.ts     # Workflow execution engine
+│   │   └── jobQueue.ts            # Job queue with scheduler integration
+│   ├── server/
+│   │   └── routes/
+│   │       └── schedules.ts       # API endpoints for schedule management
+│   └── shared/
+│       └── schema.ts              # Database schema including schedules table
+├── test-scheduler.js              # Test script for scheduler functionality
+└── SCHEDULER-README.md            # Detailed documentation
+```
+
 ## Future Directions
 
 This upgrade builds a foundation for:
 
 1. A/B testing different prompt versions
 2. Longitudinal analysis of insight quality over time
-3. Automated scheduling of insight generation
+3. Advanced scheduling with dependencies and conditions
 4. Multi-agent orchestration with reliability guarantees
+5. Event-based triggering in addition to time-based scheduling
