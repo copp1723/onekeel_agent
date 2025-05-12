@@ -165,7 +165,7 @@ export async function sendWorkflowCompletionEmail(workflowId, recipients) {
 }
 
 /**
- * Configure email notifications for a workflow type or platform
+ * Configure email notifications for a workflow
  * 
  * @param {object} settings - Email notification settings
  * @returns {object} Created notification settings
@@ -173,14 +173,9 @@ export async function sendWorkflowCompletionEmail(workflowId, recipients) {
 export async function configureEmailNotifications(settings) {
   try {
     // Validate required fields
-    if (!settings.recipients || !settings.recipients.length) {
-      throw new Error('At least one recipient is required');
+    if (!settings.recipientEmail) {
+      throw new Error('Recipient email is required');
     }
-    
-    // Format recipients if a single string was provided
-    const recipients = Array.isArray(settings.recipients) 
-      ? settings.recipients 
-      : [settings.recipients];
     
     // Generate ID if not provided
     const id = settings.id || uuidv4();
@@ -190,26 +185,20 @@ export async function configureEmailNotifications(settings) {
       .insert(emailNotifications)
       .values({
         id,
-        workflowType: settings.workflowType,
-        platform: settings.platform,
-        recipients: recipients,
-        enabled: settings.enabled ?? true,
+        workflowId: settings.workflowId,
+        recipientEmail: settings.recipientEmail,
         sendOnCompletion: settings.sendOnCompletion ?? true,
         sendOnFailure: settings.sendOnFailure ?? true,
-        includeInsights: settings.includeInsights ?? true,
         createdAt: new Date(),
         updatedAt: new Date()
       })
       .onConflictDoUpdate({
         target: emailNotifications.id,
         set: {
-          workflowType: settings.workflowType,
-          platform: settings.platform,
-          recipients: recipients,
-          enabled: settings.enabled ?? true,
+          workflowId: settings.workflowId,
+          recipientEmail: settings.recipientEmail,
           sendOnCompletion: settings.sendOnCompletion ?? true,
           sendOnFailure: settings.sendOnFailure ?? true,
-          includeInsights: settings.includeInsights ?? true,
           updatedAt: new Date()
         }
       })
@@ -238,12 +227,8 @@ export async function getEmailNotificationSettings(filters = {}) {
       query = query.where(eq(emailNotifications.id, filters.id));
     }
     
-    if (filters.workflowType) {
-      query = query.where(eq(emailNotifications.workflowType, filters.workflowType));
-    }
-    
-    if (filters.platform) {
-      query = query.where(eq(emailNotifications.platform, filters.platform));
+    if (filters.workflowId) {
+      query = query.where(eq(emailNotifications.workflowId, filters.workflowId));
     }
     
     // Execute query
@@ -375,39 +360,14 @@ export async function processWorkflowStatusNotifications(workflowId) {
       return { success: true, sent: 0, errors: 0, message: 'Workflow not in completed or failed state' };
     }
     
-    // Get appropriate notification settings
-    // First try workflow-specific settings
-    // Then try platform-specific settings if available
-    // Finally try general settings for the workflow type
+    // Get notification settings for this specific workflow
     let notificationSettings = await db
       .select()
       .from(emailNotifications)
-      .where(and(
-        eq(emailNotifications.enabled, true),
-        or(
-          // Match workflow type AND platform
-          and(
-            eq(emailNotifications.workflowType, workflow.type || 'task'),
-            eq(emailNotifications.platform, workflow.platform || '')
-          ),
-          // Match just workflow type with empty platform
-          and(
-            eq(emailNotifications.workflowType, workflow.type || 'task'),
-            or(
-              eq(emailNotifications.platform, ''),
-              isNull(emailNotifications.platform)
-            )
-          ),
-          // Match just platform with empty workflow type
-          and(
-            or(
-              eq(emailNotifications.workflowType, ''),
-              isNull(emailNotifications.workflowType)
-            ),
-            eq(emailNotifications.platform, workflow.platform || '')
-          )
-        )
-      ));
+      .where(eq(emailNotifications.workflowId, workflowId));
+    
+    // If no specific notification found, get any global notification settings
+    // (In a real-world app, we'd have a global settings table)
     
     // If no notification settings found, skip
     if (!notificationSettings || notificationSettings.length === 0) {

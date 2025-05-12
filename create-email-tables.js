@@ -4,6 +4,7 @@
  */
 
 import { db } from './dist/shared/db.js';
+import { sql } from 'drizzle-orm';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -17,7 +18,7 @@ async function createEmailTables() {
     console.log('Using Replit PostgreSQL environment variables for database connection');
     
     // Check if email_notifications table exists
-    const notificationsExists = await db.query(`
+    const notificationsExists = await db.execute(sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public'
@@ -27,7 +28,7 @@ async function createEmailTables() {
     
     if (!notificationsExists[0].exists) {
       console.log('Creating email_notifications table...');
-      await db.query(`
+      await db.execute(sql`
         CREATE TABLE email_notifications (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           workflow_type VARCHAR(255),
@@ -47,7 +48,7 @@ async function createEmailTables() {
     }
     
     // Check if email_logs table exists
-    const logsExists = await db.query(`
+    const logsExists = await db.execute(sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public'
@@ -57,7 +58,7 @@ async function createEmailTables() {
     
     if (!logsExists[0].exists) {
       console.log('Creating email_logs table...');
-      await db.query(`
+      await db.execute(sql`
         CREATE TABLE email_logs (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           workflow_id UUID REFERENCES workflows(id) ON DELETE CASCADE,
@@ -80,7 +81,7 @@ async function createEmailTables() {
     
     // Add indices for better performance
     console.log('Adding indices...');
-    await db.query(`
+    await db.execute(sql`
       CREATE INDEX IF NOT EXISTS idx_email_notifications_workflow_type ON email_notifications(workflow_type);
       CREATE INDEX IF NOT EXISTS idx_email_notifications_platform ON email_notifications(platform);
       CREATE INDEX IF NOT EXISTS idx_email_logs_workflow_id ON email_logs(workflow_id);
@@ -92,9 +93,6 @@ async function createEmailTables() {
   } catch (error) {
     console.error('Error creating email tables:', error);
     process.exit(1);
-  } finally {
-    // Close the database connection
-    await db.end();
   }
 }
 
