@@ -52,16 +52,15 @@ export async function initializeJobQueue() {
             }
         });
         await redisClient.ping();
-        // Get bullmq modules via require
-        const bullmq = require('bullmq');
+        // Use dynamic import for BullMQ (ESM compatible)
+        const { Queue, Worker } = await import('bullmq');
         // Create job queue with connection
-        jobQueue = new bullmq.Queue('taskProcessor', { connection: redisClient });
+        jobQueue = new Queue('taskProcessor', { connection: redisClient });
         try {
-            // Use CommonJS require for scheduler too, similar to Redis approach
-            const bullmq = require('bullmq');
-            // Check if the scheduler exists in the required module
-            if (bullmq.QueueScheduler) {
-                scheduler = new bullmq.QueueScheduler('taskProcessor', { connection: redisClient });
+            // In ESM, QueueScheduler is exported directly
+            const { QueueScheduler } = await import('bullmq');
+            if (QueueScheduler) {
+                scheduler = new QueueScheduler('taskProcessor', { connection: redisClient });
                 console.log('QueueScheduler initialized successfully');
             }
             else {
@@ -80,16 +79,16 @@ export async function initializeJobQueue() {
         inMemoryMode = true;
     }
     // Set up job processing
-    setupWorker();
+    await setupWorker();
 }
 // Initialize a worker to process jobs
-function setupWorker() {
+async function setupWorker() {
     if (!inMemoryMode && redisClient) {
         try {
-            // Use require to get Worker at runtime
-            const bullmq = require('bullmq');
+            // Use dynamic import for ESM compatibility
+            const { Worker } = await import('bullmq');
             // Create type-safe worker with correct typing
-            const worker = new bullmq.Worker('taskProcessor', async (job) => {
+            const worker = new Worker('taskProcessor', async (job) => {
                 if (job && job.id && job.data) {
                     await processJob(job.id, job.data);
                 }
