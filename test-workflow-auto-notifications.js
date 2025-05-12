@@ -39,21 +39,8 @@ async function testAutomatedWorkflowNotifications() {
     initializeMailer(process.env.SENDGRID_API_KEY);
     console.log('Mailer service initialized');
     
-    // Step 1: Configure email notification settings
-    console.log('Step 1: Configuring email notification settings...');
-    const notificationSettings = await configureEmailNotifications({
-      workflowType: 'test',
-      platform: 'demo',
-      recipients: [recipientEmail],
-      sendOnCompletion: true,
-      sendOnFailure: true,
-      includeInsights: true,
-      enabled: true
-    });
-    console.log('Email notification settings configured:', notificationSettings.id);
-    
-    // Step 2: Create a test workflow
-    console.log('Step 2: Creating test workflow...');
+    // Step 1: Create a test workflow
+    console.log('Step 1: Creating test workflow...');
     const workflowId = uuidv4();
     const [workflow] = await db.insert(workflows).values({
       id: workflowId,
@@ -85,6 +72,16 @@ async function testAutomatedWorkflowNotifications() {
       lastUpdated: new Date()
     }).returning();
     console.log(`Created test workflow with ID: ${workflowId}`);
+    
+    // Step 2: Configure email notification settings for this workflow
+    console.log('Step 2: Configuring email notification settings...');
+    const notificationSettings = await configureEmailNotifications({
+      workflowId: workflowId,
+      recipientEmail: recipientEmail,
+      sendOnCompletion: true,
+      sendOnFailure: true
+    });
+    console.log('Email notification settings configured:', notificationSettings.id);
     
     // Step 3: Mark workflow as completed
     console.log('Step 3: Marking workflow as completed...');
