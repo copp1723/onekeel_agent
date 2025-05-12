@@ -55,18 +55,22 @@ export async function sendEmail(options) {
             updatedAt: new Date(),
         }).returning();
         // Prepare email for SendGrid - we need to format according to SendGrid requirements
+        // Create a message object with required fields
         const message = {
             to: options.to,
             from: options.from,
             subject: options.content.subject,
             // At least one of text or html is required
             text: options.content.text || ' ', // Always provide a text fallback
-            html: options.content.html,
             // Include optional fields if present
             ...(options.cc ? { cc: options.cc } : {}),
             ...(options.bcc ? { bcc: options.bcc } : {}),
             ...(options.attachments ? { attachments: options.attachments } : {})
         };
+        // Add HTML content only if it exists to avoid type issues
+        if (options.content.html) {
+            message.html = options.content.html;
+        }
         // Send the email
         await mailService.send(message);
         // Update log with success
