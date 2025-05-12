@@ -44,6 +44,10 @@ args = "Mini Workflow Demo"
 task = "workflow.run"
 args = "Scheduler Demo"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Auto Email Notification Test"
+
 [[workflows.workflow]]
 name = "AI Agent Demo"
 author = "agent"
@@ -111,6 +115,14 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node test-scheduler.js"
+
+[[workflows.workflow]]
+name = "Auto Email Notification Test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node test-workflow-auto-notifications.js test@example.com"
 
 [deployment]
 run = ["sh", "-c", "npm install dotenv axios drizzle-orm postgres fellou-eko typescript ts-node && npx tsc && node dist/index.js"]
