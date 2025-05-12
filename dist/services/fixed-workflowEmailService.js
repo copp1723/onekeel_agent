@@ -395,11 +395,11 @@ export async function processWorkflowStatusNotifications(workflowId) {
         }
         
         // Send the notification
-        console.log(`Sending notification to ${setting.recipients.join(', ')} for workflow ${workflowId}`);
+        console.log(`Sending notification to ${setting.recipientEmail} for workflow ${workflowId}`);
         const result = await sendWorkflowSummaryEmail({
           workflow,
-          recipients: setting.recipients,
-          includeInsights: setting.includeInsights
+          recipients: [setting.recipientEmail], // Convert single email to array for compatibility
+          includeInsights: true
         });
         
         if (result.success) {
