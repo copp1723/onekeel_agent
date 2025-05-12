@@ -127,6 +127,22 @@ export const schedules = pgTable("schedules", {
   index("idx_schedules_enabled").on(table.enabled),
 ]);
 
+// Email logs for tracking email sending
+export const emailLogs = pgTable("email_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workflowId: uuid("workflow_id").references(() => workflows.id, { onDelete: 'set null' }),
+  recipients: jsonb("recipients").notNull(), // Array of recipient emails
+  subject: text("subject").notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, sent, failed
+  sentAt: timestamp("sent_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_email_logs_workflow_id").on(table.workflowId),
+  index("idx_email_logs_status").on(table.status),
+]);
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -142,6 +158,9 @@ export type Workflow = typeof workflows.$inferSelect;
 
 export type UpsertSchedule = typeof schedules.$inferInsert;
 export type Schedule = typeof schedules.$inferSelect;
+
+export type UpsertEmailLog = typeof emailLogs.$inferInsert;
+export type EmailLog = typeof emailLogs.$inferSelect;
 
 // Workflow step interfaces
 export type WorkflowStepType = 
