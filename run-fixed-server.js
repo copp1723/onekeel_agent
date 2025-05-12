@@ -174,6 +174,15 @@ app.post('/submit-task', async (req, res) => {
       lastUpdated: new Date()
     }).returning();
     
+    // Process email notifications for this completed workflow
+    try {
+      const notificationResult = await processWorkflowStatusNotifications(workflowId);
+      console.log(`Email notification processing result:`, notificationResult);
+    } catch (emailError) {
+      console.error(`Error sending email notifications for workflow ${workflowId}:`, emailError);
+      // Continue even if email sending fails
+    }
+    
     // Return the workflow result
     return res.json({
       success: true,
