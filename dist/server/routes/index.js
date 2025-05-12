@@ -1,5 +1,6 @@
 import authRouter from './auth.js';
 import credentialsRouter from './credentials.js';
+import { workflowRoutes } from './workflows.js';
 import { setupAuth } from '../replitAuth.js';
 /**
  * Register all auth and credential routes with the Express app
@@ -11,5 +12,7 @@ export async function registerAuthRoutes(app) {
     // Register route handlers
     app.use('/api/auth', authRouter);
     app.use('/api/credentials', credentialsRouter);
+    app.use('/api/workflows', workflowRoutes);
+    console.log('Auth and workflow routes registered');
 }
 //# sourceMappingURL=index.js.map

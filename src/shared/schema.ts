@@ -94,6 +94,25 @@ export const jobs = pgTable("jobs", {
   index("idx_jobs_next_run_at").on(table.nextRunAt),
 ]);
 
+// Workflows for persistent multi-step task execution with memory
+export const workflows = pgTable("workflows", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id),
+  steps: jsonb("steps").notNull(), // JSON array of step definitions
+  currentStep: integer("current_step").default(0).notNull(),
+  context: jsonb("context").default({}).notNull(), // Accumulated context/memory
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
+  lastError: text("last_error"),
+  lastUpdated: timestamp("last_updated"),
+  locked: boolean("locked").default(false), // Concurrency guard
+  lockedAt: timestamp("locked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_workflows_status").on(table.status),
+  index("idx_workflows_user").on(table.userId),
+]);
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -103,6 +122,31 @@ export type Credential = typeof credentials.$inferSelect;
 
 export type UpsertPlan = typeof plans.$inferInsert;
 export type Plan = typeof plans.$inferSelect;
+
+export type UpsertWorkflow = typeof workflows.$inferInsert;
+export type Workflow = typeof workflows.$inferSelect;
+
+// Workflow step interfaces
+export type WorkflowStepType = 
+  | 'emailIngestion' 
+  | 'browserAction' 
+  | 'insightGeneration'
+  | 'crm' 
+  | 'dataProcessing'
+  | 'api'
+  | 'custom';
+
+export interface WorkflowStep {
+  id: string;
+  type: WorkflowStepType;
+  name: string;
+  config: Record<string, any>;
+  retries?: number;
+  maxRetries?: number;
+  backoffFactor?: number;
+}
+
+export type WorkflowStatus = 'pending' | 'running' | 'paused' | 'failed' | 'completed';
 
 // Unencrypted credential data typings
 export interface CredentialData {

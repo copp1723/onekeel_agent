@@ -72,4 +72,22 @@ export const jobs = pgTable("jobs", {
     index("idx_jobs_status").on(table.status),
     index("idx_jobs_next_run_at").on(table.nextRunAt),
 ]);
+// Workflows for persistent multi-step task execution with memory
+export const workflows = pgTable("workflows", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: varchar("user_id").references(() => users.id),
+    steps: jsonb("steps").notNull(), // JSON array of step definitions
+    currentStep: integer("current_step").default(0).notNull(),
+    context: jsonb("context").default({}).notNull(), // Accumulated context/memory
+    status: varchar("status", { length: 20 }).default("pending").notNull(),
+    lastError: text("last_error"),
+    lastUpdated: timestamp("last_updated"),
+    locked: boolean("locked").default(false), // Concurrency guard
+    lockedAt: timestamp("locked_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+    index("idx_workflows_status").on(table.status),
+    index("idx_workflows_user").on(table.userId),
+]);
 //# sourceMappingURL=schema.js.map
