@@ -1,125 +1,110 @@
-# Automated Email Notifications System
+# Email Notifications System
 
-This document describes the automated email notification system for workflow events, including how to configure it and how to use it.
+This document describes the automated email notification system that sends workflow status emails to designated recipients.
 
 ## Overview
 
-The system automatically sends email notifications when a workflow completes or fails, based on configured notification rules. It supports:
+The email notification system allows users to configure automatic email notifications for workflows. These notifications can be sent when a workflow completes successfully or fails.
 
-- Email notifications for workflow completion and failure events
-- Configurable recipients per workflow type or platform
-- Template-based email formatting with insights inclusion
-- Notification delivery tracking and retry functionality
-- Integration with the workflow service for automatic status-based notifications
+## Features
 
-## Components
-
-The email notification system consists of several key components:
-
-1. **Fixed Mailer Service** (`fixed-mailerService.js`)
-   - Core email sending functionality
-   - SendGrid integration with Nodemailer fallback
-   - Email log tracking in database
-
-2. **Workflow Email Service** (`fixed-workflowEmailService.js`) 
-   - Workflow status notification processing
-   - Email template management
-   - Notification configuration
-
-3. **Email Templates** (`emailTemplates.js`)
-   - HTML and text templates for workflow status emails
-   - Insight formatting
-
-4. **Database Schema** (`schema.js`)
-   - `email_notifications` table for notification settings
-   - `email_logs` table for tracking delivery status
+- Configure email notifications for specific workflows
+- Send notifications on workflow completion or failure
+- Include workflow insights in emails
+- Track email delivery status and errors
+- Retry failed emails
+- Extensible design for future enhancements
 
 ## Configuration
 
-### Setting Up Email Notification Rules
+You can configure email notifications using the following API endpoints:
 
-To configure email notifications for workflows, use the `configureEmailNotifications` function or the API endpoint:
+### Configure Email Notifications
 
-```javascript
-// Example: Configure email notifications programmatically
-const settings = await configureEmailNotifications({
-  workflowType: 'crm',              // Optional workflow type filter
-  platform: 'VinSolutions',         // Optional platform filter
-  recipients: ['user@example.com'], // Email recipients (required)
-  sendOnCompletion: true,           // Send when workflows complete
-  sendOnFailure: true,              // Send when workflows fail
-  includeInsights: true,            // Include insights in email
-  enabled: true                     // Enable/disable this rule
-});
+```
+POST /api/emails/notifications
 ```
 
-### API Endpoints
+Request body:
+```json
+{
+  "workflowId": "workflow-uuid-here",
+  "recipientEmail": "user@example.com",
+  "sendOnCompletion": true,
+  "sendOnFailure": true
+}
+```
 
-The system exposes several RESTful API endpoints:
+### Get Email Notification Settings
 
-- `POST /api/emails/notifications` - Configure email notification settings
-- `GET /api/emails/notifications` - Get email notification settings
-- `DELETE /api/emails/notifications/:id` - Delete notification settings
-- `GET /api/emails/logs/:workflowId` - Get email logs for a workflow
-- `POST /api/emails/retry/:emailLogId` - Retry a failed email
+```
+GET /api/emails/notifications
+```
 
-## Usage
+Optional query parameters:
+- `workflowId`: Filter by workflow ID
+- `recipientEmail`: Filter by recipient email
 
-### Automatic Notifications
+### Delete Email Notification Settings
 
-The system automatically sends emails when:
+```
+DELETE /api/emails/notifications/:id
+```
 
-1. A workflow status changes to `completed`
-2. A workflow status changes to `failed`
+Where `:id` is the notification settings ID.
 
-This occurs when the `processWorkflowStatusNotifications(workflowId)` function is called, which happens automatically at the appropriate stages of workflow execution.
+### Get Email Logs
 
-### Manual Sending
+```
+GET /api/emails/logs/:workflowId
+```
 
-You can also manually send workflow emails using:
+Where `:workflowId` is the workflow ID to get logs for.
+
+### Retry Failed Email
+
+```
+POST /api/emails/retry/:emailLogId
+```
+
+Where `:emailLogId` is the ID of the failed email log to retry.
+
+## Usage in Code
+
+You can also use the email notification system in your code:
 
 ```javascript
-// Send to specific recipients regardless of configuration
-const result = await sendWorkflowCompletionEmail(workflowId, 'user@example.com');
+import { processWorkflowStatusNotifications } from './services/fixed-workflowEmailService.js';
+
+// After updating workflow status to 'completed' or 'failed'
+await processWorkflowStatusNotifications(workflowId);
 ```
 
 ## Email Content
 
-The emails include:
+The email content includes:
+- Workflow summary information
+- Status (completed or failed)
+- Execution time
+- Steps executed
+- Insights generated (if available and configured)
 
-- Workflow status (Completed/Failed)
-- Workflow ID and details
-- Execution time information
-- Summary of results (if available)
-- List of insights (if available and enabled)
-- Error details (for failed workflows)
+## Troubleshooting
+
+Common issues:
+
+1. **Emails not being sent**: Make sure you have configured SendGrid API key correctly in your environment variables. The system will automatically fall back to using Nodemailer for development/testing.
+
+2. **Missing notifications**: Ensure that notification settings exist for the workflow and that they are configured to send on the appropriate status.
+
+3. **Database errors**: If you encounter database errors, check that your database schema is up to date by running the necessary migration scripts.
 
 ## Testing
 
-Use the following test scripts to verify functionality:
+You can test the email notification system using the following script:
 
-- `test-workflow-auto-notifications.js` - Test end-to-end automated notifications
-- `test-fixed-workflow-email.js` - Test sending workflow completion emails
-- `test-email-delivery.js` - Test basic email delivery
+```bash
+node test-workflow-auto-notifications.js recipient@example.com
+```
 
-## Environment Variables
-
-The system requires the following environment variables:
-
-- `SENDGRID_API_KEY` - SendGrid API key for email delivery
-
-## Integration with Other Components
-
-The email notification system is integrated with:
-
-1. **Workflow Service** - Automated email sending on workflow status changes
-2. **Task Execution System** - Notification of task execution errors
-3. **Scheduler** - Email notifications for scheduled workflow results
-
-## Extending
-
-To extend the email notification system:
-
-1. Add new email templates in `emailTemplates.js`
-2. Extend notification rules in `fixed-workflowEmailService.js`
-3. Add new API endpoints in `fixed-emails.js`
+This will create a test workflow, configure notifications, mark it as completed, and trigger the notification process.
