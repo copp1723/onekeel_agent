@@ -22,8 +22,7 @@ let redisClient: any = null;
 let jobQueue: any = null;
 let scheduler: any = null;
 
-// Export jobQueue for use in other services
-export { jobQueue };
+// Export functions and variables for use in other services
 
 // Use in-memory fallback for dev environments without Redis
 type InMemoryJob = {
@@ -229,20 +228,25 @@ async function processJob(jobId: string, data: any) {
     const task = taskData[0];
     
     // Handle different task types
-    if (task.taskType === 'scheduledWorkflow' && task.taskData && task.taskData.workflowId) {
-      // For scheduled workflows, execute the workflow directly
-      const { executeWorkflowById } = await import('./schedulerService.js');
-      await executeWorkflowById(task.taskData.workflowId);
+    // Need to check and type the taskData properly for TypeScript
+    if (task.taskType === 'scheduledWorkflow' && task.taskData) {
+      // We need to type-guard the taskData structure
+      const taskData = task.taskData as { workflowId: string };
+      if (taskData.workflowId) {
+        // For scheduled workflows, execute the workflow directly
+        const { executeWorkflowById } = await import('./schedulerService.js');
+        await executeWorkflowById(taskData.workflowId);
       
-      // Update the task log
-      await db
-        .update(taskLogs)
-        .set({ 
-          status: 'completed', 
-          completedAt: new Date(),
-          result: { message: `Scheduled workflow ${task.taskData.workflowId} executed successfully` }
-        })
-        .where(eq(taskLogs.id, taskId));
+        // Update the task log
+        await db
+          .update(taskLogs)
+          .set({ 
+            status: 'completed', 
+            completedAt: new Date(),
+            result: { message: `Scheduled workflow ${taskData.workflowId} executed successfully` }
+          })
+          .where(eq(taskLogs.id, taskId));
+      }
     } else {
       // Default processing for other task types
       // TODO: Add specialized handling for different task types

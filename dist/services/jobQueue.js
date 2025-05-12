@@ -19,8 +19,6 @@ const redisOptions = {
 let redisClient = null;
 let jobQueue = null;
 let scheduler = null;
-// Export jobQueue for use in other services
-export { jobQueue };
 const inMemoryJobs = [];
 let inMemoryMode = false;
 // Initialize job queue with retry capability
@@ -186,19 +184,24 @@ async function processJob(jobId, data) {
         }
         const task = taskData[0];
         // Handle different task types
-        if (task.taskType === 'scheduledWorkflow' && task.taskData && task.taskData.workflowId) {
-            // For scheduled workflows, execute the workflow directly
-            const { executeWorkflowById } = await import('./schedulerService.js');
-            await executeWorkflowById(task.taskData.workflowId);
-            // Update the task log
-            await db
-                .update(taskLogs)
-                .set({
-                status: 'completed',
-                completedAt: new Date(),
-                result: { message: `Scheduled workflow ${task.taskData.workflowId} executed successfully` }
-            })
-                .where(eq(taskLogs.id, taskId));
+        // Need to check and type the taskData properly for TypeScript
+        if (task.taskType === 'scheduledWorkflow' && task.taskData) {
+            // We need to type-guard the taskData structure
+            const taskData = task.taskData;
+            if (taskData.workflowId) {
+                // For scheduled workflows, execute the workflow directly
+                const { executeWorkflowById } = await import('./schedulerService.js');
+                await executeWorkflowById(taskData.workflowId);
+                // Update the task log
+                await db
+                    .update(taskLogs)
+                    .set({
+                    status: 'completed',
+                    completedAt: new Date(),
+                    result: { message: `Scheduled workflow ${taskData.workflowId} executed successfully` }
+                })
+                    .where(eq(taskLogs.id, taskId));
+            }
         }
         else {
             // Default processing for other task types

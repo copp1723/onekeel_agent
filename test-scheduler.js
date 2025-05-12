@@ -109,7 +109,9 @@ async function createTestWorkflow() {
  * Clean up test workflow
  */
 async function cleanupTestWorkflow(workflowId) {
-  await db.delete(workflows).where(workflows.id.equals(workflowId));
+  // Using the eq helper from Drizzle for correct SQL generation
+  const { eq } = await import('drizzle-orm');
+  await db.delete(workflows).where(eq(workflows.id, workflowId));
 }
 
 // Run the test
