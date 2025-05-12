@@ -24,47 +24,86 @@ export default function EmailLogsPage() {
     // In a real app, this would make an API call to your backend
     setLoading(true);
     
-    // Mock data for UI development purposes
-    const mockLogs: EmailLog[] = [
-      {
-        id: '1',
-        recipientEmail: 'user@example.com',
-        subject: 'Workflow #12345 Completed',
-        status: 'sent',
-        createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        workflowId: '12345'
-      },
-      {
-        id: '2',
-        recipientEmail: 'admin@company.com',
-        subject: 'Workflow #12344 Failed',
-        status: 'sent',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        workflowId: '12344'
-      },
-      {
-        id: '3',
-        recipientEmail: 'support@example.com',
-        subject: 'Workflow #12343 Completed',
-        status: 'failed',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-        workflowId: '12343',
-        errorMessage: 'Failed to connect to mail server',
-        attempts: 3
+    const fetchEmailLogs = async () => {
+      try {
+        // In a real implementation, we would fetch logs from the API
+        // const response = await fetch('/api/emails/logs');
+        // const data = await response.json();
+        // if (response.ok) {
+        //   setLogs(data.logs);
+        // } else {
+        //   throw new Error(data.message || 'Failed to fetch email logs');
+        // }
+        
+        // Demo data for UI development purposes
+        const mockLogs: EmailLog[] = [
+          {
+            id: '1',
+            recipientEmail: 'user@example.com',
+            subject: 'Workflow #12345 Completed',
+            status: 'sent',
+            createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+            workflowId: '12345'
+          },
+          {
+            id: '2',
+            recipientEmail: 'admin@company.com',
+            subject: 'Workflow #12344 Failed',
+            status: 'sent',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+            workflowId: '12344'
+          },
+          {
+            id: '3',
+            recipientEmail: 'support@example.com',
+            subject: 'Workflow #12343 Completed',
+            status: 'failed',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+            workflowId: '12343',
+            errorMessage: 'Failed to connect to mail server',
+            attempts: 3
+          }
+        ];
+        
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setLogs(mockLogs);
+      } catch (err) {
+        console.error('Error fetching email logs:', err);
+        setError('Failed to load email logs');
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
     
-    setTimeout(() => {
-      setLogs(mockLogs);
-      setLoading(false);
-    }, 500);
+    fetchEmailLogs();
   }, []);
 
   const retryEmail = async (emailId: string) => {
     try {
       setError(null);
-      // In a real app, this would call your backend API
       console.log(`Retrying email with ID: ${emailId}`);
+      
+      // In a real app, this would call your backend API
+      // const response = await fetch(`/api/emails/retry/${emailId}`, {
+      //   method: 'POST',
+      // });
+      // 
+      // const data = await response.json();
+      // if (!response.ok) {
+      //   throw new Error(data.message || 'Failed to retry email');
+      // }
+      
+      // Show loading state
+      setLogs(prevLogs => 
+        prevLogs.map(log => 
+          log.id === emailId ? { ...log, status: 'pending' } : log
+        )
+      );
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Simulate successful retry
       setLogs(prevLogs => 
