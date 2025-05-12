@@ -42,7 +42,7 @@ router.post('/test-parser', routeHandler(async (req, res) => {
 }));
 // Tasks listing endpoint
 router.get('/tasks', routeHandler(async (_req, res) => {
-    const tasks = await getTaskLogs();
+    const tasks = await getTaskLogs("all");
     res.json(tasks);
 }));
 // Register API routes

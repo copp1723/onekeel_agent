@@ -58,7 +58,7 @@ router.post(
 router.get(
   '/tasks',
   routeHandler(async (_req: Request, res: Response) => {
-    const tasks = await getTaskLogs();
+    const tasks = await getTaskLogs("all");
     res.json(tasks);
   })
 );

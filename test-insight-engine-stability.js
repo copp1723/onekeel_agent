@@ -5,6 +5,7 @@
  * 1. Prompt version tracking
  * 2. Insight run metadata logging
  * 3. Output snapshotting to structured directories
+ * 4. Optional insight quality scoring
  * 
  * To test:
  * 1. Ensure OPENAI_API_KEY is set in your environment
@@ -14,9 +15,9 @@
  * Example: node test-insight-engine-stability.js ./downloads/VinSolutions_report.csv
  */
 
-import { generateInsightsFromCSV } from './src/agents/generateInsightsFromCSV.js';
-import { getPromptByIntent, routerVersion } from './src/prompts/promptRouter.js';
-import { scoreInsightQuality } from './src/agents/insightScorer.js';
+import { generateInsightsFromCSV } from './dist/agents/generateInsightsFromCSV.js';
+import { getPromptByIntent, routerVersion } from './dist/prompts/promptRouter.js';
+import { scoreInsightQuality } from './dist/agents/insightScorer.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -67,6 +68,22 @@ async function testInsightEngineStability() {
     console.log('Action Items:');
     insights.actionItems.forEach((item, i) => {
       console.log(`  ${i + 1}. ${item}`);
+    });
+    
+    // Optional: Score the insight quality
+    console.log('\n=== Scoring Insight Quality ===');
+    console.log('Evaluating insight quality with LLM-based scoring...');
+    const qualityScore = await scoreInsightQuality(insights);
+    
+    console.log(`Quality Score: ${qualityScore.score}/10`);
+    console.log(`Feedback: ${qualityScore.feedback}`);
+    console.log('Strengths:');
+    qualityScore.strengths.forEach((str, i) => {
+      console.log(`  + ${str}`);
+    });
+    console.log('Areas for Improvement:');
+    qualityScore.weaknesses.forEach((weak, i) => {
+      console.log(`  - ${weak}`);
     });
     
     // Check if logs/results directories were created
@@ -132,6 +149,22 @@ async function testWithContent(csvContent) {
     console.log('Action Items:');
     insights.actionItems.forEach((item, i) => {
       console.log(`  ${i + 1}. ${item}`);
+    });
+    
+    // Optional: Score the insight quality
+    console.log('\n=== Scoring Insight Quality ===');
+    console.log('Evaluating insight quality with LLM-based scoring...');
+    const qualityScore = await scoreInsightQuality(insights);
+    
+    console.log(`Quality Score: ${qualityScore.score}/10`);
+    console.log(`Feedback: ${qualityScore.feedback}`);
+    console.log('Strengths:');
+    qualityScore.strengths.forEach((str, i) => {
+      console.log(`  + ${str}`);
+    });
+    console.log('Areas for Improvement:');
+    qualityScore.weaknesses.forEach((weak, i) => {
+      console.log(`  - ${weak}`);
     });
     
     // Check if logs/results directories were created
