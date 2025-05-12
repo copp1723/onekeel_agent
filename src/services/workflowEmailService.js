@@ -13,7 +13,7 @@ import { generateWorkflowSummaryText, generateWorkflowSummaryHtml } from './emai
  * Send a workflow completion email
  * @param {string} workflowId - The ID of the completed workflow
  * @param {string} [recipientOverride] - Optional override for recipient email
- * @returns {Promise<object>} Result of the email sending operation
+ * @returns {Promise<{success: boolean, message: string, emailId?: string, error?: string}>} Result of the email sending operation
  */
 export async function sendWorkflowCompletionEmail(workflowId, recipientOverride) {
   try {
@@ -159,7 +159,7 @@ export async function sendWorkflowCompletionEmail(workflowId, recipientOverride)
  * @param {string} workflowId - The ID of the workflow
  * @param {string} recipientEmail - The email address to receive notifications
  * @param {object} options - Additional options for notifications
- * @returns {Promise<object>} The notification configuration
+ * @returns {Promise<{success: boolean, notification?: object, message: string, error?: string}>} The notification configuration
  */
 export async function configureEmailNotifications(workflowId, recipientEmail, options = {}) {
   try {

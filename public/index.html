@@ -3,71 +3,385 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentFlow</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <title>Workflow System Demo</title>
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --accent-color: #e74c3c;
+      --success-color: #2ecc71;
+      --warning-color: #f39c12;
+      --light-bg: #f5f7fa;
+      --dark-text: #2c3e50;
+      --radius: 8px;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--dark-text);
+      background-color: var(--light-bg);
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    
+    h1 {
+      color: var(--primary-color);
+      margin-top: 0;
+      border-bottom: 2px solid var(--light-bg);
+      padding-bottom: 10px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      background: var(--light-bg);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    
+    .tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    
+    .tab.active {
+      background: var(--primary-color);
+      color: white;
+      font-weight: bold;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    button {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+    
+    button:hover {
+      background: #2980b9;
+    }
+    
+    .button-alt {
+      background: var(--accent-color);
+    }
+    
+    .button-alt:hover {
+      background: #c0392b;
+    }
+    
+    .result {
+      background: #f8f9fa;
+      border-left: 4px solid var(--primary-color);
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      overflow-x: auto;
+    }
+    
+    .success {
+      border-left-color: var(--success-color);
+    }
+    
+    .error {
+      border-left-color: var(--accent-color);
+    }
+    
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+    
+    .loader {
+      display: none;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary-color);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .info {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    
+    .notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .notification.success {
+      border-left: 4px solid var(--success-color);
+    }
+    
+    .notification.error {
+      border-left: 4px solid var(--accent-color);
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .tabs {
+        flex-direction: column;
+      }
+      
+      .tab {
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+      }
+    }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <div class="container mx-auto px-4 py-8 max-w-3xl">
-    <header class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-gray-800">AgentFlow</h1>
-      <p class="text-gray-600 mt-2">Submit a task in plain language and get results</p>
-    </header>
-
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <form id="taskForm" class="space-y-4">
-        <div>
-          <label for="taskInput" class="block text-sm font-medium text-gray-700 mb-1">Enter your task</label>
-          <textarea 
-            id="taskInput" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            rows="3" 
-            placeholder="Example: 'Extract content from https://example.com and summarize it'"
-            required
-          ></textarea>
-        </div>
-        <div class="flex justify-end">
-          <button 
-            type="submit" 
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Submit Task
-          </button>
-        </div>
-      </form>
+<body>
+  <div class="container">
+    <h1>Workflow Email Notification System</h1>
+    
+    <div class="info">
+      This demo allows you to test the workflow email notification system.
+      You can send test emails and execute tasks using the workflow system.
     </div>
-
-    <!-- Loading State -->
-    <div id="loadingState" class="hidden bg-white rounded-lg shadow-md p-6 text-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p class="text-lg text-gray-700">Processing your task...</p>
-      <p class="text-sm text-gray-500 mt-2" id="loadingMessage">This may take a moment depending on the task complexity.</p>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="email">Email Notifications</div>
+      <div class="tab" data-tab="task">Task Execution</div>
     </div>
-
-    <!-- Results Display -->
-    <div id="resultContainer" class="hidden bg-white rounded-lg shadow-md p-6">
-      <div class="flex items-center mb-4">
-        <div id="resultStatusIcon" class="mr-3 flex-shrink-0">
-          <!-- Icon will be injected by JS -->
+    
+    <div class="tab-content active" id="email">
+      <div class="card">
+        <h2>Send Test Email</h2>
+        <p>Send a workflow summary email to the specified recipient.</p>
+        
+        <form id="email-form">
+          <label for="recipient">Recipient Email:</label>
+          <input type="email" id="recipient" name="recipient" placeholder="user@example.com" required>
+          
+          <button type="submit">Send Test Email</button>
+        </form>
+        
+        <div class="loader" id="email-loader"></div>
+        <div class="result" id="email-result" style="display:none;">
+          <pre id="email-result-content"></pre>
         </div>
-        <h2 class="text-xl font-semibold text-gray-800" id="resultTitle">Task Results</h2>
       </div>
-      
-      <div id="resultContent" class="prose max-w-none">
-        <!-- Content will be injected here -->
-      </div>
-      
-      <div class="mt-6 pt-4 border-t border-gray-200">
-        <button 
-          id="newTaskButton" 
-          class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-        >
-          New Task
-        </button>
+    </div>
+    
+    <div class="tab-content" id="task">
+      <div class="card">
+        <h2>Execute Task</h2>
+        <p>Enter a task description to execute using the workflow system.</p>
+        
+        <form id="task-form">
+          <label for="task">Task Description:</label>
+          <textarea id="task" name="task" placeholder="Describe your task here..." required></textarea>
+          
+          <button type="submit">Execute Task</button>
+        </form>
+        
+        <div class="loader" id="task-loader"></div>
+        <div class="result" id="task-result" style="display:none;">
+          <pre id="task-result-content"></pre>
+        </div>
       </div>
     </div>
   </div>
-
-  <script src="script.js"></script>
+  
+  <div class="notification" id="notification"></div>
+  
+  <script>
+    // Tab functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and content
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+    
+    // Email form submission
+    document.getElementById('email-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const recipient = document.getElementById('recipient').value;
+      const loader = document.getElementById('email-loader');
+      const result = document.getElementById('email-result');
+      const resultContent = document.getElementById('email-result-content');
+      
+      // Show loader, hide previous results
+      loader.style.display = 'block';
+      result.style.display = 'none';
+      
+      try {
+        const response = await fetch('/test-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ recipient })
+        });
+        
+        const data = await response.json();
+        
+        // Hide loader, show result
+        loader.style.display = 'none';
+        result.style.display = 'block';
+        
+        if (data.success) {
+          result.className = 'result success';
+          showNotification('Email sent successfully!', 'success');
+        } else {
+          result.className = 'result error';
+          showNotification('Failed to send email', 'error');
+        }
+        
+        resultContent.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        loader.style.display = 'none';
+        result.style.display = 'block';
+        result.className = 'result error';
+        resultContent.textContent = `Error: ${error.message}`;
+        showNotification('An error occurred', 'error');
+      }
+    });
+    
+    // Task form submission
+    document.getElementById('task-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const task = document.getElementById('task').value;
+      const loader = document.getElementById('task-loader');
+      const result = document.getElementById('task-result');
+      const resultContent = document.getElementById('task-result-content');
+      
+      // Show loader, hide previous results
+      loader.style.display = 'block';
+      result.style.display = 'none';
+      
+      try {
+        const response = await fetch('/submit-task', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ task })
+        });
+        
+        const data = await response.json();
+        
+        // Hide loader, show result
+        loader.style.display = 'none';
+        result.style.display = 'block';
+        
+        if (data.success) {
+          result.className = 'result success';
+          showNotification('Task executed successfully!', 'success');
+        } else {
+          result.className = 'result error';
+          showNotification('Failed to execute task', 'error');
+        }
+        
+        resultContent.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        loader.style.display = 'none';
+        result.style.display = 'block';
+        result.className = 'result error';
+        resultContent.textContent = `Error: ${error.message}`;
+        showNotification('An error occurred', 'error');
+      }
+    });
+    
+    // Show notification function
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `notification ${type}`;
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+  </script>
 </body>
 </html>

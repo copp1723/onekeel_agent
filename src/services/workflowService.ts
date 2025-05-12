@@ -10,10 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Import step handlers
 import { stepHandlers } from './stepHandlers.js';
 // Import email service
-import { 
-  sendWorkflowCompletionEmail,
-  configureEmailNotifications 
-} from './workflowEmailService.js';
+import { sendWorkflowCompletionEmail } from './workflowEmailService.js';
 
 /**
  * Create a new workflow
@@ -431,8 +428,9 @@ export async function configureWorkflowNotifications(
       .where(eq(workflows.id, workflowId))
       .returning();
     
-    // Configure notifications in the new email notification system
-    await configureEmailNotifications(workflowId, recipientEmail, options);
+    // Note: Temporarily removing configureEmailNotifications call
+    // We'll re-add this once the email notification functionality is fully implemented
+    console.log(`Configured workflow notifications for ${workflowId} with email: ${recipientEmail}`);
     
     return updatedWorkflow;
   } catch (error) {
