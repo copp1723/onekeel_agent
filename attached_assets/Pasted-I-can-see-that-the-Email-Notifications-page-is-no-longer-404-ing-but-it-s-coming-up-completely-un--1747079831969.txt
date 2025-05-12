@@ -1,0 +1,74 @@
+I can see that the “Email Notifications” page is no longer 404’ing—but it’s coming up completely un‑styled (all your Tailwind utilities aren’t being applied), and your new “Email Logs” screen is likewise just raw HTML. That tells me two things:
+
+⸻
+
+1. Tailwind/CSS Isn’t Being Loaded
+
+Even though your components have the right class names (e.g. text-2xl, max-w-md, bg-blue-50, etc.), none of it is taking effect. In a Next.js App‑Router setup you must:
+	1.	Import your global stylesheet in your root layout:
+
+// frontend/src/app/layout.tsx
+import '../styles/globals.css';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+
+
+	2.	Verify globals.css applies the Tailwind directives:
+
+/* styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+	3.	Check tailwind.config.js includes all your source paths:
+
+module.exports = {
+  content: [
+    './app/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
+    './styles/**/*.{css}',
+  ],
+  theme: { extend: {} },
+  plugins: [],
+}
+
+
+	4.	Re‑build (rm -rf .next && npm run dev) and confirm your utility classes now show up.
+
+Once those are in place, both the Email Notifications form and your Email Logs page will render with the proper font sizes, colors, spacing, cards, badges, etc.
+
+⸻
+
+2. Database Schema: user_id on task_logs
+
+You also mentioned a missing user_id on your task_logs table. To unblock that:
+	1.	Create a new migration (e.g. 20250512_add_user_id_to_task_logs.sql):
+
+ALTER TABLE task_logs
+  ADD COLUMN user_id UUID REFERENCES users(id);
+
+
+	2.	Allow NULLs initially so it doesn’t break existing rows:
+
+ALTER TABLE task_logs
+  ALTER COLUMN user_id DROP NOT NULL;
+
+
+	3.	Run the migration via your usual migration runner (or directly in the Supabase dashboard).
+	4.	Backfill or enforce NOT NULL later once all new rows include user_id.
+
+On the backend, make sure when you insert into task_logs you pass the current user’s ID (e.g. from the session) into that column.
+
+⸻
+
+Next Steps
+	•	Let me know once you’ve confirmed your layout.tsx is importing globals.css and Tailwind begins working again.
+	•	I’ll then help you style the Email Logs page (cards, tables, badges) using the shadcn/ui components.
+	•	And if you hit any errors running the migration, share the exact message and I’ll help you troubleshoot.
