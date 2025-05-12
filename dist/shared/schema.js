@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, timestamp, jsonb, index, uuid, boolean, serial, integer, } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, jsonb, index, uuid, boolean, serial, integer } from "drizzle-orm/pg-core";
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable("sessions", {
@@ -113,6 +113,8 @@ export const emailLogs = pgTable("email_logs", {
     attempts: integer("attempts").default(1).notNull(),
     sentAt: timestamp("sent_at"),
     errorMessage: text("error_message"),
+    contentText: text("content_text"),
+    contentHtml: text("content_html"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
