@@ -284,6 +284,41 @@ export async function deleteWorkflow(workflowId) {
     }
 }
 /**
+ * Get workflows (optionally filtered by status and user ID)
+ */
+export async function getWorkflows(status, userId) {
+    try {
+        // Start with the base query
+        const baseQuery = db.select().from(workflows);
+        // Build the complete query with filters
+        let completeQuery = baseQuery;
+        // Apply filters if provided
+        if (status) {
+            // We need to cast the status to WorkflowStatus type
+            completeQuery = db.select().from(workflows).where(eq(workflows.status, status));
+        }
+        if (userId) {
+            if (status) {
+                // If we already have a status filter, add the userId filter
+                completeQuery = db.select().from(workflows)
+                    .where(and(eq(workflows.status, status), eq(workflows.userId, userId)));
+            }
+            else {
+                // If we don't have a status filter, just add the userId filter
+                completeQuery = db.select().from(workflows).where(eq(workflows.userId, userId));
+            }
+        }
+        // Execute the query with ordering
+        const results = await completeQuery.orderBy(workflows.createdAt);
+        // Return the results in reverse chronological order
+        return results.reverse();
+    }
+    catch (error) {
+        console.error('Error getting workflows:', error);
+        throw error;
+    }
+}
+/**
  * Configure email notifications for a workflow
  * @param workflowId The ID of the workflow
  * @param emails A single email address or array of email addresses

@@ -24,6 +24,10 @@ export declare function resetWorkflow(workflowId: string): Promise<Workflow>;
  */
 export declare function deleteWorkflow(workflowId: string): Promise<boolean>;
 /**
+ * Get workflows (optionally filtered by status and user ID)
+ */
+export declare function getWorkflows(status?: string, userId?: string | null): Promise<Workflow[]>;
+/**
  * Configure email notifications for a workflow
  * @param workflowId The ID of the workflow
  * @param emails A single email address or array of email addresses

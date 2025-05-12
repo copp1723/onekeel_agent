@@ -19,13 +19,16 @@ const router = express.Router();
 router.get('/', isAuthenticated, async (req: Request, res: Response) => {
   try {
     const status = req.query.status as string | undefined;
-    const userId = req.user?.claims?.sub || null;
+    // Access user ID from the user object (if available)
+    const userId = req.user ? (req.user as any).claims?.sub : null;
     
     const workflows = await getWorkflows(status, userId);
     res.json(workflows);
+    return;
   } catch (error) {
     console.error('Error getting workflows:', error);
     res.status(500).json({ error: 'Failed to get workflows' });
+    return;
   }
 });
 
@@ -38,20 +41,24 @@ router.get('/:id', isAuthenticated, async (req: Request, res: Response) => {
     const workflow = await getWorkflow(workflowId);
     
     if (!workflow) {
-      return res.status(404).json({ error: 'Workflow not found' });
+      res.status(404).json({ error: 'Workflow not found' });
+      return;
     }
     
-    const userId = req.user?.claims?.sub || null;
+    const userId = req.user ? (req.user as any).claims?.sub : null;
     
     // If userId is provided and doesn't match, deny access
     if (userId && workflow.userId && workflow.userId !== userId) {
-      return res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: 'Access denied' });
+      return;
     }
     
     res.json(workflow);
+    return;
   } catch (error) {
     console.error('Error getting workflow:', error);
     res.status(500).json({ error: 'Failed to get workflow' });
+    return;
   }
 });
 
@@ -64,21 +71,25 @@ router.post('/:id/reset', isAuthenticated, async (req: Request, res: Response) =
     const workflow = await getWorkflow(workflowId);
     
     if (!workflow) {
-      return res.status(404).json({ error: 'Workflow not found' });
+      res.status(404).json({ error: 'Workflow not found' });
+      return;
     }
     
-    const userId = req.user?.claims?.sub || null;
+    const userId = req.user ? (req.user as any).claims?.sub : null;
     
     // If userId is provided and doesn't match, deny access
     if (userId && workflow.userId && workflow.userId !== userId) {
-      return res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: 'Access denied' });
+      return;
     }
     
     const resetResult = await resetWorkflow(workflowId);
     res.json(resetResult);
+    return;
   } catch (error) {
     console.error('Error resetting workflow:', error);
     res.status(500).json({ error: 'Failed to reset workflow' });
+    return;
   }
 });
 
@@ -90,29 +101,34 @@ router.post('/:id/notifications', isAuthenticated, async (req: Request, res: Res
     const { emails } = req.body;
     
     if (!emails) {
-      return res.status(400).json({ error: 'Email addresses are required' });
+      res.status(400).json({ error: 'Email addresses are required' });
+      return;
     }
     
     const workflowId = req.params.id;
     const workflow = await getWorkflow(workflowId);
     
     if (!workflow) {
-      return res.status(404).json({ error: 'Workflow not found' });
+      res.status(404).json({ error: 'Workflow not found' });
+      return;
     }
     
-    const userId = req.user?.claims?.sub || null;
+    const userId = req.user ? (req.user as any).claims?.sub : null;
     
     // If userId is provided and doesn't match, deny access
     if (userId && workflow.userId && workflow.userId !== userId) {
-      return res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: 'Access denied' });
+      return;
     }
     
     // Configure notifications for the workflow
     const updatedWorkflow = await configureWorkflowNotifications(workflowId, emails);
     res.json(updatedWorkflow);
+    return;
   } catch (error) {
     console.error('Error configuring workflow notifications:', error);
     res.status(500).json({ error: 'Failed to configure workflow notifications' });
+    return;
   }
 });
 

@@ -7,10 +7,10 @@
  */
 
 import dotenv from 'dotenv';
-import { db } from './dist/shared/db.js';
-import { workflows } from './dist/shared/schema.js';
-import { initializeMailer } from './dist/services/mailerService.js';
-import { sendWorkflowSummaryEmail } from './dist/services/workflowEmailService.js';
+import { db } from './src/shared/db.js';
+import { workflows } from './src/shared/schema.js';
+import { initializeMailer } from './src/services/mailerService.js';
+import { sendWorkflowSummaryEmail } from './src/services/workflowEmailService.js';
 
 // Load environment variables
 dotenv.config();

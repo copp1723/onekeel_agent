@@ -1,6 +1,6 @@
 import authRouter from './auth.js';
 import credentialsRouter from './credentials.js';
-import { workflowRoutes } from './workflows.js';
+import workflowRoutes from './workflows.js';
 import { registerScheduleRoutes } from './schedules.js';
 import { setupAuth } from '../replitAuth.js';
 /**

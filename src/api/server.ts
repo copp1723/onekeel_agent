@@ -46,7 +46,10 @@ app.use(express.static('public'));
     
     // Register job management routes
     app.use('/api/jobs', jobsRouter);
-    console.log('Job management routes registered');
+    
+    // Register workflow routes
+    app.use('/api/workflows', workflowsRouter);
+    console.log('Job management and workflow routes registered');
   } catch (error) {
     console.error('Failed to register routes:', error);
   }
