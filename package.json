@@ -16,6 +16,7 @@
   "dependencies": {
     "@eko-ai/eko": "^2.0.2-alpha.6",
     "@playwright/test": "^1.52.0",
+    "@sendgrid/mail": "^8.1.5",
     "@tailwindcss/postcss": "^4.1.6",
     "@tanstack/react-query": "^5.75.7",
     "@types/connect-pg-simple": "^7.0.3",
