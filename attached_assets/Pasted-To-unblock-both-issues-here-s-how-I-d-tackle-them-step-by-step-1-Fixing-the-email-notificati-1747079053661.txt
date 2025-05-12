@@ -1,0 +1,94 @@
+To unblock both issues, here’s how I’d tackle them step‑by‑step:
+
+⸻
+
+1. Fixing the /email‑notifications 404
+	1.	Confirm Your Router Type
+	•	App Router: You need app/email‑notifications/page.tsx.
+	•	Pages Router: You need pages/email‑notifications/index.tsx.
+	2.	Check Folder & File Names
+	•	Folder names must be lowercase, and match the route exactly (email‑notifications).
+	•	Make sure the component file exports export default function Page() (or similar).
+	3.	Verify Your Link
+
+<Link href="/email-notifications">
+  <a>Email Notifications</a>
+</Link>
+
+	•	In the App Router, you can omit the <a> but be sure it’s <Link href="…">Text</Link>.
+	•	If you’re in the pages directory, use <Link href="…"><a>…</a></Link>.
+
+	4.	Restart & Clear Cache
+	•	Delete .next/ (or .turbo) and restart your dev server:
+
+rm -rf .next
+npm run dev
+
+
+	•	Watch the console for any “did not find a page for route” warnings.
+
+	5.	Smoke Test
+	•	Visit http://localhost:3000/email‑notifications directly.
+	•	If it still 404s, log out the filesystem:
+
+ls -R app | grep email-notifications
+
+
+
+⸻
+
+2. Adding user_id to task_logs
+	1.	Write a New Migration
+Create a file like migrations/20250512_add_user_id_task_logs.sql:
+
+ALTER TABLE task_logs
+  ADD COLUMN user_id uuid REFERENCES users(id);
+
+
+	2.	Handle Existing Rows
+	•	If you have existing logs, either allow nulls:
+
+ALTER TABLE task_logs
+  ALTER COLUMN user_id DROP NOT NULL;
+
+
+	•	Or backfill with a placeholder user before making it NOT NULL.
+
+	3.	ESM vs CommonJS in Migrations
+	•	If your migration runner is ESM-only, ensure your package.json has "type": "module", and use:
+
+import { createClient } from '@supabase/supabase-js';
+
+
+	•	If it’s CommonJS, switch to require():
+
+const { createClient } = require('@supabase/supabase-js');
+
+
+	•	Align the migration script’s module type with your project config.
+
+	4.	Fixing Connection Timeouts
+	•	Verify your DATABASE_URL or Supabase credentials are correct.
+	•	Increase the connection timeout in your migration tool or client:
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 20000,
+});
+
+
+	•	Try running the SQL directly in psql or via the Supabase dashboard to isolate network issues.
+
+	5.	Run & Verify
+
+npm run migrate # or your migration command
+
+	•	Then check:
+
+\d task_logs
+
+
+
+⸻
+
+Once these are green, your route will load correctly and task_logs can store user_id without errors. Let me know if you hit any snags or need exact code snippets for your migration runner!
