@@ -1,0 +1,48 @@
+name: Test Insight Engine Stability
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/agents/**'
+      - 'src/prompts/**'
+      - 'src/shared/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/agents/**'
+      - 'src/prompts/**'
+      - 'src/shared/**'
+  workflow_dispatch:
+
+jobs:
+  test-insight-engine:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Compile TypeScript
+      run: npx tsc
+    
+    - name: Run Insight Engine Stability Test
+      run: node test-insight-engine-stability.cjs
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    
+    - name: Archive test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: insight-engine-results
+        path: |
+          logs/
+          results/
