@@ -14,34 +14,33 @@ export function registerScheduleRoutes(app) {
         try {
             const { workflowId, cron, enabled = true } = req.body;
             if (!workflowId || !cron) {
-                return res.status(400).json({
+                res.status(400).json({
                     error: 'Missing required fields: workflowId and cron are required'
                 });
+                return;
             }
             const newSchedule = await createSchedule(workflowId, cron, enabled);
             res.status(201).json(newSchedule);
         }
         catch (error) {
             console.error('Error creating schedule:', error);
-            res.status(500).json({
-                error: error.message || 'Failed to create schedule'
-            });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to create schedule';
+            res.status(500).json({ error: errorMessage });
         }
     });
     /**
      * Get all schedules
      * GET /api/schedules
      */
-    router.get('/', isAuthenticated, async (req, res) => {
+    router.get('/', isAuthenticated, async (_req, res) => {
         try {
             const allSchedules = await listSchedules();
             res.json(allSchedules);
         }
         catch (error) {
             console.error('Error listing schedules:', error);
-            res.status(500).json({
-                error: error.message || 'Failed to list schedules'
-            });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to list schedules';
+            res.status(500).json({ error: errorMessage });
         }
     });
     /**
@@ -53,15 +52,15 @@ export function registerScheduleRoutes(app) {
             const { id } = req.params;
             const schedule = await getSchedule(id);
             if (!schedule) {
-                return res.status(404).json({ error: 'Schedule not found' });
+                res.status(404).json({ error: 'Schedule not found' });
+                return;
             }
             res.json(schedule);
         }
         catch (error) {
             console.error(`Error getting schedule ${req.params.id}:`, error);
-            res.status(500).json({
-                error: error.message || 'Failed to get schedule'
-            });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to get schedule';
+            res.status(500).json({ error: errorMessage });
         }
     });
     /**
@@ -74,26 +73,27 @@ export function registerScheduleRoutes(app) {
             const { cron, enabled } = req.body;
             // At least one field to update should be provided
             if (cron === undefined && enabled === undefined) {
-                return res.status(400).json({
+                res.status(400).json({
                     error: 'At least one field (cron or enabled) must be provided'
                 });
+                return;
             }
             const updates = {};
             if (cron !== undefined)
-                updates.cronExpression = cron;
+                updates.cron = cron;
             if (enabled !== undefined)
                 updates.enabled = enabled;
             const updatedSchedule = await updateSchedule(id, updates);
             if (!updatedSchedule) {
-                return res.status(404).json({ error: 'Schedule not found' });
+                res.status(404).json({ error: 'Schedule not found' });
+                return;
             }
             res.json(updatedSchedule);
         }
         catch (error) {
             console.error(`Error updating schedule ${req.params.id}:`, error);
-            res.status(500).json({
-                error: error.message || 'Failed to update schedule'
-            });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to update schedule';
+            res.status(500).json({ error: errorMessage });
         }
     });
     /**
@@ -105,15 +105,15 @@ export function registerScheduleRoutes(app) {
             const { id } = req.params;
             const success = await deleteSchedule(id);
             if (!success) {
-                return res.status(404).json({ error: 'Schedule not found' });
+                res.status(404).json({ error: 'Schedule not found' });
+                return;
             }
             res.status(204).end();
         }
         catch (error) {
             console.error(`Error deleting schedule ${req.params.id}:`, error);
-            res.status(500).json({
-                error: error.message || 'Failed to delete schedule'
-            });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete schedule';
+            res.status(500).json({ error: errorMessage });
         }
     });
     // Register the router

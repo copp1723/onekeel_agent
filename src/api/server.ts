@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { registerAuthRoutes } from '../server/routes/index.js';
 import { initializeJobQueue } from '../services/jobQueue.js';
+import { initializeScheduler } from '../services/schedulerService.js';
 import jobsRouter from '../server/routes/jobs.js';
 
 // Load environment variables

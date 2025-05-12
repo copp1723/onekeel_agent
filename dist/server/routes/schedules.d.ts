@@ -1,4 +1,5 @@
 /**
  * API routes for managing workflow schedules
  */
-export declare function registerScheduleRoutes(app: any): void;
+import { Express } from 'express';
+export declare function registerScheduleRoutes(app: Express): void;
