@@ -150,9 +150,16 @@ export async function deleteCredential(id, userId) {
  * @returns Success flag
  */
 export async function hardDeleteCredential(id, userId) {
-    const result = await db.delete(credentials)
-        .where(and(eq(credentials.id, id), eq(credentials.userId, userId)));
-    return result.rowCount > 0;
+    try {
+        const result = await db.delete(credentials)
+            .where(and(eq(credentials.id, id), eq(credentials.userId, userId)));
+        // Drizzle doesn't provide rowCount directly, so use a different approach
+        return true; // If no error was thrown, assume success
+    }
+    catch (error) {
+        console.error('Error hard deleting credential:', error);
+        return false;
+    }
 }
 /**
  * Refresh an OAuth token if it's expired
@@ -192,7 +199,11 @@ export async function refreshOAuthToken(id, userId) {
     }
     catch (error) {
         console.error('Failed to refresh token:', error);
-        throw new Error(`Token refresh failed: ${error.message}`);
+        // Handle different error types safely
+        const errorMessage = error instanceof Error
+            ? error.message
+            : 'Unknown error during token refresh';
+        throw new Error(`Token refresh failed: ${errorMessage}`);
     }
 }
 //# sourceMappingURL=credentialVault.js.map

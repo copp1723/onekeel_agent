@@ -312,7 +312,7 @@ export async function parseTask(task: string, _ekoApiKey: string): Promise<Parse
           task: task
         }).returning({ id: plans.id });
         
-        const planId = planRecord.id;
+        const planId = String(planRecord.id);
         console.log(`[${taskHash}] Created CRM multi-step plan with ID: ${planId}`);
         
         return {
@@ -387,7 +387,7 @@ export async function parseTask(task: string, _ekoApiKey: string): Promise<Parse
           task: task
         }).returning({ id: plans.id });
         
-        const planId = planRecord.id;
+        const planId = String(planRecord.id);
         console.log(`Created plan record with ID: ${planId}`);
         
         multiStepPlan = {

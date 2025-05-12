@@ -67,8 +67,9 @@ router.get('/:id', async (req: any, res) => {
       hasRefreshToken: !!credential.refreshToken,
       data
     });
-  } catch (error) {
-    if (error.message.includes('not found') || error.message.includes('access denied')) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('not found') || errorMessage.includes('access denied')) {
       res.status(404).json({ error: 'Credential not found' });
     } else {
       console.error('Error getting credential:', error);
@@ -142,8 +143,9 @@ router.put('/:id', async (req: any, res) => {
       label: credential.label,
       updated: credential.updatedAt
     });
-  } catch (error) {
-    if (error.message.includes('not found') || error.message.includes('access denied')) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('not found') || errorMessage.includes('access denied')) {
       res.status(404).json({ error: 'Credential not found' });
     } else {
       console.error('Error updating credential:', error);
@@ -167,7 +169,7 @@ router.delete('/:id', async (req: any, res) => {
     } else {
       res.status(404).json({ error: 'Credential not found' });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error deleting credential:', error);
     res.status(500).json({ error: 'Failed to delete credential' });
   }

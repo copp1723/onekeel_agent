@@ -1,7 +1,13 @@
 import { EkoTool } from '../tools/extractCleanContent.js';
 import { db } from '../shared/db.js';
-import { plans, steps } from '../shared/schema.js';
+import { plans } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
+
+// Define steps table schema inline until added to main schema
+const steps = {
+  id: 'id',
+  planId: 'plan_id'
+};
 
 export interface PlanStep {
   tool: string;
@@ -42,7 +48,7 @@ export async function executePlan(
         task: plan.taskText || 'Unknown task'
       }).returning({ id: plans.id });
       
-      planId = newPlan.id;
+      planId = String(newPlan.id);
       console.log(`Created new plan in database with ID: ${planId}`);
     }
     

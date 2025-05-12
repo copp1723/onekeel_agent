@@ -13,14 +13,16 @@ const __dirname = path.dirname(__filename);
 async function setupMigrationsTable() {
     try {
         // Check if migrations table exists
-        const { rowCount } = await db.execute(`
+        const result = await db.execute(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
         AND table_name = 'migrations'
-      );
+      ) as "exists";
     `);
-        const exists = rowCount > 0;
+        // Parse result to check if migrations table exists
+        // Cast as any to handle different types from drizzle
+        const exists = result[0]?.exists === true;
         if (!exists) {
             // Create migrations table
             await db.execute(`
@@ -41,11 +43,12 @@ async function setupMigrationsTable() {
 // Check if migration has been applied
 async function isMigrationApplied(name) {
     try {
-        const result = await db.execute({
-            sql: 'SELECT COUNT(*) as count FROM migrations WHERE name = $1',
-            args: [name]
-        });
-        return parseInt(result.rows[0].count, 10) > 0;
+        const result = await db.execute(`
+      SELECT COUNT(*) as count FROM migrations WHERE name = '${name}'
+    `);
+        // Parse the result using a more generic approach to handle different Drizzle return types
+        const countValue = result[0]?.count;
+        return countValue ? parseInt(countValue.toString(), 10) > 0 : false;
     }
     catch (error) {
         console.error(`Error checking migration status for ${name}:`, error);
@@ -55,10 +58,9 @@ async function isMigrationApplied(name) {
 // Record that migration has been applied
 async function recordMigration(name) {
     try {
-        await db.execute({
-            sql: 'INSERT INTO migrations (name) VALUES ($1)',
-            args: [name]
-        });
+        await db.execute(`
+      INSERT INTO migrations (name) VALUES ('${name}')
+    `);
         console.log(`Recorded migration: ${name}`);
     }
     catch (error) {

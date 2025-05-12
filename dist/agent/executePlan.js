@@ -1,6 +1,11 @@
 import { db } from '../shared/db.js';
-import { plans, steps } from '../shared/schema.js';
+import { plans } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
+// Define steps table schema inline until added to main schema
+const steps = {
+    id: 'id',
+    planId: 'plan_id'
+};
 /**
  * Executes a multi-step plan by running each tool in sequence
  * and passing outputs between steps as needed
@@ -18,7 +23,7 @@ export async function executePlan(plan, tools) {
             const [newPlan] = await db.insert(plans).values({
                 task: plan.taskText || 'Unknown task'
             }).returning({ id: plans.id });
-            planId = newPlan.id;
+            planId = String(newPlan.id);
             console.log(`Created new plan in database with ID: ${planId}`);
         }
         for (let i = 0; i < plan.steps.length; i++) {

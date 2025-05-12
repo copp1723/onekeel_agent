@@ -253,7 +253,7 @@ export async function parseTask(task, _ekoApiKey) {
                 const [planRecord] = await db.insert(plans).values({
                     task: task
                 }).returning({ id: plans.id });
-                const planId = planRecord.id;
+                const planId = String(planRecord.id);
                 console.log(`[${taskHash}] Created CRM multi-step plan with ID: ${planId}`);
                 return {
                     type: TaskType.MultiStep,
@@ -322,7 +322,7 @@ export async function parseTask(task, _ekoApiKey) {
                 const [planRecord] = await db.insert(plans).values({
                     task: task
                 }).returning({ id: plans.id });
-                const planId = planRecord.id;
+                const planId = String(planRecord.id);
                 console.log(`Created plan record with ID: ${planId}`);
                 multiStepPlan = {
                     type: TaskType.MultiStep,

@@ -4,7 +4,7 @@ import { db } from '../shared/db.js';
 import { 
   users, 
   credentials,
-  updatedTaskLogs as taskLogs
+  taskLogs
 } from '../shared/schema.js';
 
 // Type definitions

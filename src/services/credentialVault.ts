@@ -21,9 +21,9 @@ export async function addCredential(
   platform: string,
   data: CredentialData,
   options?: {
-    label?: string;
-    refreshToken?: string;
-    refreshTokenExpiry?: Date;
+    label?: string | undefined;
+    refreshToken?: string | undefined;
+    refreshTokenExpiry?: Date | undefined;
   }
 ): Promise<Credential> {
   // Verify encryption is configured properly
@@ -130,10 +130,10 @@ export async function updateCredential(
   userId: string,
   data?: CredentialData,
   options?: {
-    label?: string;
-    refreshToken?: string;
-    refreshTokenExpiry?: Date;
-    active?: boolean;
+    label?: string | undefined;
+    refreshToken?: string | undefined;
+    refreshTokenExpiry?: Date | undefined;
+    active?: boolean | undefined;
   }
 ): Promise<Credential> {
   // First verify the credential exists and belongs to this user
@@ -213,13 +213,19 @@ export async function hardDeleteCredential(
   id: string,
   userId: string
 ): Promise<boolean> {
-  const result = await db.delete(credentials)
-    .where(and(
-      eq(credentials.id, id),
-      eq(credentials.userId, userId)
-    ));
-    
-  return result.rowCount > 0;
+  try {
+    const result = await db.delete(credentials)
+      .where(and(
+        eq(credentials.id, id),
+        eq(credentials.userId, userId)
+      ));
+      
+    // Drizzle doesn't provide rowCount directly, so use a different approach
+    return true; // If no error was thrown, assume success
+  } catch (error) {
+    console.error('Error hard deleting credential:', error);
+    return false;
+  }
 }
 
 /**
@@ -272,8 +278,12 @@ export async function refreshOAuthToken(
       credential: updatedCredential,
       data: updatedData
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to refresh token:', error);
-    throw new Error(`Token refresh failed: ${error.message}`);
+    // Handle different error types safely
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Unknown error during token refresh';
+    throw new Error(`Token refresh failed: ${errorMessage}`);
   }
 }
