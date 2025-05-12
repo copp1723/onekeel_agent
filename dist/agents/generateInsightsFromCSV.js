@@ -92,7 +92,38 @@ export async function generateInsightsFromCSV(csvFilePath, intent = 'automotive_
         return insightData;
     }
     catch (error) {
+        // Calculate duration on error
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
+        // Prepare error message
+        let errorMessage;
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        }
+        else {
+            errorMessage = 'Unknown error';
+        }
+        // Log insight run with error
+        const insightRunData = {
+            platform,
+            inputFile: csvFilePath,
+            promptIntent: intent,
+            promptVersion: 'error',
+            durationMs,
+            outputSummary: [],
+            error: errorMessage
+        };
+        logInsightRun(insightRunData);
         console.error('Error generating insights:', error);
+        // Save error details to results directory
+        const errorFilename = `insight_error_${Date.now()}`;
+        saveResult(platform, { error: errorMessage }, errorFilename, {
+            promptIntent: intent,
+            inputFile: csvFilePath,
+            durationMs,
+            status: 'error'
+        });
+        // Re-throw with meaningful message
         if (error instanceof Error) {
             throw new Error(`Failed to generate insights: ${error.message}`);
         }
@@ -108,6 +139,11 @@ export async function generateInsightsFromCSV(csvFilePath, intent = 'automotive_
  * @returns Structured insights based on the data
  */
 export async function generateInsightsFromCSVContent(csvContent, intent = 'automotive_analysis') {
+    // Identify platform from content if possible
+    const platform = csvContent.includes('VinSolutions') ? 'VinSolutions' :
+        csvContent.includes('VAUTO') ? 'VAUTO' : 'Unknown';
+    // Timing data
+    const startTime = Date.now();
     try {
         // Get appropriate system prompt based on intent
         const promptInfo = getPromptByIntent(intent);
@@ -134,6 +170,9 @@ export async function generateInsightsFromCSVContent(csvContent, intent = 'autom
             temperature: 0.2,
             response_format: { type: 'json_object' }
         });
+        // Calculate duration
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
         // Parse the response
         const content = response.choices[0].message.content;
         if (!content) {
@@ -145,10 +184,57 @@ export async function generateInsightsFromCSVContent(csvContent, intent = 'autom
         if (!insightData.title || !insightData.description || !Array.isArray(insightData.actionItems)) {
             throw new Error('Invalid insight format: Missing required fields');
         }
+        // Log the insight run
+        const insightRunData = {
+            platform,
+            promptIntent: intent,
+            promptVersion: promptInfo.version,
+            durationMs,
+            outputSummary: [insightData.title]
+        };
+        logInsightRun(insightRunData);
+        // Save result to structured directory
+        const outputFilename = `insight_${Date.now()}`;
+        const outputPath = saveResult(platform, insightData, outputFilename, {
+            promptIntent: intent,
+            promptVersion: promptInfo.version,
+            durationMs,
+            sampleSize
+        });
+        console.log(`Insight saved to: ${outputPath}`);
         return insightData;
     }
     catch (error) {
+        // Calculate duration on error
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
+        // Prepare error message
+        let errorMessage;
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        }
+        else {
+            errorMessage = 'Unknown error';
+        }
+        // Log insight run with error
+        const insightRunData = {
+            platform,
+            promptIntent: intent,
+            promptVersion: 'error',
+            durationMs,
+            outputSummary: [],
+            error: errorMessage
+        };
+        logInsightRun(insightRunData);
         console.error('Error generating insights:', error);
+        // Save error details to results directory
+        const errorFilename = `insight_error_${Date.now()}`;
+        saveResult(platform, { error: errorMessage }, errorFilename, {
+            promptIntent: intent,
+            durationMs,
+            status: 'error'
+        });
+        // Re-throw with meaningful message
         if (error instanceof Error) {
             throw new Error(`Failed to generate insights: ${error.message}`);
         }
