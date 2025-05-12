@@ -32,6 +32,14 @@ args = "TypeScript Type Check"
 task = "workflow.run"
 args = "Frontend Demo"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Workflow Demo"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Mini Workflow Demo"
+
 [[workflows.workflow]]
 name = "AI Agent Demo"
 author = "agent"
@@ -75,6 +83,22 @@ author = "agent"
 task = "shell.exec"
 args = "cd frontend && npx next dev -p 3001"
 waitForPort = 3001
+
+[[workflows.workflow]]
+name = "Workflow Demo"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node test-workflow.js"
+
+[[workflows.workflow]]
+name = "Mini Workflow Demo"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node src/workflow-mini-test.js"
 
 [deployment]
 run = ["sh", "-c", "npm install dotenv axios drizzle-orm postgres fellou-eko typescript ts-node && npx tsc && node dist/index.js"]

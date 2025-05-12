@@ -98,8 +98,8 @@ export async function runWorkflow(workflowId: string): Promise<Workflow> {
 
     // Parse the steps as JSON
     const steps: WorkflowStep[] = Array.isArray(updatedWorkflow.steps) ? 
-      updatedWorkflow.steps : 
-      JSON.parse(updatedWorkflow.steps as unknown as string);
+      updatedWorkflow.steps as WorkflowStep[] : 
+      JSON.parse(updatedWorkflow.steps as unknown as string) as WorkflowStep[];
 
     // Execute the current step
     const currentStepIndex = updatedWorkflow.currentStep;
@@ -130,12 +130,18 @@ export async function runWorkflow(workflowId: string): Promise<Workflow> {
 
       console.log(`Executing step ${currentStepIndex + 1}/${steps.length}: ${currentStep.name}`);
       
-      // Execute the step
-      const stepResult = await handler(currentStep.config, updatedWorkflow.context);
+      // Execute the step - ensure context is an object
+      const context = updatedWorkflow.context ? 
+        (typeof updatedWorkflow.context === 'string' ? 
+          JSON.parse(updatedWorkflow.context) : 
+          updatedWorkflow.context as Record<string, any>) : 
+        {};
+      
+      const stepResult = await handler(currentStep.config, context);
       
       // Merge the step result into the context
       const newContext = {
-        ...updatedWorkflow.context,
+        ...(context || {}),
         [currentStep.id]: stepResult,
         __lastStepResult: stepResult // Store the last step result for easy access
       };
@@ -234,17 +240,28 @@ export async function listWorkflows(
   limit: number = 100
 ): Promise<Workflow[]> {
   try {
-    let query = db.select().from(workflows);
+    let whereConditions = [];
     
+    // Add filters if provided
     if (status) {
-      query = query.where(eq(workflows.status, status));
+      whereConditions.push(eq(workflows.status, status));
     }
     
     if (userId) {
-      query = query.where(eq(workflows.userId, userId));
+      whereConditions.push(eq(workflows.userId, userId));
     }
     
-    return query.limit(limit);
+    // Execute query with appropriate conditions
+    if (whereConditions.length > 0) {
+      // Apply all filters using AND
+      return db.select().from(workflows)
+        .where(and(...whereConditions))
+        .limit(limit);
+    } else {
+      // No filters, return all workflows up to limit
+      return db.select().from(workflows)
+        .limit(limit);
+    }
   } catch (error) {
     console.error('Error listing workflows:', error);
     throw error;
