@@ -24,7 +24,7 @@ export interface EmailSendOptions {
 /**
  * Initialize the mailer service with API key
  */
-export declare function initializeMailer(apiKey: string): void;
+export declare function initializeMailer(apiKey?: string): void;
 /**
  * Send an email using the configured email service
  */

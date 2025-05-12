@@ -37,14 +37,27 @@ export interface EmailSendOptions {
 /**
  * Initialize the mailer service with API key
  */
-export function initializeMailer(apiKey: string): void {
+export function initializeMailer(apiKey?: string): void {
   try {
-    mailService.setApiKey(apiKey);
-    console.log('Mailer service initialized successfully');
+    // Use provided key or try to get from environment
+    const key = apiKey || process.env.SENDGRID_API_KEY;
+    
+    if (!key) {
+      console.warn('SendGrid API key not provided; email functionality is disabled');
+      return;
+    }
+    
+    mailService.setApiKey(key);
+    console.log('SendGrid mailer service initialized successfully');
   } catch (error) {
     console.error('Failed to initialize mailer service:', error);
     throw error;
   }
+}
+
+// Auto-initialize if API key is available in environment
+if (process.env.SENDGRID_API_KEY) {
+  initializeMailer();
 }
 
 /**
@@ -72,24 +85,19 @@ export async function sendEmail(options: EmailSendOptions): Promise<EmailLog> {
       updatedAt: new Date(),
     }).returning();
 
-    // Prepare email for SendGrid - ensure required fields are present
-    const message: MailDataRequired = {
+    // Prepare email for SendGrid - we need to format according to SendGrid requirements
+    const message = {
       to: options.to,
       from: options.from,
       subject: options.content.subject,
-      // Ensure at least one of text or html is provided
-      ...(options.content.text ? { text: options.content.text } : {}),
-      ...(options.content.html ? { html: options.content.html } : {}),
+      // At least one of text or html is required
+      text: options.content.text || ' ', // Always provide a text fallback
+      html: options.content.html,
       // Include optional fields if present
       ...(options.cc ? { cc: options.cc } : {}),
       ...(options.bcc ? { bcc: options.bcc } : {}),
       ...(options.attachments ? { attachments: options.attachments } : {})
     };
-
-    // If neither text nor html is provided, add a default text
-    if (!options.content.text && !options.content.html) {
-      message.text = " "; // Empty space as fallback
-    }
 
     // Send the email
     await mailService.send(message);
