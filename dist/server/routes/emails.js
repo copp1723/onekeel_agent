@@ -3,7 +3,7 @@
  * Handles email notification configuration and management
  */
 import express from 'express';
-import { configureEmailNotifications, getEmailNotificationSettings, deleteEmailNotificationSettings, getEmailLogs, retryFailedEmail } from '../../services/workflowEmailService.js';
+import { configureEmailNotifications, getEmailNotificationSettings, deleteEmailNotificationSettings, getEmailLogs, retryFailedEmail } from '../../services/fixed-workflowEmailService.js';
 import { getWorkflow } from '../../services/workflowService.js';
 const router = express.Router();
 /**
@@ -43,7 +43,7 @@ router.post('/notifications/:workflowId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to configure email notifications',
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
@@ -79,7 +79,7 @@ router.get('/notifications/:workflowId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to get email notification settings',
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
@@ -98,7 +98,7 @@ router.delete('/notifications/:workflowId', async (req, res) => {
                 message: `Workflow ${workflowId} not found`
             });
         }
-        const result = await deleteEmailNotificationSettings(workflowId);
+        await deleteEmailNotificationSettings(workflowId);
         res.json({
             success: true,
             message: 'Email notification settings deleted'
@@ -109,7 +109,7 @@ router.delete('/notifications/:workflowId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to delete email notification settings',
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
@@ -139,7 +139,7 @@ router.get('/logs/:workflowId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to get email logs',
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
@@ -161,7 +161,7 @@ router.post('/retry/:emailLogId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to retry failed email',
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
