@@ -1,1 +1,3 @@
-{}
+{
+  "/email-notifications/page": "app/email-notifications/page.js"
+}
