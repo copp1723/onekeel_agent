@@ -1,99 +1,147 @@
-# Insight Engine Stability & Quality Upgrade Testing Guide
+# Insight Engine Testing Guide
 
-This document outlines the testing process for the Insight Engine Stability & Quality Upgrade implemented in Ticket #9.
+This guide provides instructions for testing the Insight Engine, including stability features, quality scoring, and integration with various data sources.
 
-## Features Added
+## Prerequisites
 
-The upgrade adds the following features to the Insight Engine:
+Before running tests, ensure you have:
 
-1. **Prompt Version Tracking**: All LLM prompts now include version information (e.g., `v1.0.0`) following semver conventions.
-2. **Insight Run Metadata Logging**: Each insight generation run logs detailed metadata including prompt version, execution time, and output summaries.
-3. **Output Snapshotting**: Each generated insight is saved to a structured directory for historical analysis and comparison.
-4. **LLM Quality Scoring**: Optional quality assessment of generated insights using an LLM-based evaluation.
+1. Node.js v20+ installed
+2. OpenAI API key set in your environment:
+   ```
+   export OPENAI_API_KEY=sk-...
+   ```
+3. (Optional) Access to CRM data sources (email or direct API access)
 
-## Testing Checklist
+## Basic Stability Test
 
-Before deploying the upgrade to production, complete the following tests:
+This test verifies the core stability features without requiring real CRM data:
 
-### 1. CI Integration Tests
+```bash
+node test-insight-engine-stability.cjs
+```
 
-- [ ] Run TypeScript compilation check: `npx tsc --noEmit`
-- [ ] Execute the end-to-end test script: `node test-insight-engine-stability.cjs`
-- [ ] Verify test output directories are created in CI workspace
+The test uses sample data to:
+- Test prompt version tracking
+- Verify output storage structure
+- Check logging functionality
+- Test optional quality scoring
 
-### 2. Smoke Tests with Real Data
+**Expected Output:**
 
-- [ ] Run the enhanced analysis script with sample CSV:
-  ```
-  node test-crm-fetch-and-analyze-with-logging.js VinSolutions 12345 ./path/to/sample.csv
-  ```
+```
+✓ Insight generation successful
+✓ Prompt version v1.0.0 recorded in metadata
+✓ Results stored in /results/sample/YYYY-MM-DD/
+✓ Log entry created in logs/insight_runs.log
+```
 
-- [ ] Verify the following are created:
-  - `/results/{platform}/{date}/insight_*.json` files
-  - `/logs/insight_runs.log` entries with correct metadata
+## End-to-End Testing with Real Data
 
-### 3. Quality Score Validation
+For a full test with your own CRM data:
 
-- [ ] Examine AI-scored feedback on generated insights
-- [ ] Compare scores across different prompt versions to track improvements
-- [ ] Use the optional quality scoring feature:
-  ```javascript
-  import { scoreInsightQuality } from './dist/agents/insightScorer.js';
-  const qualityScore = await scoreInsightQuality(insights);
-  console.log(`Quality Score: ${qualityScore.score}/10`);
-  ```
+```bash
+# Replace with your actual file path
+node test-crm-fetch-and-analyze-with-logging.js VinSolutions 12345 ./path/to/sample.csv
+```
 
-### 4. Error Handling Tests
+This will:
+1. Process your CRM data
+2. Generate automotive insights
+3. Store results with full metadata
+4. Perform optional quality scoring
 
-- [ ] Test with malformed CSV data to verify proper error logging
-- [ ] Check error cases in hybrid ingestion flow (email + browser fallback)
-- [ ] Confirm error details are saved to results directory with error status
+## Batch Testing with Multiple Files
 
-### 5. Performance Testing
+To test against a batch of CSV files:
 
-- [ ] Track insight generation duration across multiple runs
-- [ ] Analyze prompt version impact on generation time
-- [ ] Verify logging overhead is minimal (< 5% of total operation time)
+1. Create a directory for your test data:
+   ```bash
+   mkdir -p test-data
+   ```
 
-## Integration Points
+2. Copy your CSV files into this directory:
+   ```bash
+   cp ~/Downloads/*.csv test-data/
+   ```
 
-The upgrade affects the following components:
+3. Run the smoke test script:
+   ```bash
+   node scripts/run-smoke-tests.js
+   ```
 
-- **Prompt System**: Version tracking added to all prompt definitions
-- **Insight Generator**: Enhanced with logging, output storage, and error handling
-- **Testing Scripts**: Updated to verify stability features
+## Analyzing Results
 
-## Expected Results
+After running tests, analyze the results with:
 
-After implementation, the system should:
+```bash
+node scripts/analyze-results.js
+```
 
-1. Maintain detailed logs of all insight generation runs
-2. Create structured snapshot directories with all generated insights
-3. Include version information with all prompt invocations
-4. Properly handle and log errors during generation
-5. Score insight quality for ongoing improvement
+This will show:
+- Total insights generated 
+- Success/failure rates
+- Average generation time
+- Prompt version distribution
+- (If enabled) Quality score averages
+
+## Results Structure
+
+All test results are stored in a structured directory hierarchy:
+
+```
+/results/
+  ├── VinSolutions/           # Platform name
+  │   └── 2025-05-12/         # Date of generation (YYYY-MM-DD)
+  │       ├── insight_1.json  # Full results with metadata
+  │       └── insight_2.json
+  ├── VAUTO/
+  │   └── 2025-05-12/
+  │       └── ...
+  └── sample/                 # For tests with sample data
+      └── 2025-05-12/
+          └── ...
+```
+
+Each result JSON file contains:
+- Generated insights
+- Prompt used (with version)
+- Execution metadata (timing, status)
+- Input data summary
+- (If enabled) Quality scores
+
+## Logging
+
+All insight generation runs are logged to `logs/insight_runs.log`. Each log entry contains:
+- Timestamp
+- Platform and data source
+- Status (success/error)
+- Duration
+- Prompt version
+
+## CI/CD Integration
+
+The GitHub Actions workflow in `.github/workflows/test-insight-engine.yml` automatically:
+- Runs on changes to related code
+- Executes the basic stability test
+- Archives logs and results for review
 
 ## Troubleshooting
 
-If any tests fail, check the following:
+If tests fail:
 
-- **File Access**: Ensure the application has write permissions to `/logs` and `/results` directories
-- **Environment Variables**: Verify `OPENAI_API_KEY` is properly set
-- **Dependencies**: Check TypeScript compilation status for any type errors
-- **ESM Compatibility**: Ensure imports use proper file extensions (`.js`) for ESM compatibility
+1. Check OPENAI_API_KEY is set and valid
+2. Ensure the `logs` and `results` directories are writable
+3. Verify your CSV files match the expected format
+4. Check API rate limits if running many tests in sequence
 
-## Post-Deployment Monitoring
+For specific error messages, consult `logs/insight_runs.log`
 
-After deploying to production:
+## Next Steps
 
-1. Monitor insight generation duration for any performance regressions
-2. Check log growth over time for potential disk space issues 
-3. Track quality scores to identify areas for prompt improvement
+After verifying the stability features, consider:
 
-## Stakeholder Demo Guidance
-
-When demonstrating to stakeholders, focus on:
-
-1. The historical insights archive in the `/results` directory
-2. Insight quality scores as a measure of system performance
-3. Version tracking for prompt improvements over time
+1. A/B testing different prompt versions
+2. Adding dedicated test cases for each CRM platform
+3. Integrating with automated notification systems
+4. Setting up scheduled insight generation

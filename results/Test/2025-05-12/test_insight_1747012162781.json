@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-05-12T01:09:22.781Z",
+  "metadata": {
+    "promptIntent": "automotive_analysis",
+    "promptVersion": "v1.0.0",
+    "durationMs": 1234,
+    "sampleSize": 100
+  },
+  "result": {
+    "title": "Test Insight Generated",
+    "description": "This is a test insight description that would normally come from the LLM.",
+    "actionItems": [
+      "First sample action item",
+      "Second sample action item",
+      "Third sample action item"
+    ],
+    "dataPoints": {
+      "salesVolume": 123456,
+      "topSalesPerson": "Alice Smith"
+    }
+  }
+}
