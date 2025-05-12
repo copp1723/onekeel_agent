@@ -77,6 +77,23 @@ export const taskLogs = pgTable("task_logs", {
   completedAt: timestamp("completed_at"),
 });
 
+// Job Queue for task retry and recovery
+export const jobs = pgTable("jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  taskId: uuid("task_id").references(() => taskLogs.id),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  maxAttempts: integer("max_attempts").default(2).notNull(),
+  lastError: text("last_error"),
+  nextRunAt: timestamp("next_run_at").defaultNow().notNull(),
+  lastRunAt: timestamp("last_run_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_jobs_status").on(table.status),
+  index("idx_jobs_next_run_at").on(table.nextRunAt),
+]);
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
