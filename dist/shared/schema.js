@@ -107,9 +107,10 @@ export const schedules = pgTable("schedules", {
 export const emailLogs = pgTable("email_logs", {
     id: uuid("id").primaryKey().defaultRandom(),
     workflowId: uuid("workflow_id").references(() => workflows.id, { onDelete: 'set null' }),
-    recipients: jsonb("recipients").notNull(), // Array of recipient emails
+    recipientEmail: text("recipient_email").notNull(),
     subject: text("subject").notNull(),
     status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, sent, failed
+    attempts: integer("attempts").default(1).notNull(),
     sentAt: timestamp("sent_at"),
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -117,5 +118,17 @@ export const emailLogs = pgTable("email_logs", {
 }, (table) => [
     index("idx_email_logs_workflow_id").on(table.workflowId),
     index("idx_email_logs_status").on(table.status),
+]);
+// Email notification configuration for workflows
+export const emailNotifications = pgTable("email_notifications", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id").references(() => workflows.id, { onDelete: 'cascade' }).unique(),
+    recipientEmail: text("recipient_email").notNull(),
+    sendOnCompletion: boolean("send_on_completion").default(true).notNull(),
+    sendOnFailure: boolean("send_on_failure").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+    index("idx_email_notifications_workflow_id").on(table.workflowId),
 ]);
 //# sourceMappingURL=schema.js.map
