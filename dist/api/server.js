@@ -10,6 +10,7 @@ import { initializeJobQueue } from '../services/jobQueue.js';
 import { initializeScheduler } from '../services/schedulerService.js';
 import { initializeMailer } from '../services/mailerService.js';
 import jobsRouter from '../server/routes/jobs.js';
+import workflowsRouter from '../server/routes/workflows.js';
 // Load environment variables
 dotenv.config();
 // Initialize Express app
@@ -38,7 +39,9 @@ app.use(express.static('public'));
         console.log('Authentication routes registered successfully');
         // Register job management routes
         app.use('/api/jobs', jobsRouter);
-        console.log('Job management routes registered');
+        // Register workflow routes
+        app.use('/api/workflows', workflowsRouter);
+        console.log('Job management and workflow routes registered');
     }
     catch (error) {
         console.error('Failed to register routes:', error);
