@@ -27,6 +27,10 @@ app.use(express.static('public'));
     await initializeJobQueue();
     console.log('Job queue initialized');
     
+    // Initialize the task scheduler
+    await initializeScheduler();
+    console.log('Task scheduler initialized');
+    
     // Register authentication and API routes
     await registerAuthRoutes(app);
     console.log('Authentication routes registered successfully');

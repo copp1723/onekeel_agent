@@ -185,18 +185,34 @@ async function processJob(jobId, data) {
             throw new Error(`Task not found: ${taskId}`);
         }
         const task = taskData[0];
-        // Here we would normally invoke the task handler
-        // For now, this is a placeholder for task processing
-        // In production, this would call the existing task execution system
-        // Mark task as completed
-        await db
-            .update(taskLogs)
-            .set({
-            status: 'completed',
-            completedAt: new Date(),
-            result: { message: 'Task processed successfully' }
-        })
-            .where(eq(taskLogs.id, taskId));
+        // Handle different task types
+        if (task.taskType === 'scheduledWorkflow' && task.taskData && task.taskData.workflowId) {
+            // For scheduled workflows, execute the workflow directly
+            const { executeWorkflowById } = await import('./schedulerService.js');
+            await executeWorkflowById(task.taskData.workflowId);
+            // Update the task log
+            await db
+                .update(taskLogs)
+                .set({
+                status: 'completed',
+                completedAt: new Date(),
+                result: { message: `Scheduled workflow ${task.taskData.workflowId} executed successfully` }
+            })
+                .where(eq(taskLogs.id, taskId));
+        }
+        else {
+            // Default processing for other task types
+            // TODO: Add specialized handling for different task types
+            // Mark task as completed
+            await db
+                .update(taskLogs)
+                .set({
+                status: 'completed',
+                completedAt: new Date(),
+                result: { message: 'Task processed successfully' }
+            })
+                .where(eq(taskLogs.id, taskId));
+        }
         return true;
     }
     catch (error) {

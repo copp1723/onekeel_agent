@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { registerAuthRoutes } from '../server/routes/index.js';
 import { initializeJobQueue } from '../services/jobQueue.js';
+import { initializeScheduler } from '../services/schedulerService.js';
 import jobsRouter from '../server/routes/jobs.js';
 // Load environment variables
 dotenv.config();
@@ -21,6 +22,9 @@ app.use(express.static('public'));
         // Initialize job queue service
         await initializeJobQueue();
         console.log('Job queue initialized');
+        // Initialize the task scheduler
+        await initializeScheduler();
+        console.log('Task scheduler initialized');
         // Register authentication and API routes
         await registerAuthRoutes(app);
         console.log('Authentication routes registered successfully');
