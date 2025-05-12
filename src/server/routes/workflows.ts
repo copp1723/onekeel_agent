@@ -1,7 +1,7 @@
 /**
  * API Routes for Workflow Management
  */
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { 
   createWorkflow, 
   getWorkflow, 
@@ -13,15 +13,30 @@ import {
 import { WorkflowStep, WorkflowStatus } from '../../shared/schema.js';
 import { isAuthenticated } from '../replitAuth.js';
 
+// Extend the Express Request type to include user claims
+declare global {
+  namespace Express {
+    interface User {
+      claims?: {
+        sub: string;
+        email?: string;
+        [key: string]: any;
+      };
+      [key: string]: any;
+    }
+  }
+}
+
 export const workflowRoutes = express.Router();
 
 // Create a new workflow
-workflowRoutes.post('/', isAuthenticated, async (req: Request, res: Response) => {
+workflowRoutes.post('/', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
   try {
     const { steps, initialContext } = req.body;
     
     if (!steps || !Array.isArray(steps) || steps.length === 0) {
-      return res.status(400).json({ message: 'Workflow must have at least one step' });
+      res.status(400).json({ message: 'Workflow must have at least one step' });
+      return;
     }
     
     // Get user ID from authenticated request
@@ -40,19 +55,21 @@ workflowRoutes.post('/', isAuthenticated, async (req: Request, res: Response) =>
 });
 
 // Get a specific workflow
-workflowRoutes.get('/:id', isAuthenticated, async (req: Request, res: Response) => {
+workflowRoutes.get('/:id', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const workflow = await getWorkflow(id);
     
     if (!workflow) {
-      return res.status(404).json({ message: 'Workflow not found' });
+      res.status(404).json({ message: 'Workflow not found' });
+      return;
     }
     
     // Check if user has access to this workflow
     const userId = req.user?.claims?.sub;
     if (workflow.userId && workflow.userId !== userId) {
-      return res.status(403).json({ message: 'Access denied' });
+      res.status(403).json({ message: 'Access denied' });
+      return;
     }
     
     res.json(workflow);
@@ -66,7 +83,7 @@ workflowRoutes.get('/:id', isAuthenticated, async (req: Request, res: Response) 
 });
 
 // List workflows
-workflowRoutes.get('/', isAuthenticated, async (req: Request, res: Response) => {
+workflowRoutes.get('/', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
   try {
     const status = req.query.status as WorkflowStatus | undefined;
     
@@ -88,7 +105,7 @@ workflowRoutes.get('/', isAuthenticated, async (req: Request, res: Response) => 
 });
 
 // Run a workflow (execute next step)
-workflowRoutes.post('/:id/run', isAuthenticated, async (req: Request, res: Response) => {
+workflowRoutes.post('/:id/run', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     
@@ -96,13 +113,15 @@ workflowRoutes.post('/:id/run', isAuthenticated, async (req: Request, res: Respo
     const existingWorkflow = await getWorkflow(id);
     
     if (!existingWorkflow) {
-      return res.status(404).json({ message: 'Workflow not found' });
+      res.status(404).json({ message: 'Workflow not found' });
+      return;
     }
     
     // Check if user has access to this workflow
     const userId = req.user?.claims?.sub;
     if (existingWorkflow.userId && existingWorkflow.userId !== userId) {
-      return res.status(403).json({ message: 'Access denied' });
+      res.status(403).json({ message: 'Access denied' });
+      return;
     }
     
     // Run the workflow
@@ -119,7 +138,7 @@ workflowRoutes.post('/:id/run', isAuthenticated, async (req: Request, res: Respo
 });
 
 // Reset a workflow
-workflowRoutes.post('/:id/reset', isAuthenticated, async (req: Request, res: Response) => {
+workflowRoutes.post('/:id/reset', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     
@@ -127,13 +146,15 @@ workflowRoutes.post('/:id/reset', isAuthenticated, async (req: Request, res: Res
     const existingWorkflow = await getWorkflow(id);
     
     if (!existingWorkflow) {
-      return res.status(404).json({ message: 'Workflow not found' });
+      res.status(404).json({ message: 'Workflow not found' });
+      return;
     }
     
     // Check if user has access to this workflow
     const userId = req.user?.claims?.sub;
     if (existingWorkflow.userId && existingWorkflow.userId !== userId) {
-      return res.status(403).json({ message: 'Access denied' });
+      res.status(403).json({ message: 'Access denied' });
+      return;
     }
     
     // Reset the workflow
@@ -150,7 +171,7 @@ workflowRoutes.post('/:id/reset', isAuthenticated, async (req: Request, res: Res
 });
 
 // Delete a workflow
-workflowRoutes.delete('/:id', isAuthenticated, async (req: Request, res: Response) => {
+workflowRoutes.delete('/:id', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     
@@ -158,13 +179,15 @@ workflowRoutes.delete('/:id', isAuthenticated, async (req: Request, res: Respons
     const existingWorkflow = await getWorkflow(id);
     
     if (!existingWorkflow) {
-      return res.status(404).json({ message: 'Workflow not found' });
+      res.status(404).json({ message: 'Workflow not found' });
+      return;
     }
     
     // Check if user has access to this workflow
     const userId = req.user?.claims?.sub;
     if (existingWorkflow.userId && existingWorkflow.userId !== userId) {
-      return res.status(403).json({ message: 'Access denied' });
+      res.status(403).json({ message: 'Access denied' });
+      return;
     }
     
     // Delete the workflow
