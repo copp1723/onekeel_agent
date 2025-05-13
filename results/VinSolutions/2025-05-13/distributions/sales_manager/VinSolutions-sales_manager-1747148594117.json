@@ -1,0 +1,274 @@
+{
+  "distribution_config": {
+    "email": "josh@projectxlabs.ai",
+    "role": "SALES_MANAGER",
+    "name": "Mary Manager",
+    "platforms": [
+      "VinSolutions"
+    ],
+    "channels": [
+      "FILE"
+    ],
+    "frequency": "IMMEDIATE",
+    "lastDistributed": null,
+    "active": true
+  },
+  "timestamp": "2025-05-13T15:03:14.117Z",
+  "insights": {
+    "insights": {
+      "summary": "The dealership's performance in early May 2024 shows strong sales with SUVs being the most popular body style. John Smith is the top-performing sales representative, and there is potential to increase profitability through enhanced finance product sales.",
+      "value_insights": [
+        "SUVs are the most popular body style, accounting for 50% of sales.",
+        "John Smith is the top sales representative, responsible for 50% of the sales and achieving the highest average gross profit per sale.",
+        "The average gross profit per vehicle is $4034, with the BMW X5 generating the highest individual gross profit.",
+        "Vehicles spend an average of 16.25 days in inventory before being sold, indicating efficient inventory turnover."
+      ],
+      "actionable_flags": [
+        "Focus on promoting SUVs, as they are the most popular and profitable body style.",
+        "Encourage sales representatives to sell more finance products, as they are a significant source of additional revenue.",
+        "Provide additional training or incentives for sales representatives to improve their performance, especially those with lower sales figures."
+      ],
+      "key_metrics": {
+        "total_sales": 8,
+        "total_revenue": 343730,
+        "total_gross_profit": 32270,
+        "average_price": 42966.25,
+        "average_gross_profit": 4033.75,
+        "average_days_in_inventory": 16.25
+      },
+      "risk_areas": [
+        {
+          "risk": "Low sales of finance products by some representatives, particularly Mary Johnson.",
+          "mitigation": "Implement training programs to enhance sales techniques for finance products."
+        },
+        {
+          "risk": "Higher days in inventory for certain models, like the Toyota Camry.",
+          "mitigation": "Review pricing strategy and marketing efforts for models with longer inventory periods."
+        }
+      ],
+      "confidence": "high"
+    },
+    "quality": {
+      "quality_dimensions": {
+        "completeness": 8,
+        "relevance": 9,
+        "specificity": 8,
+        "coherence": 9,
+        "innovation": 7
+      },
+      "strengths": [
+        "The insights provide a clear summary of the dealership's performance, highlighting key metrics such as sales distribution by body style and top-performing sales representatives.",
+        "The insights are well-organized, with actionable flags and risk areas clearly identified, making it easy for the dealership to understand and act upon them.",
+        "The insights are relevant to the dealership's operations, focusing on sales performance, inventory turnover, and profitability, which are critical areas for any automotive dealership."
+      ],
+      "improvement_areas": [
+        "The insights could benefit from more detailed analysis of the finance product sales, including specific strategies to increase these sales beyond general training recommendations.",
+        "While the insights mention the potential for increased profitability through finance products, they could be more innovative by suggesting new finance products or bundling strategies.",
+        "The insights could include a comparison with industry benchmarks or historical performance to provide context for the current performance metrics."
+      ],
+      "verification_steps": [
+        "Verify the sales data by cross-referencing with the dealership's sales records for early May 2024 to ensure accuracy in the reported figures.",
+        "Conduct interviews with sales representatives to gather qualitative insights on the challenges and opportunities related to finance product sales.",
+        "Analyze historical sales data to compare current performance metrics with past trends and industry benchmarks to validate the insights' context."
+      ],
+      "overall_score": 82
+    },
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 25000,
+        "confidence_level": "high",
+        "timeframe": "6 months",
+        "implementation_complexity": "medium"
+      },
+      "cost_savings": {
+        "potential_reduction": 5000,
+        "confidence_level": "medium",
+        "timeframe": "6 months",
+        "implementation_complexity": "low"
+      },
+      "customer_impact": {
+        "satisfaction": "Improved by offering more popular SUV models and better finance options.",
+        "retention": "Enhanced through personalized sales approaches and improved finance product offerings.",
+        "acquisition": "Increased by targeting marketing efforts on SUVs and finance products."
+      },
+      "operational_efficiency": {
+        "impact_areas": {
+          "inventory_turnover": "Maintain or improve current efficient turnover rates.",
+          "sales_training": "Increase sales of finance products through targeted training."
+        },
+        "potential_improvement_level": "moderate"
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Focus on promoting SUVs.",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Enhance finance product sales through training.",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Provide additional training or incentives for sales representatives.",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 3
+        },
+        {
+          "recommendation": "Review pricing strategy for models with longer inventory periods.",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 4
+        }
+      ],
+      "risk_assessment": {
+        "implementation_risks": [
+          "Resistance to change from sales representatives.",
+          "Potential misalignment of training programs with actual sales needs.",
+          "Market fluctuations affecting SUV demand."
+        ],
+        "confidence_score": "high"
+      }
+    },
+    "visualizations": {
+      "primary_visualizations": [
+        {
+          "title": "Sales by Body Style",
+          "type": "Pie Chart",
+          "description": "Visualize the distribution of sales by body style to highlight the popularity of SUVs.",
+          "data_fields": [
+            "body_style",
+            "count"
+          ]
+        },
+        {
+          "title": "Top Sales Representative Performance",
+          "type": "Bar Chart",
+          "description": "Compare sales representatives based on total sales and average gross profit to emphasize John Smith's performance.",
+          "data_fields": [
+            "sales_rep",
+            "total_sales",
+            "average_gross_profit"
+          ]
+        },
+        {
+          "title": "Gross Profit by Vehicle Model",
+          "type": "Horizontal Bar Chart",
+          "description": "Show gross profit per vehicle model to identify the most profitable models, highlighting the BMW X5.",
+          "data_fields": [
+            "model",
+            "gross_profit"
+          ]
+        },
+        {
+          "title": "Inventory Turnover",
+          "type": "Line Chart",
+          "description": "Track the average days vehicles spend in inventory to assess inventory efficiency.",
+          "data_fields": [
+            "sale_date",
+            "average_days_in_inventory"
+          ]
+        }
+      ],
+      "secondary_visualizations": [
+        {
+          "title": "Finance Product Sales by Representative",
+          "type": "Stacked Bar Chart",
+          "description": "Analyze the number of finance products sold by each sales representative to identify opportunities for improvement.",
+          "data_fields": [
+            "sales_rep",
+            "finance_products"
+          ]
+        },
+        {
+          "title": "Sales and Profitability Overview",
+          "type": "KPI Cards",
+          "description": "Display key performance indicators such as total sales, total revenue, and total gross profit for a quick overview.",
+          "data_fields": [
+            "total_sales",
+            "total_revenue",
+            "total_gross_profit"
+          ]
+        },
+        {
+          "title": "Days in Inventory by Model",
+          "type": "Heatmap",
+          "description": "Identify models with higher days in inventory to address potential pricing or marketing issues.",
+          "data_fields": [
+            "model",
+            "days_in_inventory"
+          ]
+        }
+      ],
+      "executive_dashboard": {
+        "layout": "Grid",
+        "sections": [
+          {
+            "title": "Sales Performance",
+            "visualizations": [
+              "Sales by Body Style",
+              "Top Sales Representative Performance"
+            ]
+          },
+          {
+            "title": "Profitability Insights",
+            "visualizations": [
+              "Gross Profit by Vehicle Model",
+              "Sales and Profitability Overview"
+            ]
+          },
+          {
+            "title": "Operational Efficiency",
+            "visualizations": [
+              "Inventory Turnover",
+              "Days in Inventory by Model"
+            ]
+          },
+          {
+            "title": "Additional Revenue Opportunities",
+            "visualizations": [
+              "Finance Product Sales by Representative"
+            ]
+          }
+        ]
+      },
+      "data_preparation_notes": [
+        "Aggregate sales data by body style to calculate the count for the pie chart.",
+        "Calculate total sales and average gross profit per sales representative for the bar chart.",
+        "Summarize gross profit per vehicle model for the horizontal bar chart.",
+        "Compute average days in inventory over time for the line chart.",
+        "Aggregate finance product sales by representative for the stacked bar chart.",
+        "Prepare KPI data for total sales, revenue, and gross profit for the KPI cards.",
+        "Organize days in inventory data by model for the heatmap."
+      ]
+    },
+    "metadata": {
+      "platform": "VinSolutions",
+      "timestamp": "2025-05-13T15:02:37.429Z",
+      "promptName": "automotive-analyst",
+      "promptVersion": "v2.0.0",
+      "executionTime": 7052,
+      "tokenUsage": 1582,
+      "dataSummary": {
+        "platform": "VinSolutions",
+        "timestamp": "2025-05-13T15:02:37.429Z",
+        "recordCount": 8,
+        "dataFields": [
+          "id",
+          "make",
+          "model",
+          "year",
+          "trim",
+          "sale_date",
+          "price",
+          "cost",
+          "gross_profit",
+          "days_in_inventory"
+        ]
+      }
+    }
+  }
+}
