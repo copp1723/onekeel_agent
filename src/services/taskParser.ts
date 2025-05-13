@@ -39,6 +39,7 @@ export class TaskParser {
       warn: console.warn,
       debug: console.log
     };
+  }
 
   async parseUserRequest(userInput: string): Promise<ParserResult> {
     try {
@@ -71,10 +72,11 @@ export class TaskParser {
       // Check if we need to create an execution plan
       let executionPlan = undefined;
 
-      if (parsedTask.type === 'complex' || parsedTask.steps.length > 0) {
+      if (parsedTask.type === 'complex' || (parsedTask.steps && parsedTask.steps.length > 0)) {
         try {
           const planId = uuidv4();
-          executionPlan = await createExecutionPlan(parsedTask, planId.toString());
+          // Use the ExecutionPlan class instead of the removed createExecutionPlan function
+          executionPlan = new ExecutionPlan(parsedTask, planId.toString());
           parsedTask.planId = planId.toString();
         } catch (planError) {
           this.logger.error('Error creating execution plan', { error: planError });
