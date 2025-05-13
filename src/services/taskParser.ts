@@ -29,12 +29,16 @@ export interface ParserResult {
 // Main parsing class with enhanced error handling
 export class TaskParser {
   private eko: Eko;
-  private logger: Logger;
+  private logger: any; // Using any as a temporary fix
 
-  constructor(apiKey?: string, logger?: Logger) {
+  constructor(apiKey?: string, logger?: any) {
     this.eko = new Eko(apiKey || process.env.EKO_API_KEY);
-    this.logger = logger || new Logger('TaskParser');
-  }
+    this.logger = logger || { 
+      info: console.log,
+      error: console.error,
+      warn: console.warn,
+      debug: console.log
+    };
 
   async parseUserRequest(userInput: string): Promise<ParserResult> {
     try {
