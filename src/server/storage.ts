@@ -1,3 +1,4 @@
+
 import { eq, and } from "drizzle-orm";
 import * as CryptoJS from "crypto-js";
 import { db } from '../shared/db.js';
@@ -11,7 +12,7 @@ import {
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type Credential = typeof credentials.$inferSelect;
-export type UpsertCredential = Omit<typeof credentials.$inferInsert, 'passwordEncrypted'> & { password: string };
+export type UpsertCredential = Omit<typeof credentials.$inferInsert, 'encryptedData'> & { password: string };
 export type TaskLog = typeof taskLogs.$inferSelect;
 
 // Storage interface for database operations
@@ -21,7 +22,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Credential operations
-  getCredential(userId: string, site: string): Promise<{ username: string, password: string } | null>;
+  getCredential(userId: string, platform: string): Promise<{ username: string, password: string } | null>;
   saveCredential(credential: UpsertCredential): Promise<Credential>;
   deleteCredential(credentialId: string, userId: string): Promise<boolean>;
   listCredentials(userId: string): Promise<Credential[]>;
@@ -63,13 +64,13 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Credential operations
-  async getCredential(userId: string, site: string): Promise<{ username: string, password: string } | null> {
+  async getCredential(userId: string, platform: string): Promise<{ username: string, password: string } | null> {
     const [credential] = await db
       .select()
       .from(credentials)
       .where(and(
         eq(credentials.userId, userId),
-        eq(credentials.site, site)
+        eq(credentials.platform, platform)
       ));
     
     if (!credential) {
@@ -77,33 +78,33 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Decrypt the password
-    const decryptedPassword = this.decryptPassword(credential.passwordEncrypted);
+    const decryptedPassword = this.decryptPassword(credential.encryptedData);
     
     return {
-      username: credential.username,
+      username: credential.label || '',
       password: decryptedPassword
     };
   }
   
   async saveCredential(credentialData: UpsertCredential): Promise<Credential> {
     // Encrypt the password before storing
-    const passwordEncrypted = this.encryptPassword(credentialData.password);
+    const encryptedData = this.encryptPassword(credentialData.password);
     
     // Remove the plain text password and add the encrypted one
     const { password, ...rest } = credentialData;
     const dataToInsert = {
       ...rest,
-      passwordEncrypted
+      encryptedData
     };
     
     const [credential] = await db
       .insert(credentials)
       .values(dataToInsert)
       .onConflictDoUpdate({
-        target: [credentials.userId, credentials.site],
+        target: [credentials.userId, credentials.platform],
         set: {
-          username: dataToInsert.username,
-          passwordEncrypted: dataToInsert.passwordEncrypted,
+          label: dataToInsert.label,
+          encryptedData: dataToInsert.encryptedData,
         },
       })
       .returning();

@@ -7,7 +7,7 @@
 import sgMail from '@sendgrid/mail';
 // @ts-ignore - Add declaration for nodemailer
 import nodemailer from 'nodemailer';
-import { EmailLog } from '../shared/schema.js';
+import { emailLogs } from '../shared/schema.js';
 import { db } from '../shared/db.js';
 
 // Track if SendGrid is initialized
@@ -96,7 +96,7 @@ export async function sendEmail(
       const messageId = response && response[0] && (response[0] as any).messageId || undefined;
       
       // Log success
-      await updateEmailLogSuccess(emailLogId, messageId);
+      await updateemailLogsSuccess(emailLogId, messageId);
       
       return {
         success: true,
@@ -130,7 +130,7 @@ export async function sendEmail(
             console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
             
             // Log success with fallback
-            await updateEmailLogSuccess(emailLogId, info.messageId, 'nodemailer-fallback');
+            await updateemailLogsSuccess(emailLogId, info.messageId, 'nodemailer-fallback');
             
             return {
               success: true,
@@ -140,7 +140,7 @@ export async function sendEmail(
             console.error('Nodemailer fallback error:', nodeMailerError);
             
             // Log both failures
-            await updateEmailLogFailure(
+            await updateemailLogsFailure(
               emailLogId,
               `SendGrid: ${sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message}, ` +
               `Nodemailer: ${(nodeMailerError as Error).message}`
@@ -155,7 +155,7 @@ export async function sendEmail(
       }
       
       // Log the SendGrid failure
-      await updateEmailLogFailure(
+      await updateemailLogsFailure(
         emailLogId,
         sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message
       );
@@ -186,7 +186,7 @@ async function logEmailAttempt(
     const recipients = Array.isArray(to) ? to.join(', ') : to;
     
     const [emailLog] = await db
-      .insert(EmailLog)
+      .insert(emailLogs)
       .values({
         recipients,
         subject,
@@ -207,7 +207,7 @@ async function logEmailAttempt(
 /**
  * Update email log with success status
  */
-async function updateEmailLogSuccess(
+async function updateemailLogsSuccess(
   id: string,
   messageId?: string,
   provider: string = 'sendgrid'
@@ -216,7 +216,7 @@ async function updateEmailLogSuccess(
     if (id === 'logging-failed') return;
     
     await db
-      .update(EmailLog)
+      .update(emailLogs)
       .set({
         status: 'sent',
         messageId,
@@ -224,7 +224,7 @@ async function updateEmailLogSuccess(
         sentAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(EmailLog.id, id));
+      .where(eq(emailLogs.id, id));
   } catch (error) {
     console.error('Failed to update email log with success:', error);
   }
@@ -233,7 +233,7 @@ async function updateEmailLogSuccess(
 /**
  * Update email log with failure status
  */
-async function updateEmailLogFailure(
+async function updateemailLogsFailure(
   id: string,
   errorMessage: string
 ): Promise<void> {
@@ -241,13 +241,13 @@ async function updateEmailLogFailure(
     if (id === 'logging-failed') return;
     
     await db
-      .update(EmailLog)
+      .update(emailLogs)
       .set({
         status: 'failed',
         errorMessage,
         updatedAt: new Date(),
       })
-      .where(eq(EmailLog.id, id));
+      .where(eq(emailLogs.id, id));
   } catch (error) {
     console.error('Failed to update email log with failure:', error);
   }
