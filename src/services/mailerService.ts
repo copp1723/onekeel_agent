@@ -79,7 +79,7 @@ export async function sendEmail(options: EmailSendOptions): Promise<EmailLog> {
       id: logId,
       workflowId: options.workflowId,
       status: 'pending',
-      recipients: recipients,
+      recipientEmail: Array.isArray(options.to) ? options.to[0].email : options.to.email,
       subject: options.content.subject,
       createdAt: new Date(),
       updatedAt: new Date(),
