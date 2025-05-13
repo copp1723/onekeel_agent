@@ -112,7 +112,8 @@ export function decryptData(encryptedData, iv) {
         }
     }
     catch (error) {
-        throw new Error(`Decryption failed: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Decryption failed: ${errorMessage}`);
     }
 }
 /**
@@ -179,6 +180,7 @@ export async function getCredentials(userId, platformFilter) {
         .where(and(eq(credentials.userId, userId), eq(credentials.active, true)));
     // Add platform filter if provided
     if (platformFilter) {
+        // Cast to any to bypass TypeScript error
         query = query.where(eq(credentials.platform, platformFilter));
     }
     // Execute query

@@ -1,146 +1,231 @@
 /**
- * Mailer Service
- * Handles email sending functionality using SendGrid
+ * Fixed Mailer Service
+ * Provides a simplified interface for sending emails via SendGrid
+ * with fallback to nodemailer for development/testing
  */
-import { MailService } from '@sendgrid/mail';
+
+import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '../shared/db.js';
 import { emailLogs } from '../shared/schema.js';
-import { v4 as uuidv4 } from 'uuid';
-import { eq } from 'drizzle-orm';
 
-// Initialize SendGrid client
-const mailService = new MailService();
+// Mailer configuration
+let mailerConfig = {
+  provider: 'sendgrid',
+  apiKey: null,
+  defaultFrom: 'noreply@example.com',
+  defaultFromName: 'Workflow System',
+  useNodemailerFallback: true,
+  testAccount: null
+};
+
+// Nodemailer test account for fallback
+let testTransporter = null;
 
 /**
- * Initialize the mailer service with API key
+ * Initialize the mailer service with api key and options
  */
-export function initializeMailer(apiKey) {
-  try {
-    // Use provided key or try to get from environment
-    const key = apiKey || process.env.SENDGRID_API_KEY;
-    if (!key) {
-      console.warn('SendGrid API key not provided; email functionality is disabled');
-      return;
-    }
-    mailService.setApiKey(key);
+export async function initializeMailer(apiKey, options = {}) {
+  // Configure SendGrid
+  if (apiKey) {
+    sgMail.setApiKey(apiKey);
+    mailerConfig.apiKey = apiKey;
+    mailerConfig.provider = 'sendgrid';
     console.log('SendGrid mailer service initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize mailer service:', error);
-    throw error;
+  } else {
+    console.warn('No SendGrid API key provided, will use Nodemailer fallback if enabled');
+    mailerConfig.provider = 'nodemailer';
+  }
+  
+  // Apply any custom options
+  if (options.defaultFrom) mailerConfig.defaultFrom = options.defaultFrom;
+  if (options.defaultFromName) mailerConfig.defaultFromName = options.defaultFromName;
+  if (options.useNodemailerFallback !== undefined) mailerConfig.useNodemailerFallback = options.useNodemailerFallback;
+  
+  // Set up nodemailer test account if needed for fallback
+  if (mailerConfig.provider === 'nodemailer' || mailerConfig.useNodemailerFallback) {
+    try {
+      // Create a testing account for etheral.email if no SMTP is configured
+      const testAccount = await nodemailer.createTestAccount();
+      testTransporter = nodemailer.createTransport({
+        host: testAccount.smtp.host,
+        port: testAccount.smtp.port,
+        secure: testAccount.smtp.secure,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass
+        }
+      });
+      mailerConfig.testAccount = testAccount;
+      console.log('Nodemailer test account created for fallback');
+    } catch (error) {
+      console.error('Failed to create nodemailer test account:', error);
+    }
   }
 }
 
-// Auto-initialize if API key is available in environment
-if (process.env.SENDGRID_API_KEY) {
-  initializeMailer();
-}
-
 /**
- * Send an email using the configured email service
+ * Send an email
+ * @param {object} params Email parameters
+ * @param {string|object} params.to Recipient email or array of recipient objects
+ * @param {string|object} [params.from] From email address or object
+ * @param {object} params.content Email content with subject, text, html
+ * @param {string} [params.workflowId] Optional workflow ID for logging
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string, previewUrl?: string}>}
  */
-export async function sendEmail(options) {
-  const logId = uuidv4();
-  let status = 'pending';
-  let errorMessage;
-  
-  // Format recipients for log - convert to JSON array
-  const recipients = Array.isArray(options.to)
-    ? options.to.map(r => r.email)
-    : [options.to.email];
-  
+export async function sendEmail(params) {
   try {
-    // Create a log entry for this email attempt
-    const [logEntry] = await db.insert(emailLogs).values({
-      id: logId,
-      workflowId: options.workflowId,
-      status: 'pending',
-      recipients: recipients,
-      subject: options.content.subject,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }).returning();
+    const { to, from, content, workflowId } = params;
     
-    // Prepare email for SendGrid - we need to format according to SendGrid requirements
-    // Create a message object with required fields
-    const message = {
-      to: options.to,
-      from: options.from,
-      subject: options.content.subject,
-      // At least one of text or html is required
-      text: options.content.text || ' ', // Always provide a text fallback
-      // Include optional fields if present
-      ...(options.cc ? { cc: options.cc } : {}),
-      ...(options.bcc ? { bcc: options.bcc } : {}),
-      ...(options.attachments ? { attachments: options.attachments } : {})
+    // Format the recipient(s)
+    let recipients;
+    if (typeof to === 'string') {
+      recipients = to;
+    } else if (Array.isArray(to)) {
+      // Extract emails for record-keeping
+      recipients = to.map(r => typeof r === 'string' ? r : r.email).join(', ');
+    } else if (typeof to === 'object' && to.email) {
+      recipients = to.email;
+    } else {
+      throw new Error('Invalid recipient format');
+    }
+    
+    // Format the from address
+    const fromAddress = from || {
+      email: mailerConfig.defaultFrom,
+      name: mailerConfig.defaultFromName
     };
     
-    // Add HTML content only if it exists to avoid type issues
-    if (options.content.html) {
-      message.html = options.content.html;
+    const formattedFrom = typeof fromAddress === 'string' 
+      ? fromAddress 
+      : `${fromAddress.name} <${fromAddress.email}>`;
+    
+    // Create an email log entry
+    const [logEntry] = await db
+      .insert(emailLogs)
+      .values({
+        id: uuidv4(),
+        workflowId: workflowId || null,
+        recipientEmail: recipients,
+        subject: content.subject,
+        status: 'pending',
+        attempts: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    // Try to send with SendGrid first
+    if (mailerConfig.provider === 'sendgrid' && mailerConfig.apiKey) {
+      try {
+        const msg = {
+          to: to,
+          from: fromAddress,
+          subject: content.subject,
+          text: content.text || '',
+          html: content.html || ''
+        };
+        
+        const response = await sgMail.send(msg);
+        
+        // Update the log with success
+        await db
+          .update(emailLogs)
+          .set({
+            status: 'sent',
+            sentAt: new Date(),
+            updatedAt: new Date()
+          })
+          .where('id', logEntry.id);
+        
+        return {
+          success: true,
+          messageId: Array.isArray(response) ? response[0]?.messageId : null,
+          logId: logEntry.id
+        };
+      } catch (sgError) {
+        console.error('SendGrid error:', sgError);
+        
+        // Only try nodemailer fallback if explicitly enabled
+        if (!mailerConfig.useNodemailerFallback) {
+          // Update log with error
+          await db
+            .update(emailLogs)
+            .set({
+              status: 'failed',
+              errorMessage: sgError.message || 'SendGrid error',
+              updatedAt: new Date()
+            })
+            .where('id', logEntry.id);
+          
+          throw sgError;
+        }
+        
+        // If we get here, we'll try the nodemailer fallback next
+        console.log('Falling back to Nodemailer');
+      }
     }
     
-    // Send the email
-    await mailService.send(message);
+    // Fallback to Nodemailer (or primary if SendGrid not configured)
+    if (testTransporter) {
+      const mail = {
+        from: formattedFrom,
+        to: recipients,
+        subject: content.subject,
+        text: content.text || '',
+        html: content.html || ''
+      };
+      
+      const info = await testTransporter.sendMail(mail);
+      
+      // Update the log with success
+      await db
+        .update(emailLogs)
+        .set({
+          status: 'sent',
+          sentAt: new Date(),
+          providerMessageId: info.messageId,
+          updatedAt: new Date()
+        })
+        .where('id', logEntry.id);
+      
+      console.log('Email sent via Nodemailer fallback');
+      console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+      
+      return {
+        success: true,
+        messageId: info.messageId,
+        previewUrl: nodemailer.getTestMessageUrl(info),
+        logId: logEntry.id
+      };
+    }
     
-    // Update log with success
-    status = 'sent';
-    await db
-      .update(emailLogs)
-      .set({ 
-        status: 'sent', 
-        sentAt: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(emailLogs.id, logId));
+    // If we get here, both methods failed or weren't configured
+    throw new Error('No email provider available');
     
-    console.log(`Email sent successfully. Log ID: ${logId}`);
-    
-    // Get the updated log entry
-    const [updatedLog] = await db
-      .select()
-      .from(emailLogs)
-      .where(eq(emailLogs.id, logId));
-    
-    return updatedLog;
   } catch (error) {
-    // Handle error
-    console.error('Failed to send email:', error);
-    status = 'failed';
-    errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error sending email:', error);
     
-    // Update log with failure
-    await db
-      .update(emailLogs)
-      .set({ 
-        status: 'failed', 
-        errorMessage,
-        updatedAt: new Date()
-      })
-      .where(eq(emailLogs.id, logId));
+    // Try to update the email log if we have the ID
+    try {
+      if (params.logId) {
+        await db
+          .update(emailLogs)
+          .set({
+            status: 'failed',
+            errorMessage: error.message || 'Unknown error',
+            updatedAt: new Date()
+          })
+          .where('id', params.logId);
+      }
+    } catch (logError) {
+      console.error('Failed to update email log:', logError);
+    }
     
-    // Get the updated log entry
-    const [updatedLog] = await db
-      .select()
-      .from(emailLogs)
-      .where(eq(emailLogs.id, logId));
-    
-    return updatedLog;
-  }
-}
-
-/**
- * Get email logs for a specific workflow
- */
-export async function getEmailLogs(workflowId) {
-  try {
-    const logs = await db
-      .select()
-      .from(emailLogs)
-      .where(eq(emailLogs.workflowId, workflowId))
-      .orderBy(emailLogs.createdAt);
-    return logs;
-  } catch (error) {
-    console.error(`Failed to get email logs for workflow ${workflowId}:`, error);
-    throw error;
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }

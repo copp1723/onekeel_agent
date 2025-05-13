@@ -4,13 +4,10 @@
  */
 
 import express from 'express';
-import { 
-  configureEmailNotifications,
-  getEmailNotificationSettings,
-  deleteEmailNotificationSettings,
-  getEmailLogs,
-  retryFailedEmail
-} from '../../services/workflowEmailService.js';
+import { sendWorkflowCompletionEmail, sendWorkflowSummaryEmail } from '../../services/workflowEmailService.js';
+import { db } from '../../shared/db.js';
+import { emailNotifications, emailLogs } from '../../shared/schema.js';
+import { eq } from 'drizzle-orm';
 import { getWorkflow } from '../../services/workflowService.js';
 
 const router = express.Router();
@@ -40,14 +37,51 @@ router.post('/notifications/:workflowId', async (req, res) => {
       });
     }
     
-    const result = await configureEmailNotifications(
-      workflowId, 
-      recipientEmail, 
-      {
-        sendOnCompletion,
-        sendOnFailure
-      }
-    );
+    // Check if notification already exists
+    const [existing] = await db
+      .select()
+      .from(emailNotifications)
+      .where(eq(emailNotifications.workflowId, workflowId));
+    
+    let result;
+    if (existing) {
+      // Update existing notification
+      const [updated] = await db
+        .update(emailNotifications)
+        .set({
+          recipientEmail,
+          sendOnCompletion: sendOnCompletion !== undefined ? sendOnCompletion : true,
+          sendOnFailure: sendOnFailure !== undefined ? sendOnFailure : true,
+          updatedAt: new Date()
+        })
+        .where(eq(emailNotifications.id, existing.id))
+        .returning();
+      
+      result = {
+        success: true,
+        notification: updated,
+        message: 'Email notification updated'
+      };
+    } else {
+      // Create new notification
+      const [created] = await db
+        .insert(emailNotifications)
+        .values({
+          workflowId,
+          recipientEmail,
+          sendOnCompletion: sendOnCompletion !== undefined ? sendOnCompletion : true,
+          sendOnFailure: sendOnFailure !== undefined ? sendOnFailure : true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      result = {
+        success: true,
+        notification: created,
+        message: 'Email notification created'
+      };
+    }
     
     res.json({
       success: true,
@@ -81,7 +115,10 @@ router.get('/notifications/:workflowId', async (req, res) => {
       });
     }
     
-    const notification = await getEmailNotificationSettings(workflowId);
+    const [notification] = await db
+      .select()
+      .from(emailNotifications)
+      .where(eq(emailNotifications.workflowId, workflowId));
     
     if (!notification) {
       return res.status(404).json({
@@ -121,7 +158,9 @@ router.delete('/notifications/:workflowId', async (req, res) => {
       });
     }
     
-    const result = await deleteEmailNotificationSettings(workflowId);
+    await db
+      .delete(emailNotifications)
+      .where(eq(emailNotifications.workflowId, workflowId));
     
     res.json({
       success: true,
@@ -154,7 +193,11 @@ router.get('/logs/:workflowId', async (req, res) => {
       });
     }
     
-    const logs = await getEmailLogs(workflowId);
+    const logs = await db
+      .select()
+      .from(emailLogs)
+      .where(eq(emailLogs.workflowId, workflowId))
+      .orderBy(emailLogs.createdAt);
     
     res.json({
       success: true,
@@ -178,7 +221,44 @@ router.post('/retry/:emailLogId', async (req, res) => {
   try {
     const { emailLogId } = req.params;
     
-    const result = await retryFailedEmail(emailLogId);
+    // Get the email log
+    const [emailLog] = await db
+      .select()
+      .from(emailLogs)
+      .where(eq(emailLogs.id, emailLogId));
+
+    if (!emailLog) {
+      return res.status(404).json({
+        success: false,
+        message: `Email log ${emailLogId} not found`
+      });
+    }
+
+    if (emailLog.status !== 'failed') {
+      return res.status(400).json({
+        success: false,
+        message: `Email is not in failed state (current: ${emailLog.status})`
+      });
+    }
+
+    // Get workflow details
+    const [workflow] = await db
+      .select()
+      .from(workflows)
+      .where(eq(workflows.id, emailLog.workflowId));
+
+    if (!workflow) {
+      return res.status(404).json({
+        success: false,
+        message: `Workflow ${emailLog.workflowId} not found`
+      });
+    }
+
+    // Send the email
+    const result = await sendWorkflowCompletionEmail(
+      workflow.id,
+      emailLog.recipientEmail
+    );
     
     if (!result.success) {
       return res.status(400).json(result);

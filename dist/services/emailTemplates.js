@@ -1,227 +1,173 @@
 /**
- * Email Templates for Workflow System
- * Generates formatted email content for workflow notifications
+ * Email Templates Service
+ * Provides templates for various email types in the application
  */
-
 /**
- * Generate plain text email for workflow summary
- * @param {object} data Workflow data for email
- * @returns {string} Plain text email content
- */
-export function generateWorkflowSummaryText(data) {
-  // Start with the header
-  let text = `WORKFLOW SUMMARY: ${data.workflowId}\n`;
-  text += `${'='.repeat(40)}\n\n`;
-  
-  // Add status 
-  text += `Status: ${data.workflowStatus.toUpperCase()}\n\n`;
-  
-  // Add timing information
-  text += `Created: ${formatDate(data.createdAt)}\n`;
-  if (data.completedAt) {
-    text += `Completed: ${formatDate(data.completedAt)}\n`;
-  }
-  text += '\n';
-  
-  // Add summary if available
-  if (data.summary) {
-    text += `SUMMARY:\n${data.summary}\n\n`;
-  }
-  
-  // Add error if present
-  if (data.error) {
-    text += `ERROR:\n${data.error}\n\n`;
-  }
-  
-  // Add insights if available
-  if (data.insights && data.insights.length > 0) {
-    text += 'KEY INSIGHTS:\n';
-    data.insights.forEach((insight, i) => {
-      text += `${i+1}. ${insight}\n`;
-    });
-    text += '\n';
-  }
-  
-  return text;
-}
-
-/**
- * Generate HTML email for workflow summary
- * @param {object} data Workflow data for email
- * @returns {string} HTML email content
+ * Generate a workflow summary email (HTML)
  */
 export function generateWorkflowSummaryHtml(data) {
-  // Create an HTML template with basic styling
-  let html = `
+    const duration = data.completedAt && data.createdAt
+        ? getDurationString(new Date(data.createdAt), new Date(data.completedAt))
+        : 'N/A';
+    const statusColor = getStatusColor(data.workflowStatus);
+    const formattedDate = new Date().toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    let insightsHtml = '';
+    if (data.insights && data.insights.length > 0) {
+        insightsHtml = `
+      <h3 style="color: #333; margin-top: 20px; margin-bottom: 10px;">Key Insights:</h3>
+      <ul style="margin-top: 0; padding-left: 20px;">
+        ${data.insights.map(insight => `<li style="margin-bottom: 8px;">${insight}</li>`).join('')}
+      </ul>
+    `;
+    }
+    let errorHtml = '';
+    if (data.error) {
+        errorHtml = `
+      <div style="background-color: #fff1f0; border-left: 4px solid #ff4d4f; padding: 12px; margin: 16px 0;">
+        <h3 style="color: #cf1322; margin-top: 0; margin-bottom: 8px;">Error Details:</h3>
+        <p style="margin: 0; color: #434343;">${data.error}</p>
+      </div>
+    `;
+    }
+    return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 600px;
-          margin: 0 auto;
-        }
-        .container {
-          padding: 20px;
-        }
-        .header {
-          background-color: #f5f5f5;
-          padding: 15px;
-          border-radius: 5px 5px 0 0;
-          border-bottom: 2px solid #ddd;
-        }
-        .content {
-          padding: 15px;
-          background-color: #fff;
-          border: 1px solid #ddd;
-          border-top: none;
-          border-radius: 0 0 5px 5px;
-        }
-        h1 {
-          color: #2c3e50;
-          margin: 0;
-          font-size: 1.5em;
-        }
-        .status {
-          display: inline-block;
-          padding: 4px 8px;
-          border-radius: 4px;
-          color: white;
-          font-weight: bold;
-          margin: 10px 0;
-        }
-        .completed {
-          background-color: #27ae60;
-        }
-        .failed {
-          background-color: #e74c3c;
-        }
-        .pending, .running, .paused {
-          background-color: #3498db;
-        }
-        .section {
-          margin-bottom: 15px;
-          padding-bottom: 15px;
-          border-bottom: 1px solid #eee;
-        }
-        .error {
-          background-color: #ffecec;
-          color: #e74c3c;
-          padding: 10px;
-          border-left: 4px solid #e74c3c;
-          margin: 10px 0;
-        }
-        .insights-list {
-          list-style-type: none;
-          padding-left: 0;
-        }
-        .insights-list li {
-          padding: 8px 0;
-          border-bottom: 1px solid #f6f6f6;
-        }
-        .insights-list li:before {
-          content: "• ";
-          color: #3498db;
-          font-weight: bold;
-          margin-right: 5px;
-        }
-        .footer {
-          margin-top: 20px;
-          font-size: 0.8em;
-          color: #7f8c8d;
-          text-align: center;
-        }
-      </style>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Workflow Summary</title>
     </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>Workflow Summary</h1>
-          <div class="status ${data.workflowStatus.toLowerCase()}">${data.workflowStatus.toUpperCase()}</div>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="border: 1px solid #e8e8e8; border-radius: 4px; overflow: hidden;">
+        <div style="background-color: #f5f5f5; padding: 16px; border-bottom: 1px solid #e8e8e8;">
+          <h2 style="margin: 0; color: #333;">Workflow Summary Report</h2>
+          <p style="margin: 8px 0 0 0; color: #666;">${formattedDate}</p>
         </div>
-        <div class="content">
-          <div class="section">
-            <strong>Workflow ID:</strong> ${data.workflowId}<br>
-            <strong>Created:</strong> ${formatDate(data.createdAt)}<br>
-            ${data.completedAt ? `<strong>Completed:</strong> ${formatDate(data.completedAt)}<br>` : ''}
+        
+        <div style="padding: 20px;">
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; margin-bottom: 12px;">
+              <span style="font-weight: bold; width: 120px;">Workflow ID:</span>
+              <span>${data.workflowId}</span>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 12px;">
+              <span style="font-weight: bold; width: 120px;">Status:</span>
+              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 14px; background-color: ${statusColor.bg}; color: ${statusColor.text};">
+                ${data.workflowStatus.toUpperCase()}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 12px;">
+              <span style="font-weight: bold; width: 120px;">Duration:</span>
+              <span>${duration}</span>
+            </div>
           </div>
-  `;
-  
-  // Add summary if available
-  if (data.summary) {
-    html += `
-          <div class="section">
-            <h2>Summary</h2>
-            <p>${data.summary}</p>
+          
+          ${data.summary ? `
+          <div style="margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0; margin-bottom: 10px;">Summary:</h3>
+            <p style="margin: 0;">${data.summary}</p>
           </div>
-    `;
-  }
-  
-  // Add error information if available
-  if (data.error) {
-    html += `
-          <div class="section">
-            <h2>Error</h2>
-            <div class="error">${data.error}</div>
+          ` : ''}
+          
+          ${insightsHtml}
+          ${errorHtml}
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e8e8e8; text-align: center; color: #666; font-size: 14px;">
+            <p style="margin: 0;">This is an automated email. Please do not reply to this message.</p>
           </div>
-    `;
-  }
-  
-  // Add insights if available
-  if (data.insights && data.insights.length > 0) {
-    html += `
-          <div class="section">
-            <h2>Key Insights</h2>
-            <ul class="insights-list">
-    `;
-    
-    data.insights.forEach(insight => {
-      html += `              <li>${insight}</li>\n`;
-    });
-    
-    html += `
-            </ul>
-          </div>
-    `;
-  }
-  
-  // Close the HTML
-  html += `
-        </div>
-        <div class="footer">
-          This is an automated message from the Workflow System
         </div>
       </div>
     </body>
     </html>
   `;
-  
-  return html;
 }
-
 /**
- * Format a date object or string to a readable format
- * @param {Date|string} date Date to format
- * @returns {string} Formatted date string
+ * Generate a workflow summary email (plain text)
  */
-function formatDate(date) {
-  if (!date) return 'N/A';
-  
-  try {
-    const d = new Date(date);
-    return d.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+export function generateWorkflowSummaryText(data) {
+    const duration = data.completedAt && data.createdAt
+        ? getDurationString(new Date(data.createdAt), new Date(data.completedAt))
+        : 'N/A';
+    const formattedDate = new Date().toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
     });
-  } catch (error) {
-    return String(date);
-  }
+    let insightsText = '';
+    if (data.insights && data.insights.length > 0) {
+        insightsText = `
+KEY INSIGHTS:
+${data.insights.map(insight => `- ${insight}`).join('\n')}
+`;
+    }
+    let errorText = '';
+    if (data.error) {
+        errorText = `
+ERROR DETAILS:
+${data.error}
+`;
+    }
+    return `
+WORKFLOW SUMMARY REPORT
+${formattedDate}
+
+Workflow ID: ${data.workflowId}
+Status: ${data.workflowStatus.toUpperCase()}
+Duration: ${duration}
+
+${data.summary ? `SUMMARY:
+${data.summary}
+
+` : ''}${insightsText}${errorText}
+---
+This is an automated email. Please do not reply to this message.
+`;
 }
+/**
+ * Format duration between two dates
+ */
+function getDurationString(startDate, endDate) {
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const durationSec = Math.floor(durationMs / 1000);
+    if (durationSec < 60) {
+        return `${durationSec} seconds`;
+    }
+    const minutes = Math.floor(durationSec / 60);
+    const seconds = durationSec % 60;
+    if (minutes < 60) {
+        return `${minutes} min ${seconds} sec`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours} hr ${remainingMinutes} min`;
+}
+/**
+ * Get color for workflow status
+ */
+function getStatusColor(status) {
+    switch (status.toLowerCase()) {
+        case 'completed':
+            return { bg: '#f6ffed', text: '#52c41a' };
+        case 'failed':
+            return { bg: '#fff1f0', text: '#f5222d' };
+        case 'running':
+            return { bg: '#e6f7ff', text: '#1890ff' };
+        case 'pending':
+            return { bg: '#fffbe6', text: '#faad14' };
+        case 'paused':
+            return { bg: '#f5f5f5', text: '#8c8c8c' };
+        default:
+            return { bg: '#f5f5f5', text: '#595959' };
+    }
+}
+//# sourceMappingURL=emailTemplates.js.map
