@@ -1,144 +1,145 @@
 /**
- * Test Fixed Scheduler Script
- * Tests creating a schedule with the fixed scheduler implementation
+ * Test Fixed Scheduler Implementation
  * 
- * Usage: node test-fixed-scheduler.js
+ * This script tests the fixed implementation of the scheduler service,
+ * including schedule creation, status changes, and execution.
  */
 
+import { fileURLToPath } from 'url';
+import path from 'path';
 import dotenv from 'dotenv';
-import { db } from './dist/shared/db.js';
-import { v4 as uuidv4 } from 'uuid';
-import { workflows } from './dist/shared/schema.js';
+import {
+  initializeScheduler,
+  createSchedule,
+  getSchedule,
+  updateSchedule,
+  deleteSchedule,
+  listSchedules
+} from './src/services/scheduler.js';
+import { db } from './src/shared/db.js';
+import { schedules } from './src/shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { initializeMailer } from './dist/services/fixed-mailerService.js';
-import * as fixedScheduler from './dist/services/fixed-schedulerService.js';
 
 // Load environment variables
 dotenv.config();
 
+// Get directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 /**
- * Test creating a valid schedule with the fixed scheduler
+ * Main test function
  */
 async function testFixedScheduler() {
   try {
-    console.log('Testing Fixed Scheduler Implementation...');
-    
     console.log('Using Replit PostgreSQL environment variables for database connection');
-    const dbString = process.env.DATABASE_URL || 
-      `postgres://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
-    console.log(`Connecting to database: ${dbString.replace(/:[^:]*@/, ':***@')}`);
+    console.log(`Connecting to database: ${process.env.DATABASE_URL.replace(/:[^:]*@/, ':***@')}`);
     
-    // Initialize the mailer service (required by email notifications)
-    await initializeMailer(process.env.SENDGRID_API_KEY);
-    console.log('Mailer service initialized');
+    console.log('\n--- Fixed Scheduler Test ---');
+    console.log('This test will create, update, and delete a test schedule');
     
-    // Create a test workflow to schedule
-    const workflowId = await createTestWorkflow();
-    console.log(`Created test workflow: ${workflowId}`);
+    // Avoid clashing with other tests by using a dedicated workflow ID
+    const testWorkflowId = `test-fixed-scheduler-${Date.now()}`;
+    let scheduleId = null;
     
-    // Initialize the fixed scheduler
-    await fixedScheduler.initializeScheduler();
-    console.log('Fixed scheduler initialized');
-    
-    // Create a schedule using the fixed scheduler
-    console.log('Creating schedule using fixed scheduler...');
-    const schedule = await fixedScheduler.createSchedule(
-      workflowId,  // workflowId
-      '*/5 * * * *',  // Every 5 minutes (cron expression)
-      {
-        description: 'Test fixed scheduler',
-        enabled: true
+    try {
+      // Initialize the scheduler
+      await initializeScheduler();
+      console.log('✓ Scheduler initialized');
+      
+      // List existing schedules
+      const existingSchedules = await listSchedules({});
+      console.log(`Found ${existingSchedules.length} existing schedules`);
+      
+      // Create a test schedule
+      console.log('\nCreating test schedule...');
+      const schedule = await createSchedule({
+        userId: '12345',
+        intent: 'Test Fixed Schedule',
+        platform: 'TestPlatform',
+        cronExpression: '*/10 * * * *', // Every 10 minutes
+        workflowId: testWorkflowId
+      });
+      
+      scheduleId = schedule.id;
+      console.log(`✓ Created schedule ${scheduleId} with cron: ${schedule.cron}`);
+      
+      // Get the schedule
+      console.log('\nRetrieving schedule details...');
+      const retrievedSchedule = await getSchedule(scheduleId);
+      console.log(`✓ Retrieved schedule: ${retrievedSchedule.id}`);
+      console.log(`  Platform: ${retrievedSchedule.platform}`);
+      console.log(`  Intent: ${retrievedSchedule.intent}`);
+      console.log(`  Status: ${retrievedSchedule.status}`);
+      console.log(`  Cron: ${retrievedSchedule.cron}`);
+      console.log(`  Next run: ${retrievedSchedule.nextRunAt}`);
+      
+      // Update the schedule
+      console.log('\nUpdating schedule...');
+      const updatedSchedule = await updateSchedule(scheduleId, {
+        cronExpression: '*/15 * * * *', // Every 15 minutes
+        intent: 'Updated Test Schedule'
+      });
+      
+      console.log(`✓ Updated schedule: ${updatedSchedule.id}`);
+      console.log(`  New cron: ${updatedSchedule.cron}`);
+      console.log(`  New intent: ${updatedSchedule.intent}`);
+      console.log(`  New next run: ${updatedSchedule.nextRunAt}`);
+      
+      // Pause the schedule
+      console.log('\nPausing schedule...');
+      const pausedSchedule = await updateSchedule(scheduleId, {
+        status: 'paused'
+      });
+      
+      console.log(`✓ Paused schedule: ${pausedSchedule.id}`);
+      console.log(`  Status: ${pausedSchedule.status}`);
+      
+      // Reactivate the schedule
+      console.log('\nReactivating schedule...');
+      const reactivatedSchedule = await updateSchedule(scheduleId, {
+        status: 'active'
+      });
+      
+      console.log(`✓ Reactivated schedule: ${reactivatedSchedule.id}`);
+      console.log(`  Status: ${reactivatedSchedule.status}`);
+      
+    } finally {
+      // Always clean up the test schedule
+      if (scheduleId) {
+        console.log('\nCleaning up test schedule...');
+        const deleted = await deleteSchedule(scheduleId);
+        
+        if (deleted) {
+          console.log(`✓ Test schedule ${scheduleId} deleted`);
+        } else {
+          console.log(`✗ Failed to delete test schedule ${scheduleId}`);
+        }
       }
-    );
-    
-    console.log('Successfully created schedule:', {
-      id: schedule.id,
-      workflowId: schedule.workflowId,
-      cron: schedule.cron,
-      enabled: schedule.enabled,
-      createdAt: schedule.createdAt
-    });
-    
-    // Get the schedule by ID
-    console.log('Getting schedule details...');
-    const retrievedSchedule = await fixedScheduler.getSchedule(schedule.id);
-    console.log('Retrieved schedule:', {
-      id: retrievedSchedule.id,
-      workflowId: retrievedSchedule.workflowId,
-      cron: retrievedSchedule.cron,
-      enabled: retrievedSchedule.enabled
-    });
-    
-    // Update the schedule
-    console.log('Updating schedule...');
-    const updatedSchedule = await fixedScheduler.updateSchedule(schedule.id, {
-      cronExpression: '*/10 * * * *',  // Every 10 minutes
-      enabled: true
-    });
-    
-    console.log('Successfully updated schedule:', {
-      id: updatedSchedule.id,
-      workflowId: updatedSchedule.workflowId,
-      cron: updatedSchedule.cron,
-      enabled: updatedSchedule.enabled
-    });
-    
-    console.log('Waiting 3 seconds before deleting schedule...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Delete the schedule
-    console.log('Deleting schedule...');
-    await fixedScheduler.deleteSchedule(schedule.id);
-    console.log(`Schedule ${schedule.id} deleted successfully`);
-    
-    // Clean up the test workflow
-    await cleanupTestWorkflow(workflowId);
-    console.log(`Test workflow ${workflowId} cleaned up`);
-    
-    console.log('✅ Fixed scheduler test completed successfully');
+      
+      // Clean up any orphaned schedules from previous test runs
+      const orphanedSchedules = await db
+        .select()
+        .from(schedules)
+        .where(eq(schedules.intent, 'Test Fixed Schedule'));
+      
+      if (orphanedSchedules.length > 0) {
+        console.log(`\nCleaning up ${orphanedSchedules.length} orphaned test schedules...`);
+        
+        for (const orphan of orphanedSchedules) {
+          await deleteSchedule(orphan.id);
+          console.log(`✓ Orphaned schedule ${orphan.id} deleted`);
+        }
+      }
+      
+      console.log('\n--- Test completed successfully ---');
+    }
   } catch (error) {
-    console.error('Error testing fixed scheduler:', error);
+    console.error('\n✗ Test failed:', error);
+  } finally {
+    // End the process so it doesn't hang
+    setTimeout(() => process.exit(0), 1000);
   }
-}
-
-/**
- * Create a test workflow for scheduling
- */
-async function createTestWorkflow() {
-  const workflowId = uuidv4();
-  
-  await db.insert(workflows).values({
-    id: workflowId,
-    name: 'Test Workflow for Fixed Scheduler',
-    type: 'test',
-    platform: 'demo',
-    steps: [
-      { 
-        id: 'step1', 
-        name: 'Test Step', 
-        type: 'processData',
-        config: { operation: 'test' } 
-      }
-    ],
-    status: 'pending',
-    currentStep: 0,
-    context: {
-      startedBy: 'fixed-scheduler-test',
-      timestamp: new Date().toISOString()
-    },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastUpdated: new Date()
-  });
-  
-  return workflowId;
-}
-
-/**
- * Clean up test workflow
- */
-async function cleanupTestWorkflow(workflowId) {
-  await db.delete(workflows).where(eq(workflows.id, workflowId));
 }
 
 // Run the test

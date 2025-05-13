@@ -335,8 +335,8 @@ export async function executeSchedule(scheduleId) {
       
       // Generate insights from the fetched report
       const insights = await generateInsightsForPlatform(
-        filePath,
         schedule.platform,
+        filePath,
         { intent: schedule.intent }
       );
       

@@ -1,591 +1,649 @@
 /**
  * Insight Distribution Service
- * 
- * This service handles the distribution of insights to different stakeholders
- * based on their roles and notification preferences. It supports different
- * delivery channels (email, dashboard, API) and scheduling options.
- * 
- * Key features:
- * - Role-based insight distribution (EXECUTIVE, SALES_MANAGER, MARKETING)
- * - Scheduled delivery with configurable frequency
- * - Email notifications with appropriate content formatting
- * - Support for multiple delivery channels
- * - Distribution history tracking
+ * Delivers insights to stakeholders based on roles and channels
  */
-
-import fs from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
-import { sendEmail } from './mailerService.js';
-import { executePrompt } from '../utils/promptEngine.js';
+import { fileURLToPath } from 'url';
+import * as nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
+import { v4 as uuidv4 } from 'uuid';
 
-// Constants for delivery frequency
-export const DELIVERY_FREQUENCY = {
-  IMMEDIATE: 'IMMEDIATE',
-  DAILY: 'DAILY',
-  WEEKLY: 'WEEKLY',
-  MONTHLY: 'MONTHLY'
-};
-
-// Constants for distribution channels
-export const DISTRIBUTION_CHANNEL = {
-  EMAIL: 'EMAIL',
-  DASHBOARD: 'DASHBOARD',
-  API: 'API',
-  FILE: 'FILE'
-};
-
-/**
- * Initialize a new distribution configuration for a stakeholder
- * 
- * @param {string} email - Stakeholder's email address
- * @param {string} role - Stakeholder's role (EXECUTIVE, SALES_MANAGER, MARKETING)
- * @param {string} name - Stakeholder's name
- * @param {Array<string>} platforms - Array of platforms to receive insights for
- * @param {Array<string>} channels - Array of distribution channels
- * @param {string} frequency - Delivery frequency
- * @returns {Object} Distribution configuration
- */
-export function createDistributionConfig(email, role, name, platforms = [], channels = [], frequency = DELIVERY_FREQUENCY.WEEKLY) {
-  return {
-    email,
-    role,
-    name,
-    platforms: platforms.length > 0 ? platforms : ['ALL'],
-    channels: channels.length > 0 ? channels : [DISTRIBUTION_CHANNEL.EMAIL],
-    frequency,
-    lastDistributed: null,
-    active: true
-  };
+// Initialize the SendGrid client if API key is available
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
+// Define distribution channels
+const DISTRIBUTION_CHANNELS = {
+  EMAIL: 'email',
+  SLACK: 'slack',
+  FILE: 'file',
+  API: 'api'
+};
+
+// Define stakeholder roles and their information focus
+const STAKEHOLDER_ROLES = {
+  EXECUTIVE: {
+    name: 'Executive',
+    focusAreas: ['profitability', 'revenue', 'trends', 'forecasting'],
+    metrics: ['total_revenue', 'gross_profit', 'average_profit', 'market_share'],
+    insightCategories: ['high_impact', 'strategic', 'risk']
+  },
+  SALES_MANAGER: {
+    name: 'Sales Manager',
+    focusAreas: ['sales performance', 'inventory', 'staff performance', 'deals'],
+    metrics: ['conversion_rate', 'sales_by_rep', 'deal_types', 'days_in_inventory'],
+    insightCategories: ['operational', 'tactical', 'opportunity']
+  },
+  MARKETING: {
+    name: 'Marketing',
+    focusAreas: ['demand trends', 'customer preferences', 'model performance', 'advertising'],
+    metrics: ['top_models', 'search_trends', 'lead_sources', 'customer_demographics'],
+    insightCategories: ['awareness', 'market_trends', 'customer_behavior']
+  },
+  FINANCE: {
+    name: 'Finance',
+    focusAreas: ['profitability', 'cost structure', 'financing', 'cash flow'],
+    metrics: ['finance_product_attachment', 'average_transaction_value', 'cost_metrics'],
+    insightCategories: ['financial', 'risk', 'opportunity']
+  },
+  SERVICE: {
+    name: 'Service',
+    focusAreas: ['service revenue', 'customer satisfaction', 'parts inventory', 'technician performance'],
+    metrics: ['service_revenue', 'customer_retention', 'parts_inventory_turnover'],
+    insightCategories: ['operational', 'customer_experience']
+  },
+  GENERAL_MANAGER: {
+    name: 'General Manager',
+    focusAreas: ['overall performance', 'department performance', 'strategic direction'],
+    metrics: ['all'],
+    insightCategories: ['all']
+  }
+};
+
 /**
- * Distribute insights to a specific stakeholder based on their configuration
- * 
- * @param {Object} enhancedInsights - The enhanced insights to distribute
- * @param {Object} distributionConfig - The stakeholder's distribution configuration
- * @returns {Promise<Object>} Distribution result
+ * Distribute insights to stakeholders
+ * @param {Object} insights - Generated insights
+ * @param {string} platform - CRM platform name
+ * @param {Object} options - Distribution options
+ * @returns {Promise<Object>} Distribution results
  */
-export async function distributeInsights(enhancedInsights, distributionConfig) {
+export async function distributeInsights(insights, platform, options = {}) {
   try {
-    // Check if insights should be distributed based on frequency
-    if (!shouldDistributeByFrequency(distributionConfig)) {
-      return {
-        success: true,
-        message: `Skipped distribution based on frequency setting: ${distributionConfig.frequency}`,
-        distribution: {
-          config: distributionConfig,
-          timestamp: new Date().toISOString(),
-          skipped: true
-        }
-      };
-    }
+    console.log(`Distributing insights for ${platform}...`);
     
-    // Check platform matching
-    const platform = enhancedInsights.metadata.platform;
-    if (!distributionConfig.platforms.includes('ALL') && !distributionConfig.platforms.includes(platform)) {
-      return {
-        success: true,
-        message: `Skipped distribution for platform ${platform} based on stakeholder configuration`,
-        distribution: {
-          config: distributionConfig,
-          timestamp: new Date().toISOString(),
-          skipped: true
-        }
-      };
-    }
+    // Get distribution configurations
+    const distributionConfigs = await getDistributionConfigs(platform);
+    console.log(`Created ${distributionConfigs.length} distribution configurations`);
     
-    // Generate role-specific insights
-    const roleInsights = await generateRoleSpecificInsights(enhancedInsights, distributionConfig.role);
-    
-    // Distribute through each channel
-    const channelResults = [];
-    const distributionPromises = [];
-    
-    for (const channel of distributionConfig.channels) {
-      console.log(`Distributing insights via ${channel} to ${distributionConfig.role} (${distributionConfig.name})`);
-      
-      let channelPromise;
-      switch (channel) {
-        case DISTRIBUTION_CHANNEL.EMAIL:
-          channelPromise = distributeViaEmail(roleInsights, distributionConfig);
-          break;
-        case DISTRIBUTION_CHANNEL.DASHBOARD:
-          channelPromise = distributeViaDashboard(roleInsights, distributionConfig);
-          break;
-        case DISTRIBUTION_CHANNEL.API:
-          channelPromise = distributeViaAPI(roleInsights, distributionConfig);
-          break;
-        case DISTRIBUTION_CHANNEL.FILE:
-          channelPromise = distributeViaFile(roleInsights, distributionConfig);
-          break;
-      }
-      
-      distributionPromises.push(channelPromise.then(result => {
-        channelResults.push({
-          channel,
-          success: result.success,
-          message: result.message,
-          ...result
-        });
-        return result;
-      }));
-    }
-    
-    await Promise.all(distributionPromises);
-    
-    // Update last distributed timestamp
-    distributionConfig.lastDistributed = new Date().toISOString();
-    
-    // Return distribution results
-    return {
+    // Results tracking
+    const results = {
       success: true,
-      message: `Insights distributed to ${distributionConfig.name} (${distributionConfig.role})`,
-      distribution: {
-        config: distributionConfig,
-        channelResults,
-        timestamp: new Date().toISOString(),
-        skipped: false
-      }
+      distributions: [],
+      errors: []
     };
+    
+    // Distribute based on configurations
+    for (const config of distributionConfigs) {
+      try {
+        console.log(`Distributing to ${config.role} (${config.recipient.name})...`);
+        
+        // Generate role-specific insights
+        let roleSpecificInsights;
+        try {
+          console.log(`Generating role-specific insights for ${config.role}...`);
+          roleSpecificInsights = generateRoleSpecificInsights(insights, config.role);
+        } catch (insightError) {
+          console.error(`Error generating role-specific insights:`, insightError);
+          roleSpecificInsights = { ...insights };
+        }
+        
+        // Track distribution
+        const distributionResult = {
+          role: config.role,
+          recipient: config.recipient.name,
+          channels: {}
+        };
+        
+        // Distribute via each configured channel
+        for (const channel of config.channels) {
+          try {
+            console.log(`Distributing insights via ${channel} to ${config.role} (${config.recipient.name})`);
+            
+            switch (channel) {
+              case DISTRIBUTION_CHANNELS.EMAIL:
+                const emailResult = await distributeViaEmail(
+                  roleSpecificInsights,
+                  config.recipient.email,
+                  config.role,
+                  platform
+                );
+                distributionResult.channels.EMAIL = emailResult ? 'Success' : 'Failed';
+                break;
+                
+              case DISTRIBUTION_CHANNELS.SLACK:
+                // Not implemented yet
+                distributionResult.channels.SLACK = 'Not implemented';
+                break;
+                
+              case DISTRIBUTION_CHANNELS.FILE:
+                const fileResult = await distributeViaFile(
+                  roleSpecificInsights,
+                  config.role.toLowerCase(),
+                  platform
+                );
+                distributionResult.channels.FILE = fileResult ? 'Success' : 'Failed';
+                break;
+                
+              case DISTRIBUTION_CHANNELS.API:
+                // Not implemented yet
+                distributionResult.channels.API = 'Not implemented';
+                break;
+                
+              default:
+                distributionResult.channels[channel] = 'Unknown channel';
+            }
+          } catch (channelError) {
+            console.error(`Error distributing via ${channel}:`, channelError);
+            distributionResult.channels[channel] = `Failed - ${channelError.message}`;
+            results.errors.push({
+              role: config.role,
+              channel,
+              error: channelError.message
+            });
+          }
+        }
+        
+        // Track successful distribution
+        const isSuccess = Object.values(distributionResult.channels).some(
+          status => status === 'Success'
+        );
+        
+        // Print success/fail message
+        if (isSuccess) {
+          console.log(`✓ Successfully distributed insights to ${config.role}`);
+          
+          // Log channel statuses
+          for (const [channel, status] of Object.entries(distributionResult.channels)) {
+            const statusIcon = status === 'Success' ? '✓' : '✗';
+            let statusMessage = status;
+            
+            if (status.startsWith('Failed')) {
+              statusMessage = `Failed - ${status.substring(8)}`;
+              console.log(`  - ${channel}: ${statusIcon} ${statusMessage}`);
+            } else {
+              console.log(`  - ${channel}: ${statusIcon} ${status}`);
+            }
+          }
+        } else {
+          console.error(`✗ Failed to distribute insights to ${config.role}`);
+        }
+        
+        results.distributions.push(distributionResult);
+      } catch (configError) {
+        console.error(`Error processing distribution config for ${config.role}:`, configError);
+        results.errors.push({
+          role: config.role,
+          error: configError.message
+        });
+      }
+    }
+    
+    // Set overall success based on errors
+    if (results.errors.length > 0) {
+      results.success = false;
+    }
+    
+    return results;
   } catch (error) {
     console.error('Error distributing insights:', error);
     return {
       success: false,
-      message: `Failed to distribute insights: ${error.message}`,
-      error
+      error: error.message
     };
   }
 }
 
 /**
  * Distribute insights via email
- * 
- * @param {Object} roleInsights - Role-specific insights
- * @param {Object} config - Distribution configuration
- * @returns {Promise<Object>} Email distribution result
+ * @param {Object} insights - Insights to distribute
+ * @param {string} recipient - Recipient email address
+ * @param {string} role - Recipient role
+ * @param {string} platform - CRM platform name
+ * @returns {Promise<boolean>} Success status
  */
-async function distributeViaEmail(roleInsights, config) {
+async function distributeViaEmail(insights, recipient, role, platform) {
   try {
-    const { subject, html, text } = generateEmailContent(roleInsights, config);
+    if (!recipient) {
+      throw new Error('Recipient email is required');
+    }
     
-    const emailResult = await sendEmail({
-      to: config.email,
+    // Generate email content
+    const { subject, text, html } = generateEmailContent(insights, role, platform);
+    
+    // Initialize email transport
+    const transporter = await getEmailTransport();
+    
+    // Attempt to send with SendGrid first
+    if (process.env.SENDGRID_API_KEY) {
+      try {
+        await sgMail.send({
+          to: recipient,
+          from: process.env.FROM_EMAIL || 'insights@agentflow.ai',
+          subject,
+          text,
+          html
+        });
+        console.log(`Email sent to ${recipient} via SendGrid`);
+        return true;
+      } catch (sgError) {
+        console.error('SendGrid error:', sgError);
+        // Fall back to Nodemailer
+      }
+    }
+    
+    // Send via Nodemailer if SendGrid fails or is not configured
+    const info = await transporter.sendMail({
+      from: process.env.FROM_EMAIL || 'insights@agentflow.ai',
+      to: recipient,
       subject,
-      html,
-      text
+      text,
+      html
     });
     
-    return {
-      success: emailResult.success,
-      message: emailResult.message,
-      emailId: emailResult.emailId,
-      previewUrl: emailResult.previewUrl
-    };
+    console.log(`Email sent to ${recipient} via Nodemailer`);
+    
+    // Log preview URL if using ethereal
+    if (info.ethereal) {
+      console.log(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+    }
+    
+    return true;
   } catch (error) {
-    console.error('Error distributing via email:', error);
-    return {
-      success: false,
-      message: `Failed to distribute via email: ${error.message}`
-    };
+    console.error(`Error distributing via email:`, error);
+    throw error;
   }
 }
 
 /**
- * Generate email content for insights distribution
- * 
- * @param {Object} roleInsights - Role-specific insights
- * @param {Object} config - Distribution configuration
- * @returns {Object} Email content with HTML and plain text versions
+ * Generate email content based on insights and role
+ * @param {Object} insights - The insights to include
+ * @param {string} role - Recipient role
+ * @param {string} platform - CRM platform name
+ * @returns {Object} Email content (subject, text, html)
  */
-function generateEmailContent(roleInsights, config) {
-  const platform = roleInsights.metadata.platform;
-  const subject = `${platform} Insights for ${config.role === 'EXECUTIVE' ? 'Executive Leadership' : config.role === 'SALES_MANAGER' ? 'Sales Management' : 'Marketing Team'}`;
+function generateEmailContent(insights, role, platform) {
+  const roleDef = STAKEHOLDER_ROLES[role] || STAKEHOLDER_ROLES.GENERAL_MANAGER;
+  const roleTitle = roleDef.name;
   
-  // Generate HTML content
+  // Generate subject
+  const subject = `${platform} Insights for ${roleTitle} - ${new Date().toLocaleDateString()}`;
+  
+  // Generate text version
+  let text = `${platform} Insights for ${roleTitle}\n`;
+  text += `Generated on: ${new Date().toLocaleString()}\n\n`;
+  
+  text += `KEY INSIGHTS:\n`;
+  if (insights.insights && insights.insights.length > 0) {
+    insights.insights.forEach((insight, index) => {
+      text += `${index + 1}. ${insight}\n`;
+    });
+  }
+  
+  text += `\nKEY METRICS:\n`;
+  if (insights.key_metrics) {
+    Object.entries(insights.key_metrics).forEach(([key, value]) => {
+      text += `${key.replace(/_/g, ' ')}: ${value}\n`;
+    });
+  }
+  
+  if (insights.action_items && insights.action_items.length > 0) {
+    text += `\nRECOMMENDED ACTIONS:\n`;
+    insights.action_items.forEach((action, index) => {
+      text += `${index + 1}. ${action}\n`;
+    });
+  }
+  
+  // Generate HTML version
   let html = `
     <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #f5f5f5; padding: 15px; border-bottom: 3px solid #0066cc; }
-          .header h1 { margin: 0; color: #0066cc; }
-          .section { margin-top: 20px; }
-          .section h2 { color: #0066cc; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-          .insight-item { padding: 10px; margin-bottom: 10px; border-left: 4px solid #0066cc; background-color: #f9f9f9; }
-          .metrics { display: flex; flex-wrap: wrap; }
-          .metric { flex: 1; min-width: 200px; padding: 10px; margin: 5px; background-color: #f0f8ff; border-radius: 5px; }
-          .metric h3 { margin-top: 0; color: #0066cc; }
-          .action-item { padding: 10px; margin-bottom: 10px; border-left: 4px solid #ff9900; background-color: #fffaf0; }
-          .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 12px; color: #777; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; }
+          .header { background-color: #f0f0f0; padding: 20px; border-bottom: 3px solid #ddd; }
+          .header h1 { margin: 0; color: #444; }
+          .content { padding: 20px; }
+          .section { margin-bottom: 25px; }
+          .section h2 { color: #3a7ca5; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+          .metric { display: inline-block; margin: 10px; padding: 15px; background-color: #f9f9f9; border-radius: 5px; min-width: 100px; text-align: center; }
+          .metric-value { font-size: 24px; font-weight: bold; color: #2c5d8d; }
+          .metric-label { font-size: 12px; color: #777; text-transform: uppercase; }
+          .insight-item { margin-bottom: 10px; padding-left: 20px; position: relative; }
+          .insight-item:before { content: "•"; position: absolute; left: 0; color: #3a7ca5; }
+          .action-item { background-color: #ffffe0; padding: 10px; margin-bottom: 10px; border-left: 3px solid #e6db55; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #777; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>${subject}</h1>
-            <p>Generated on: ${new Date().toLocaleDateString()}</p>
-            <p>For: ${config.name}</p>
+            <h1>${platform} Insights</h1>
+            <p>For ${roleTitle} - Generated on ${new Date().toLocaleString()}</p>
           </div>
           
-          <div class="section">
-            <h2>Summary</h2>
-            <p>${roleInsights.summary}</p>
-          </div>
-    `;
-    
-  // Add key insights section
-  html += `
-    <div class="section">
-      <h2>Key Insights</h2>
+          <div class="content">
+            <div class="section">
+              <h2>Key Insights</h2>
   `;
   
-  roleInsights.value_insights.forEach(insight => {
-    html += `<div class="insight-item">${insight}</div>`;
-  });
-  
-  html += `</div>`;
-  
-  // Add key metrics section
-  html += `
-    <div class="section">
-      <h2>Key Metrics</h2>
-      <div class="metrics">
-  `;
-  
-  for (const [key, value] of Object.entries(roleInsights.key_metrics)) {
-    html += `
-      <div class="metric">
-        <h3>${key.replace(/_/g, ' ').toUpperCase()}</h3>
-        <p>${value}</p>
-      </div>
-    `;
+  if (insights.insights && insights.insights.length > 0) {
+    insights.insights.forEach(insight => {
+      html += `<div class="insight-item">${insight}</div>`;
+    });
+  } else {
+    html += `<p>No insights available.</p>`;
   }
   
   html += `
-      </div>
-    </div>
+            </div>
+            
+            <div class="section">
+              <h2>Key Metrics</h2>
   `;
   
-  // Add action items section
-  html += `
-    <div class="section">
-      <h2>Recommended Actions</h2>
-  `;
-  
-  roleInsights.actionable_flags.forEach(action => {
-    html += `<div class="action-item">${action}</div>`;
-  });
-  
-  html += `</div>`;
-  
-  // Add business impact section if available
-  if (roleInsights.business_impact) {
-    html += `
-      <div class="section">
-        <h2>Business Impact</h2>
-        <div class="metrics">
-          <div class="metric">
-            <h3>REVENUE IMPACT</h3>
-            <p>Potential: ${roleInsights.business_impact.revenue_impact.potential_gain}</p>
-            <p>Confidence: ${roleInsights.business_impact.revenue_impact.confidence}</p>
-          </div>
-          <div class="metric">
-            <h3>COST SAVINGS</h3>
-            <p>Potential: ${roleInsights.business_impact.cost_impact.potential_savings}</p>
-            <p>Confidence: ${roleInsights.business_impact.cost_impact.confidence}</p>
-          </div>
-          <div class="metric">
-            <h3>CUSTOMER IMPACT</h3>
-            <p>Impact: ${roleInsights.business_impact.customer_impact.impact_level}</p>
-            <p>Description: ${roleInsights.business_impact.customer_impact.description}</p>
-          </div>
+  if (insights.key_metrics) {
+    Object.entries(insights.key_metrics).forEach(([key, value]) => {
+      html += `
+        <div class="metric">
+          <div class="metric-value">${value}</div>
+          <div class="metric-label">${key.replace(/_/g, ' ')}</div>
         </div>
-      </div>
-    `;
+      `;
+    });
+  } else {
+    html += `<p>No metrics available.</p>`;
   }
   
-  // Add visualization recommendations if available
-  if (roleInsights.visualizations) {
+  html += `
+            </div>
+  `;
+  
+  if (insights.action_items && insights.action_items.length > 0) {
     html += `
-      <div class="section">
-        <h2>Visualization Recommendations</h2>
-        <p>${roleInsights.visualizations.recommendation}</p>
-        <ul>
+            <div class="section">
+              <h2>Recommended Actions</h2>
     `;
     
-    roleInsights.visualizations.chart_types.forEach(chart => {
-      html += `<li><strong>${chart.type}:</strong> ${chart.description}</li>`;
+    insights.action_items.forEach(action => {
+      html += `<div class="action-item">${action}</div>`;
     });
     
     html += `
-        </ul>
-      </div>
+            </div>
     `;
   }
   
-  // Add footer
   html += `
+          </div>
+          
           <div class="footer">
             <p>This is an automated insight report. Please do not reply to this email.</p>
-            <p>Generated by Automotive Insight Engine | Data platform: ${platform}</p>
+            <p>Powered by AgentFlow AI</p>
           </div>
         </div>
       </body>
     </html>
   `;
   
-  // Generate plain text version
-  const text = `
-${subject}
-Generated on: ${new Date().toLocaleDateString()}
-For: ${config.name}
-
-SUMMARY
-${roleInsights.summary}
-
-KEY INSIGHTS
-${roleInsights.value_insights.map(insight => `- ${insight}`).join('\n')}
-
-KEY METRICS
-${Object.entries(roleInsights.key_metrics).map(([key, value]) => `${key.replace(/_/g, ' ').toUpperCase()}: ${value}`).join('\n')}
-
-RECOMMENDED ACTIONS
-${roleInsights.actionable_flags.map(action => `- ${action}`).join('\n')}
-
-${roleInsights.business_impact ? `
-BUSINESS IMPACT
-Revenue Potential: ${roleInsights.business_impact.revenue_impact.potential_gain} (Confidence: ${roleInsights.business_impact.revenue_impact.confidence})
-Cost Savings: ${roleInsights.business_impact.cost_impact.potential_savings} (Confidence: ${roleInsights.business_impact.cost_impact.confidence})
-Customer Impact: ${roleInsights.business_impact.customer_impact.impact_level} - ${roleInsights.business_impact.customer_impact.description}
-` : ''}
-
-This is an automated insight report. Please do not reply to this email.
-Generated by Automotive Insight Engine | Data platform: ${platform}
-  `;
-  
-  return { subject, html, text };
+  return { subject, text, html };
 }
 
 /**
- * Distribute insights via dashboard
- * 
- * @param {Object} roleInsights - Role-specific insights
- * @param {Object} config - Distribution configuration
- * @returns {Promise<Object>} Dashboard distribution result
+ * Distribute insights via file
+ * @param {Object} insights - Insights to distribute
+ * @param {string} role - Recipient role
+ * @param {string} platform - CRM platform name
+ * @returns {Promise<boolean>} Success status
  */
-async function distributeViaDashboard(roleInsights, config) {
-  // Dashboard integration would be implemented here
-  // This is a placeholder implementation
-  console.log(`Would distribute insights to dashboard for ${config.role}`);
-  
-  return {
-    success: true,
-    message: 'Insights would be distributed to dashboard (placeholder)'
-  };
-}
-
-/**
- * Distribute insights via API
- * 
- * @param {Object} roleInsights - Role-specific insights
- * @param {Object} config - Distribution configuration
- * @returns {Promise<Object>} API distribution result
- */
-async function distributeViaAPI(roleInsights, config) {
-  // API integration would be implemented here
-  // This is a placeholder implementation
-  console.log(`Would distribute insights via API for ${config.role}`);
-  
-  return {
-    success: true,
-    message: 'Insights would be distributed via API (placeholder)'
-  };
-}
-
-/**
- * Distribute insights via file system
- * 
- * @param {Object} roleInsights - Role-specific insights
- * @param {Object} config - Distribution configuration
- * @returns {Promise<Object>} File distribution result
- */
-async function distributeViaFile(roleInsights, config) {
+async function distributeViaFile(insights, role, platform) {
   try {
-    const platform = roleInsights.metadata.platform;
-    const dateStr = new Date().toISOString().split('T')[0];
-    const dirPath = path.join('results', platform, dateStr, 'distributions', config.role.toLowerCase());
-    const filename = `${platform}-${config.role.toLowerCase()}-${Date.now()}.json`;
-    const filePath = path.join(dirPath, filename);
+    // Create role-specific directory for insights
+    const date = new Date();
+    const dateStr = date.toISOString().split('T')[0];
+    const baseDir = path.join(process.cwd(), 'results', platform, dateStr, 'distributions', role);
     
-    // Create directory if it doesn't exist
-    await fs.mkdir(dirPath, { recursive: true });
+    // Ensure directory exists
+    await fs.promises.mkdir(baseDir, { recursive: true });
+    
+    // Generate filename with timestamp
+    const timestamp = Date.now();
+    const filename = `${platform}-${role}-${timestamp}.json`;
+    const filePath = path.join(baseDir, filename);
     
     // Write insights to file
-    await fs.writeFile(
-      filePath, 
-      JSON.stringify({
-        distribution_config: config,
-        timestamp: new Date().toISOString(),
-        insights: roleInsights
-      }, null, 2)
+    await fs.promises.writeFile(
+      filePath,
+      JSON.stringify(insights, null, 2),
+      'utf8'
     );
+    
+    console.log(`Insights saved to ${filePath}`);
+    return true;
+  } catch (error) {
+    console.error(`Error distributing via file:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get or create email transport
+ * @returns {Promise<nodemailer.Transporter>} Nodemailer transport
+ */
+async function getEmailTransport() {
+  // Check for environment variables
+  if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    // Use configured SMTP
+    return nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT || '587', 10),
+      secure: process.env.EMAIL_SECURE === 'true',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+  }
+  
+  // Use ethereal for testing
+  const testAccount = await nodemailer.createTestAccount();
+  console.log('Nodemailer test account created for fallback');
+  
+  return nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false,
+    auth: {
+      user: testAccount.user,
+      pass: testAccount.pass
+    }
+  });
+}
+
+/**
+ * Get distribution configurations
+ * This would typically be loaded from a database or config file
+ * @param {string} platform - CRM platform name
+ * @returns {Promise<Array>} Distribution configurations
+ */
+async function getDistributionConfigs(platform) {
+  console.log('Creating distribution configurations for different roles...');
+  
+  // In a real system, this would be fetched from the database
+  // For now, we'll return a static configuration for testing
+  
+  const configs = [
+    {
+      role: 'EXECUTIVE',
+      recipient: {
+        name: 'John Executive',
+        email: process.env.TEST_EMAIL_ADDRESS || 'executive@example.com'
+      },
+      channels: ['EMAIL', 'FILE']
+    },
+    {
+      role: 'SALES_MANAGER',
+      recipient: {
+        name: 'Mary Manager',
+        email: process.env.TEST_EMAIL_ADDRESS || 'manager@example.com'
+      },
+      channels: ['FILE']
+    },
+    {
+      role: 'MARKETING',
+      recipient: {
+        name: 'Dave Marketing',
+        email: process.env.TEST_EMAIL_ADDRESS || 'marketing@example.com'
+      },
+      channels: ['FILE']
+    }
+  ];
+  
+  return configs;
+}
+
+/**
+ * Generate role-specific insights based on the complete insights and role
+ * @param {Object} insights - Complete insights object
+ * @param {string} role - Role identifier (from STAKEHOLDER_ROLES)
+ * @returns {Object} Role-specific insights
+ */
+function generateRoleSpecificInsights(insights, role) {
+  // Get the role definition and focus areas
+  const roleDef = STAKEHOLDER_ROLES[role] || STAKEHOLDER_ROLES.GENERAL_MANAGER;
+  
+  // For general manager, return all insights
+  if (role === 'GENERAL_MANAGER') {
+    return { ...insights };
+  }
+  
+  // Create a copy of the insights to modify
+  const roleInsights = {
+    ...insights,
+    role_specific: true,
+    for_role: roleDef.name
+  };
+  
+  // Filter insights relevant to the role
+  if (insights.insights && Array.isArray(insights.insights)) {
+    roleInsights.insights = insights.insights.filter(insight => 
+      roleDef.focusAreas.some(focus => 
+        insight.toLowerCase().includes(focus.toLowerCase())
+      )
+    );
+  }
+  
+  // If we filtered out everything, include the first few anyway
+  if (roleInsights.insights.length === 0 && insights.insights) {
+    roleInsights.insights = insights.insights.slice(0, 3);
+  }
+  
+  // Filter action items relevant to the role
+  if (insights.action_items && Array.isArray(insights.action_items)) {
+    roleInsights.action_items = insights.action_items.filter(action => 
+      roleDef.focusAreas.some(focus => 
+        action.toLowerCase().includes(focus.toLowerCase())
+      )
+    );
+    
+    // If we filtered out everything, include the first few anyway
+    if (roleInsights.action_items.length === 0) {
+      roleInsights.action_items = insights.action_items.slice(0, 2);
+    }
+  }
+  
+  // Filter metrics to include only relevant ones
+  if (insights.key_metrics && typeof insights.key_metrics === 'object') {
+    const relevantMetrics = {};
+    
+    // If role wants all metrics, copy them all
+    if (roleDef.metrics.includes('all')) {
+      Object.assign(relevantMetrics, insights.key_metrics);
+    } else {
+      // Copy only metrics relevant to the role
+      for (const metricKey of roleDef.metrics) {
+        if (insights.key_metrics[metricKey] !== undefined) {
+          relevantMetrics[metricKey] = insights.key_metrics[metricKey];
+        }
+      }
+      
+      // Always include a few common metrics if available
+      const commonMetrics = ['total_sales', 'average_price', 'total_revenue'];
+      for (const metric of commonMetrics) {
+        if (insights.key_metrics[metric] !== undefined && relevantMetrics[metric] === undefined) {
+          relevantMetrics[metric] = insights.key_metrics[metric];
+        }
+      }
+    }
+    
+    roleInsights.key_metrics = relevantMetrics;
+  }
+  
+  return roleInsights;
+}
+
+/**
+ * Add a new stakeholder recipient to the distribution list
+ * This would typically interact with a database in a real system
+ * @param {Object} stakeholder - Stakeholder details
+ * @returns {Promise<Object>} Result with success status
+ */
+export async function addStakeholder(stakeholder) {
+  try {
+    if (!stakeholder.email || !stakeholder.role) {
+      throw new Error('Email and role are required');
+    }
+    
+    // Validate role
+    if (!STAKEHOLDER_ROLES[stakeholder.role]) {
+      throw new Error(`Invalid role: ${stakeholder.role}`);
+    }
+    
+    // In a real system, this would save to a database
+    // For this demo, we'll just log it
+    console.log(`Added stakeholder: ${stakeholder.name} (${stakeholder.email}) as ${stakeholder.role}`);
     
     return {
       success: true,
-      message: `Insights saved to ${filePath}`,
-      filePath
+      message: 'Stakeholder added successfully',
+      stakeholder: {
+        id: uuidv4(),
+        ...stakeholder,
+        created: new Date().toISOString()
+      }
     };
   } catch (error) {
-    console.error('Error distributing via file:', error);
+    console.error('Error adding stakeholder:', error);
     return {
       success: false,
-      message: `Failed to distribute via file: ${error.message}`
+      error: error.message
     };
   }
 }
 
 /**
- * Schedule insights distribution for multiple stakeholders
- * 
- * @param {Object} enhancedInsights - The enhanced insights to distribute
- * @param {Array<Object>} distributionConfigs - Array of stakeholder distribution configurations
- * @returns {Promise<Object>} Scheduled distribution results
+ * Get distribution channels
+ * @returns {Object} Available distribution channels
  */
-export async function scheduleDistribution(enhancedInsights, distributionConfigs) {
-  const results = {
-    success: true,
-    distributions: [],
-    timestamp: new Date().toISOString()
-  };
-  
-  for (const config of distributionConfigs) {
-    try {
-      const result = await distributeInsights(enhancedInsights, config);
-      results.distributions.push(result);
-    } catch (error) {
-      console.error(`Error distributing to ${config.role} (${config.name}):`, error);
-      results.distributions.push({
-        success: false,
-        message: `Failed to distribute: ${error.message}`,
-        config
-      });
-    }
-  }
-  
-  return results;
+export function getDistributionChannels() {
+  return { ...DISTRIBUTION_CHANNELS };
 }
 
 /**
- * Determine if insights should be distributed based on frequency setting
- * 
- * @param {Object} config - Distribution configuration
- * @returns {boolean} True if insights should be distributed
+ * Get stakeholder roles
+ * @returns {Object} Available stakeholder roles
  */
-function shouldDistributeByFrequency(config) {
-  if (config.frequency === DELIVERY_FREQUENCY.IMMEDIATE) {
-    return true;
-  }
-  
-  if (!config.lastDistributed) {
-    return true;
-  }
-  
-  const lastDate = new Date(config.lastDistributed);
-  const now = new Date();
-  const daysDiff = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-  
-  switch (config.frequency) {
-    case DELIVERY_FREQUENCY.DAILY:
-      return daysDiff >= 1;
-    case DELIVERY_FREQUENCY.WEEKLY:
-      return daysDiff >= 7;
-    case DELIVERY_FREQUENCY.MONTHLY:
-      return daysDiff >= 30;
-    default:
-      return true;
-  }
-}
-
-/**
- * Generate role-specific insights for a particular stakeholder type
- * 
- * @param {Object} enhancedInsights - The complete enhanced insights
- * @param {string} role - The stakeholder role (EXECUTIVE, SALES_MANAGER, MARKETING)
- * @returns {Promise<Object>} Role-specific adapted insights
- */
-export async function generateRoleSpecificInsights(enhancedInsights, role) {
-  try {
-    console.log(`Generating role-specific insights for ${role}...`);
-    
-    // If adapting insights with LLM
-    // This could be expanded to use the tone-adaptive prompt
-    
-    // For now, we'll adapt insights by selecting relevant data only
-    let adaptedInsights = { ...enhancedInsights };
-    
-    switch (role) {
-      case 'EXECUTIVE':
-        // Focus on high-level business impact and revenue
-        adaptedInsights.value_insights = enhancedInsights.value_insights.filter(
-          insight => insight.toLowerCase().includes('profit') || 
-                     insight.toLowerCase().includes('revenue') || 
-                     insight.toLowerCase().includes('cost') ||
-                     insight.toLowerCase().includes('trend')
-        );
-        adaptedInsights.actionable_flags = enhancedInsights.actionable_flags.filter(
-          action => action.toLowerCase().includes('strategy') || 
-                    action.toLowerCase().includes('revenue') ||
-                    action.toLowerCase().includes('increase')
-        );
-        break;
-        
-      case 'SALES_MANAGER':
-        // Focus on sales performance and team metrics
-        adaptedInsights.value_insights = enhancedInsights.value_insights.filter(
-          insight => insight.toLowerCase().includes('sales') || 
-                     insight.toLowerCase().includes('inventory') || 
-                     insight.toLowerCase().includes('performance') ||
-                     insight.toLowerCase().includes('product')
-        );
-        adaptedInsights.actionable_flags = enhancedInsights.actionable_flags.filter(
-          action => action.toLowerCase().includes('sales') || 
-                    action.toLowerCase().includes('training') ||
-                    action.toLowerCase().includes('improve')
-        );
-        break;
-        
-      case 'MARKETING':
-        // Focus on market trends and customer preferences
-        adaptedInsights.value_insights = enhancedInsights.value_insights.filter(
-          insight => insight.toLowerCase().includes('customer') || 
-                     insight.toLowerCase().includes('trend') || 
-                     insight.toLowerCase().includes('market') ||
-                     insight.toLowerCase().includes('demand')
-        );
-        adaptedInsights.actionable_flags = enhancedInsights.actionable_flags.filter(
-          action => action.toLowerCase().includes('market') || 
-                    action.toLowerCase().includes('promot') ||
-                    action.toLowerCase().includes('campaign')
-        );
-        break;
-    }
-    
-    // Make sure we always include some insights even if filtering removed all
-    if (adaptedInsights.value_insights.length === 0) {
-      adaptedInsights.value_insights = enhancedInsights.value_insights.slice(0, 3);
-    }
-    
-    if (adaptedInsights.actionable_flags.length === 0) {
-      adaptedInsights.actionable_flags = enhancedInsights.actionable_flags.slice(0, 3);
-    }
-    
-    // Add role-specific summary
-    adaptedInsights.summary = `${enhancedInsights.summary} This report is tailored for ${role.replace('_', ' ')} stakeholders.`;
-    
-    return adaptedInsights;
-  } catch (error) {
-    console.error('Error generating role-specific insights:', error);
-    return enhancedInsights;
-  }
+export function getStakeholderRoles() {
+  return { ...STAKEHOLDER_ROLES };
 }
