@@ -1,0 +1,22 @@
+{
+  "summary": "Strong performance with SUVs and trucks, increasing customer interest from website leads.",
+  "leadSources": {
+    "topSource": "Website",
+    "performance": "Website leads are up 15% and converting at a higher rate than last month."
+  },
+  "inventoryHealth": {
+    "fastestMoving": "Ford F-150",
+    "slowestMoving": "Chevrolet Tahoe",
+    "daysOnLotAverage": 18,
+    "recommendation": "Consider adjusting pricing on Tahoe models to improve turn rate."
+  },
+  "salesPerformance": {
+    "topPerformer": "Rep 1",
+    "improvement": "Rep 3 showing significant improvement in lead conversion (+22%)."
+  },
+  "opportunities": [
+    "Increase SUV inventory based on current demand trends",
+    "Follow up on Honda negotiations which have high close probability",
+    "Schedule targeted training for reps handling website leads"
+  ]
+}

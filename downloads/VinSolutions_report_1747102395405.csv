@@ -1,0 +1,6 @@
+Date,Customer,Vehicle,Status,Price,LeadSource,SalesPerson,DaysOnLot
+2025-05-13,Customer A,Toyota Camry SE,New Lead,$28500,Website,Rep 1,15
+2025-05-13,Customer B,Honda Accord LX,Test Drive,$31200,Phone,Rep 2,22
+2025-05-13,Customer C,Ford F-150 XLT,Negotiation,$42750,Walk-in,Rep 3,8
+2025-05-13,Customer D,Chevrolet Tahoe LT,Purchased,$55300,Referral,Rep 1,30
+2025-05-13,Customer E,Nissan Altima S,New Lead,$26400,Website,Rep 4,12

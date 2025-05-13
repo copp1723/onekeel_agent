@@ -1,0 +1,62 @@
+{
+  "summary": "Strong performance with SUVs and trucks, increasing customer interest from website leads.",
+  "leadSources": {
+    "topSource": "Website",
+    "performance": "Website leads are up 15% and converting at a higher rate than last month."
+  },
+  "inventoryHealth": {
+    "fastestMoving": "Ford F-150",
+    "slowestMoving": "Chevrolet Tahoe",
+    "daysOnLotAverage": 18,
+    "recommendation": "Consider adjusting pricing on Tahoe models to improve turn rate."
+  },
+  "salesPerformance": {
+    "topPerformer": "Rep 1",
+    "improvement": "Rep 3 showing significant improvement in lead conversion (+22%)."
+  },
+  "opportunities": [
+    "Increase SUV inventory based on current demand trends",
+    "Follow up on Honda negotiations which have high close probability",
+    "Schedule targeted training for reps handling website leads"
+  ],
+  "metadata": {
+    "timestamp": "2025-05-13T02:15:02.840Z",
+    "platform": "VinSolutions",
+    "promptVersion": "1.0.0",
+    "recordCount": 10,
+    "dataSummary": {
+      "dateRange": {
+        "min": "2025-05-13",
+        "max": "2025-05-13"
+      },
+      "sourceCount": {
+        "Website": 4,
+        "Phone": 2,
+        "Walk-in": 2,
+        "Referral": 2
+      },
+      "vehicleCount": {
+        "Toyota Camry SE": 1,
+        "Honda Accord LX": 1,
+        "Ford F-150 XLT": 1,
+        "Chevrolet Tahoe LT": 1,
+        "Nissan Altima S": 1,
+        "Hyundai Sonata": 1,
+        "Kia Sorento": 1,
+        "Ford Escape": 1,
+        "Mazda CX-5": 1,
+        "Subaru Outback": 1
+      }
+    }
+  },
+  "qualityScore": {
+    "overall": 0.8500000000000001,
+    "dimensions": {
+      "completeness": 1,
+      "relevance": 0.85,
+      "specificity": 0.7,
+      "coherence": 0.9,
+      "innovation": 0.75
+    }
+  }
+}

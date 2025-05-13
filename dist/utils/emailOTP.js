@@ -116,22 +116,24 @@ export async function getOTPFromEmail(customAddress) {
     });
 }
 // For testing and demonstration purposes
-if (require.main === module) {
-    (async () => {
-        const emailUser = process.env.EMAIL_USER || '';
-        const emailPass = process.env.EMAIL_PASS || '';
-        const emailHost = process.env.EMAIL_HOST || '';
-        if (!emailUser || !emailPass || !emailHost) {
-            console.error('Missing required email configuration');
-            process.exit(1);
-        }
-        const otp = await getEmailOTP(emailUser, emailPass, emailHost);
-        if (otp) {
-            console.log(`✅ OTP retrieved: ${otp}`);
-        }
-        else {
-            console.log('❌ No OTP found');
-        }
-    })();
-}
+// This has been commented out to make the file compatible with ES modules
+// Direct execution via import.meta.url === module.url is not supported here
+/*
+(async () => {
+    const emailUser = process.env.EMAIL_USER || '';
+    const emailPass = process.env.EMAIL_PASS || '';
+    const emailHost = process.env.EMAIL_HOST || '';
+    if (!emailUser || !emailPass || !emailHost) {
+        console.error('Missing required email configuration');
+        process.exit(1);
+    }
+    const otp = await getEmailOTP(emailUser, emailPass, emailHost);
+    if (otp) {
+        console.log(`✅ OTP retrieved: ${otp}`);
+    }
+    else {
+        console.log('❌ No OTP found');
+    }
+})();
+*/
 //# sourceMappingURL=emailOTP.js.map
