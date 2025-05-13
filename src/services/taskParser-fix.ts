@@ -4,6 +4,7 @@
  */
 import { type ParsedTask } from './taskParser.js';
 import { TaskType } from '../types.js';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Simple parser function that directly handles VinSolutions CRM report requests
@@ -75,6 +76,7 @@ export function parseTaskDirect(taskText: string): ParsedTask {
     console.log(`Dealer ID extracted: ${dealerId}`);
     
     return {
+      id: uuidv4(), // Add required id field
       type: TaskType.FetchCRMReport,
       parameters: {
         site: 'vinsolutions',
@@ -98,6 +100,7 @@ export function parseTaskDirect(taskText: string): ParsedTask {
       console.log(`Dealer ID extracted: ${dealerId}`);
       
       return {
+        id: uuidv4(), // Add required id field
         type: TaskType.FetchCRMReport,
         parameters: {
           site: 'vinsolutions',
@@ -114,6 +117,7 @@ export function parseTaskDirect(taskText: string): ParsedTask {
       console.log(`Dealer ID extracted: ${dealerId}`);
       
       return {
+        id: uuidv4(), // Add required id field
         type: TaskType.FetchCRMReport,
         parameters: {
           site: 'vinsolutions', // Default
@@ -127,6 +131,7 @@ export function parseTaskDirect(taskText: string): ParsedTask {
   // Default: unknown task type
   console.log('⚠️ No pattern matched, treating as unknown task type');
   return {
+    id: uuidv4(), // Add required id field
     type: TaskType.Unknown,
     parameters: {},
     original: taskText
