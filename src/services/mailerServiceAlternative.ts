@@ -9,6 +9,7 @@ import sgMail from '@sendgrid/mail';
 import nodemailer from 'nodemailer';
 import { emailLogs } from '../shared/schema.js';
 import { db } from '../shared/db.js';
+import { eq } from 'drizzle-orm';
 
 // Track if SendGrid is initialized
 let isMailerInitialized = false;
@@ -188,7 +189,7 @@ async function logEmailAttempt(
     const [emailLog] = await db
       .insert(emailLogs)
       .values({
-        recipients,
+        recipientEmail: recipients,
         subject,
         status: 'sending',
         createdAt: new Date(),
@@ -219,8 +220,6 @@ async function updateemailLogsSuccess(
       .update(emailLogs)
       .set({
         status: 'sent',
-        messageId,
-        provider,
         sentAt: new Date(),
         updatedAt: new Date(),
       })
@@ -253,5 +252,3 @@ async function updateemailLogsFailure(
   }
 }
 
-// Import missing dependencies
-import { eq } from 'drizzle-orm';
