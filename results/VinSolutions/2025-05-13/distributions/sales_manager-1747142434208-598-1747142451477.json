@@ -1,0 +1,92 @@
+{
+  "role": "SALES_MANAGER",
+  "recipient": {
+    "id": "1747142434208-598",
+    "email": "josh@projectxlabs.ai",
+    "name": "Mary Manager"
+  },
+  "insights": {
+    "adapted_insights": {
+      "adapted_summary": "In May 2024, our dealership excelled in SUV sales, with John Smith leading in performance. However, there's a need to boost sedan sales and increase the finance product attachment rate.",
+      "key_points": [
+        "SUVs accounted for 50% of sales, highlighting their popularity.",
+        "John Smith contributed to 50% of sales and achieved the highest gross profit per sale.",
+        "Sedans are moving slower, with higher average days in inventory.",
+        "Finance products are attached to 62.5% of sales, indicating potential for growth."
+      ],
+      "action_items": [
+        "Encourage the sales team to focus on promoting sedans to reduce inventory time.",
+        "Implement training sessions or incentives to boost finance product sales.",
+        "Utilize John Smith's strategies by having him mentor other team members."
+      ],
+      "metrics_to_track": [
+        "SUV and sedan sales percentages",
+        "Average days in inventory for sedans",
+        "Finance product attachment rate",
+        "Individual sales representative performance"
+      ],
+      "communication_notes": "Focus on actionable insights that improve team performance. Highlight successes like John Smith's to motivate the team. Use clear, direct language to outline the steps needed to enhance sales strategies."
+    },
+    "recommended_visualizations": [
+      {
+        "title": "Sales by Body Style",
+        "type": "Pie Chart",
+        "description": "Visual representation of sales distribution across different body styles to highlight the popularity of SUVs.",
+        "data_fields": [
+          "body_style",
+          "sales_count"
+        ]
+      },
+      {
+        "title": "Top Sales Representative Performance",
+        "type": "Bar Chart",
+        "description": "Comparison of sales representatives based on total sales and gross profit to emphasize John Smith's performance.",
+        "data_fields": [
+          "sales_rep",
+          "total_sales",
+          "total_gross_profit"
+        ]
+      }
+    ],
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 15000,
+        "confidence_level": "medium",
+        "timeframe": "6 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "satisfaction": "Improved satisfaction through targeted promotions and better finance options.",
+        "retention": "Increased retention by enhancing the buying experience and offering better finance deals.",
+        "acquisition": "Potential to attract new customers through promotions and improved sales strategies."
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Focus marketing efforts on promoting sedans to reduce their days in inventory.",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Provide additional training or incentives to sales representatives to increase the attachment rate of finance products.",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Leverage John Smith's success by having him mentor other sales representatives.",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 3
+        }
+      ]
+    },
+    "metadata": {
+      "role": "SALES_MANAGER",
+      "generatedAt": "2025-05-13T13:20:51.477Z",
+      "platform": "VinSolutions",
+      "qualityScore": 84
+    }
+  },
+  "timestamp": "2025-05-13T13:20:51.477Z"
+}
