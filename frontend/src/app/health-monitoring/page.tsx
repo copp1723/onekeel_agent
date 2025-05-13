@@ -37,7 +37,7 @@ export default function HealthMonitoringPage() {
   } = useQuery<HealthSummary>({
     queryKey: ['health-summary'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:5002/api/health-monitoring/summary');
+      const res = await fetch('/api/health-monitoring/summary');
       if (!res.ok) throw new Error('Failed to fetch health summary');
       return res.json();
     },
@@ -52,7 +52,7 @@ export default function HealthMonitoringPage() {
   } = useQuery<HealthCheck[]>({
     queryKey: ['health-checks'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:5002/api/health-monitoring/checks');
+      const res = await fetch('/api/health-monitoring/checks');
       if (!res.ok) throw new Error('Failed to fetch health checks');
       const data = await res.json();
       // Convert date strings to Date objects
@@ -73,7 +73,7 @@ export default function HealthMonitoringPage() {
     queryKey: ['health-logs', currentCheckId],
     queryFn: async () => {
       if (!currentCheckId) return null;
-      const res = await fetch(`http://localhost:5002/api/health-monitoring/logs/${currentCheckId}`);
+      const res = await fetch(`/api/health-monitoring/logs/${currentCheckId}`);
       if (!res.ok) throw new Error('Failed to fetch health logs');
       return res.json();
     },
@@ -84,7 +84,7 @@ export default function HealthMonitoringPage() {
   // Run all health checks
   const runAllChecks = async () => {
     try {
-      await fetch('http://localhost:5002/api/health-monitoring/checks/run', { method: 'POST' });
+      await fetch('/api/health-monitoring/checks/run', { method: 'POST' });
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['health-summary'] });
       queryClient.invalidateQueries({ queryKey: ['health-checks'] });
@@ -99,7 +99,7 @@ export default function HealthMonitoringPage() {
   // Run a specific health check
   const runCheck = async (id: string) => {
     try {
-      await fetch(`http://localhost:5002/api/health-monitoring/checks/${id}/run`, { method: 'POST' });
+      await fetch(`/api/health-monitoring/checks/${id}/run`, { method: 'POST' });
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['health-summary'] });
       queryClient.invalidateQueries({ queryKey: ['health-checks'] });
