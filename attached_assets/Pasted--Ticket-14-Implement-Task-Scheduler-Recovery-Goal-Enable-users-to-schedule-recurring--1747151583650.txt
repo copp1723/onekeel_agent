@@ -1,0 +1,75 @@
+## 🎟 Ticket #14: Implement Task Scheduler & Recovery
+
+**Goal:** Enable users to schedule recurring ingestion-and-insight tasks with persistent schedules, automatic execution, error recovery, and monitoring.
+
+---
+
+### 📋 Scope of Work
+
+1. **Database Schema** (`src/shared/schema.ts`)
+
+   * Create `schedules` table with columns:
+
+     * `id` (UUID, primary key)
+     * `user_id` (UUID, foreign key)
+     * `intent` (string, e.g. `inventory_aging`)
+     * `platform` (string)
+     * `cron_expression` (string)
+     * `next_run_at` (timestamp)
+     * `last_run_at` (timestamp, nullable)
+     * `status` (enum: `active`, `paused`, `failed`)
+     * `retry_count` (int, default 0)
+     * `created_at` / `updated_at` timestamps
+
+2. **CRUD API Endpoints** (`src/server/routes/schedules.ts`)
+
+   * `POST   /api/schedules` → create a new schedule
+   * `GET    /api/schedules` → list schedules for authenticated user
+   * `GET    /api/schedules/:id` → get details & status
+   * `PUT    /api/schedules/:id` → update cron or status (e.g. pause)
+   * `DELETE /api/schedules/:id` → remove schedule
+
+3. **Scheduler Service** (`src/services/scheduler.ts`)
+
+   * Use BullMQ’s repeatable jobs or `node-cron` to enqueue tasks based on `cron_expression`.
+   * On job trigger:
+
+     * Call `hybridIngestAndRunFlow(platform, envVars)` or trigger insight pipeline
+     * Update `last_run_at`, reset `retry_count` on success
+     * On error: increment `retry_count`, optionally retry immediately (max 3 attempts)
+     * If retries exceed threshold, set schedule `status = 'failed'` and log error
+
+4. **Monitoring & Logging**
+
+   * Integrate with existing `logger` to record schedule triggers, successes, failures
+   * Expose endpoint `GET /api/schedules/:id/logs` to retrieve run history
+   * Optionally persist run results in a `schedule_runs` table for audit
+
+5. **TypeScript & Tests**
+
+   * Ensure all new code compiles under `--strict`
+   * Unit tests for:
+
+     * Schema migrations
+     * API endpoint validation & CRUD operations
+     * Scheduler job creation and repeatable job config
+   * Integration test (using a fast-forward clock or manual trigger) to verify scheduled execution and recovery logic
+
+---
+
+### ✅ Acceptance Criteria
+
+* [ ] Database schema updated and migrations applied
+* [ ] API endpoints function correctly with auth guards
+* [ ] Scheduler enqueues and executes repeatable jobs per cron schedule
+* [ ] Error recovery increments retry\_count and marks failures
+* [ ] Schedule status transitions (`active` → `failed`, `paused`) work as expected
+* [ ] Logs and (optional) `schedule_runs` table provide visibility into run history
+* [ ] Full TS compliance and test coverage (>80%)
+
+---
+
+**Branch:** `feature/task-scheduler`
+**Labels:** `feature`, `scheduler`, `reliability`, `typescript`
+
+Use this ticket to kick off the scheduling and recovery system. Once this is in place, users can automate recurring runs without CLI involvement.
