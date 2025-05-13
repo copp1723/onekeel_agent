@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import dotenv from 'dotenv';
+import * as postgres from 'postgres';
+import * as dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
@@ -9,7 +9,7 @@ dotenv.config();
 let connectionString = process.env.DATABASE_URL;
 
 // If we have individual Replit PostgreSQL environment variables, use those instead
-if (process.env.PGHOST && process.env.PGPORT && process.env.PGUSER && 
+if (process.env.PGHOST && process.env.PGPORT && process.env.PGUSER &&
     process.env.PGPASSWORD && process.env.PGDATABASE) {
   connectionString = `postgres://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
   console.log('Using Replit PostgreSQL environment variables for database connection');

@@ -7,7 +7,8 @@
     "build": "./build.sh",
     "start": "node dist/index.js",
     "dev": "ts-node --esm src/index.ts",
-    "setup-key": "ts-node --esm src/scripts/insert-firecrawl-key.ts"
+    "setup-key": "ts-node --esm src/scripts/insert-firecrawl-key.ts",
+    "check-types": "node scripts/check-types.js"
   },
   "keywords": [],
   "author": "",

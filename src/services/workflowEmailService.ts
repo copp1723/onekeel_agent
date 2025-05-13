@@ -1,7 +1,7 @@
 import { db } from '../shared/db.js';
-import { emails, emailLogs, emailNotifications } from '../shared/schema.js';
+import { emailLogs, emailNotifications, workflows } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import { generateWorkflowSummaryHtml } from './emailTemplates.js';
 
 interface EmailNotificationConfig {
@@ -78,14 +78,22 @@ export async function retryEmail(emailLogId: string): Promise<EmailResult> {
 export async function sendWorkflowEmail(workflowId: string, recipientEmail: string): Promise<EmailResult> {
   try {
     const [workflow] = await db.select()
-      .from(emails)
-      .where(eq(emails.workflowId, workflowId));
+      .from(workflows)
+      .where(eq(workflows.id, workflowId));
 
     if (!workflow) {
       throw new Error('Workflow not found');
     }
 
-    const emailContent = generateWorkflowSummaryHtml(workflow);
+    const templateData = {
+      workflowId: workflow.id,
+      workflowStatus: workflow.status,
+      createdAt: workflow.createdAt,
+      completedAt: workflow.updatedAt,
+      error: workflow.lastError
+    };
+
+    const emailContent = generateWorkflowSummaryHtml(templateData);
 
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM || 'workflow@example.com',
@@ -98,8 +106,9 @@ export async function sendWorkflowEmail(workflowId: string, recipientEmail: stri
       .values({
         workflowId,
         recipientEmail,
+        subject: `Workflow ${workflowId} Update`,
         status: 'sent',
-        messageId: info.messageId
+        sentAt: new Date()
       })
       .returning();
 

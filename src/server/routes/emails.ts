@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import {
   sendWorkflowEmail,
   getEmailLogs,
@@ -13,6 +13,7 @@ import {
   getNotificationSettings,
   deleteNotification
 } from '../../services/workflowEmailService.js';
+import { routeHandler, AuthenticatedRequest } from '../../utils/routeHandler.js';
 
 const router = Router();
 
@@ -20,97 +21,57 @@ const router = Router();
  * Configure email notifications for a workflow
  * POST /api/emails/notifications/:workflowId
  */
-router.post('/notifications/:workflowId', async (req: Request, res: Response) => {
-  try {
-    const { workflowId } = req.params;
-    const { recipientEmail, sendOnCompletion, sendOnFailure } = req.body;
+router.post('/notifications/:workflowId', routeHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { workflowId } = req.params;
+  const { recipientEmail, sendOnCompletion, sendOnFailure } = req.body;
 
-    const result = await configureNotification(workflowId, {
-      recipientEmail,
-      sendOnCompletion,
-      sendOnFailure
-    });
+  const result = await configureNotification(workflowId, {
+    recipientEmail,
+    sendOnCompletion,
+    sendOnFailure
+  });
 
-    return res.json(result);
-  } catch (error) {
-    console.error('Error configuring notification:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to configure notification'
-    });
-  }
-});
+  return res.json(result);
+}));
 
 /**
  * Get email notification settings for a workflow
  * GET /api/emails/notifications/:workflowId
  */
-router.get('/notifications/:workflowId', async (req: Request, res: Response) => {
-  try {
-    const { workflowId } = req.params;
-    const settings = await getNotificationSettings(workflowId);
-    return res.json(settings);
-  } catch (error) {
-    console.error('Error getting notification settings:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to get notification settings'
-    });
-  }
-});
+router.get('/notifications/:workflowId', routeHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { workflowId } = req.params;
+  const settings = await getNotificationSettings(workflowId);
+  return res.json(settings);
+}));
 
 /**
  * Delete notification settings for a workflow
  * DELETE /api/emails/notifications/:workflowId
  */
-router.delete('/notifications/:workflowId', async (req: Request, res: Response) => {
-  try {
-    const { workflowId } = req.params;
-    const result = await deleteNotification(workflowId);
-    return res.json(result);
-  } catch (error) {
-    console.error('Error deleting notification:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to delete notification'
-    });
-  }
-});
+router.delete('/notifications/:workflowId', routeHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { workflowId } = req.params;
+  const result = await deleteNotification(workflowId);
+  return res.json(result);
+}));
 
 /**
  * Get email logs for a workflow
  * GET /api/emails/logs/:workflowId
  */
-router.get('/logs/:workflowId', async (req: Request, res: Response) => {
-  try {
-    const { workflowId } = req.params;
-    const logs = await getEmailLogs(workflowId);
-    return res.json(logs);
-  } catch (error) {
-    console.error('Error getting email logs:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to get email logs'
-    });
-  }
-});
+router.get('/logs/:workflowId', routeHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { workflowId } = req.params;
+  const logs = await getEmailLogs(workflowId);
+  return res.json(logs);
+}));
 
 /**
  * Retry sending a failed email
  * POST /api/emails/retry/:emailLogId
  */
-router.post('/retry/:emailLogId', async (req: Request, res: Response) => {
-  try {
-    const { emailLogId } = req.params;
-    const result = await retryEmail(emailLogId);
-    return res.json(result);
-  } catch (error) {
-    console.error('Error retrying email:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retry email'
-    });
-  }
-});
+router.post('/retry/:emailLogId', routeHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { emailLogId } = req.params;
+  const result = await retryEmail(emailLogId);
+  return res.json(result);
+}));
 
 export default router;

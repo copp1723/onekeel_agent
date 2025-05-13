@@ -1,6 +1,6 @@
-# AI Agent Backend using Eko
+# AgentFlow
 
-A flexible AI agent backend using Fellou Eko that executes various tasks including web crawling, flight status checking, and dealer interactions. The agent accepts natural language input and returns structured data as JSON.
+A flexible AI agent platform for automating workflows using natural language instructions. AgentFlow executes various tasks including web crawling, flight status checking, and dealer interactions. The platform accepts natural language input and returns structured data as JSON.
 
 ## Features
 
@@ -8,16 +8,21 @@ A flexible AI agent backend using Fellou Eko that executes various tasks includi
 - ✅ Accepts natural language tasks for multiple use cases
 - ✅ Uses Eko as the agent runtime
 - ✅ Implements a crawlWebsite tool that uses Firecrawl
-- ✅ Stores API keys and credentials securely in Supabase
+- ✅ Stores API keys and credentials securely in PostgreSQL
 - ✅ Returns structured data in JSON format
+- ✅ TypeScript support for improved type safety
 
-### Extended Features (Phase 2)
-- ✅ Multiple tools (crawlWebsite, checkFlightStatus)
+### Extended Features
+- ✅ Multiple tools (crawlWebsite, checkFlightStatus, extractCleanContent)
 - ✅ Secure credential storage with dealerCredentials
 - ✅ LLM-powered task parsing and intent recognition
 - ✅ REST API endpoint for task submission and tracking
 - ✅ Task logging and status tracking
 - ✅ Multi-step task execution (extract-then-summarize)
+- ✅ Job queue system for background processing
+- ✅ Health monitoring system
+- ✅ Comprehensive API documentation
+- ✅ Task scheduler for recurring tasks
 
 ## Prerequisites
 
@@ -45,7 +50,7 @@ npm install
 
    - Copy `.env.example` to `.env`
    - Update with your actual API keys and Supabase connection string
-   
+
    **Important API Key Information:**
    - `EKO_API_KEY`: Required for the AI agent to function. This should be a valid OpenAI API key that can access models like `gpt-4o-mini`.
    - `DATABASE_URL`: Required for storing and retrieving credentials.
@@ -160,7 +165,7 @@ With the Phase 2 extensions, the agent supports multiple tools and task types:
    This will automatically:
    - Extract clean content from the URL
    - Summarize the extracted content using property path access
-   
+
    The multi-step execution engine supports:
    - Sequential execution of multiple tools
    - Passing outputs between steps with template variables
@@ -247,42 +252,60 @@ All task executions are logged to the database with the following information:
 
 ## Project Structure
 
-### Core Components (Phase 1)
+### Core Components
 - `src/index.ts` - Main entry point
 - `src/tools/crawlWebsite.ts` - Web crawling tool using Firecrawl
-- `src/services/supabase.ts` - Service for interacting with Supabase
 - `src/shared/schema.ts` - Database schema definitions
 - `src/scripts/setup-db.ts` - Database setup script
 
-### Extended Components (Phase 2)
+### API Components
+- `src/api/server.ts` - REST API for task submission and management
+- `src/api/server-simple.ts` - Simplified API server with no database dependencies
+- `src/server/routes/` - API route handlers
+- `src/utils/routeHandler.ts` - Express route handler utility
+
+### Agent Components
 - `src/tools/checkFlightStatus.ts` - Flight status checking tool
 - `src/tools/extractCleanContent.ts` - Clean content extraction using trafilatura
 - `src/tools/summarizeText.ts` - Text summarization using LLM
 - `src/services/taskParser.ts` - Task parsing and intent recognition
-- `src/api/server.ts` - REST API for task submission and management
-- `src/scripts/insert-firecrawl-key.ts` - Utility to add Firecrawl API key
 - `src/agent/executePlan.ts` - Multi-step execution engine
-- `src/summaryExtractor.js` - Extract and summarize workflow
-- `src/multistep-demo.js` - Dedicated multi-step demo endpoint
+- `src/agents/runFlow.ts` - Agent flow execution
 
-### Logging & Database Components (Phase 3)
+### Job Queue Components
+- `src/services/jobQueue.ts` - Job queue management
+- `src/server/routes/jobs.ts` - Job API routes
+- `src/services/scheduler.ts` - Task scheduler for recurring tasks
+- `src/server/routes/schedules.ts` - Schedule API routes
+
+### Health Monitoring Components
+- `src/services/healthService.ts` - Health monitoring service
+- `src/server/routes/health.ts` - Health API routes
+
+### Logging & Database Components
 - `src/shared/db.ts` - Database connection and Drizzle ORM setup
 - `src/shared/logger.ts` - Task logging utilities for DB persistence
-- `/submit-task` endpoint - Direct task execution with immediate response
-- `dist/index.js` - Simplified server with no database dependencies
 
 ### Database Schemas
 - `api_keys` - Secure storage for API keys
 - `dealer_credentials` - Secure storage for dealer login credentials
 - `task_logs` - Persistent storage for task execution history and results
+- `jobs` - Job queue entries
+- `plans` - Execution plans
+- `steps` - Execution plan steps
+- `schedules` - Scheduled tasks
 
 ## Technologies Used
 
 - [Eko AI](https://eko.fellou.ai/) - AI agent framework
 - [Firecrawl](https://firecrawl.dev/) - Web scraping API
-- [Supabase](https://supabase.com/) - Database for storing API keys
+- [PostgreSQL](https://www.postgresql.org/) - Database for storing data
 - [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
 - [Drizzle ORM](https://orm.drizzle.team/) - Database ORM
+- [Express](https://expressjs.com/) - Web framework for the API server
+- [Redis](https://redis.io/) - Used for the job queue and caching
+- [Anthropic Claude](https://www.anthropic.com/) - AI model used for task parsing and execution
+- [Node.js](https://nodejs.org/) - Runtime environment
 
 ## Extending the Project
 

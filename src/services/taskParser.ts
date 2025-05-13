@@ -1,8 +1,8 @@
 import { Eko } from '@eko-ai/eko';
-// Import ExecutionPlan as a type only since we're not using the class constructor
-import type { ExecutionPlan } from '../agent/executePlan.js';
+// Import ExecutionPlan and PlanStep as types
+import type { ExecutionPlan, PlanStep } from '../agent/executePlan.js';
 import { logger } from '../shared/logger.js';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 
 export interface ParsedTask {
   id: string;
@@ -30,11 +30,16 @@ export interface ParserResult {
 // Main parsing class with enhanced error handling
 export class TaskParser {
   private eko: Eko;
-  private logger: any; // Using any as a temporary fix
+  private logger: {
+    info: (message: string, meta?: any) => void;
+    error: (message: string, meta?: any) => void;
+    warn: (message: string, meta?: any) => void;
+    debug: (message: string, meta?: any) => void;
+  };
 
   constructor(apiKey?: string, logger?: any) {
     this.eko = new Eko(apiKey || process.env.EKO_API_KEY);
-    this.logger = logger || { 
+    this.logger = logger || {
       info: console.log,
       error: console.error,
       warn: console.warn,
@@ -54,7 +59,7 @@ export class TaskParser {
       }
 
       // Generate task ID if not present
-      const id = taskInfo.id || uuidv4();
+      const id = taskInfo.id || uuid.v4();
 
       // Create a structured task object
       const parsedTask: ParsedTask = {
@@ -71,17 +76,39 @@ export class TaskParser {
       };
 
       // Check if we need to create an execution plan
-      let executionPlan = undefined;
+      let executionPlan: ExecutionPlan | undefined = undefined;
 
       if (parsedTask.type === 'complex' || (parsedTask.steps && parsedTask.steps.length > 0)) {
         try {
-          const planId = uuidv4();
-          // Skip execution plan creation for now to fix type errors
-          executionPlan = { 
-            id: planId.toString(),
-            task: parsedTask,
-            steps: parsedTask.steps || []
+          const planId = uuid.v4();
+
+          // Create a proper execution plan with typed steps
+          const planSteps: PlanStep[] = (parsedTask.steps || []).map(stepDescription => {
+            // Parse the step description to determine tool and input
+            // This is a simplified version - in a real implementation, you would
+            // have more sophisticated parsing logic
+            const toolMatch = stepDescription.match(/^use\s+(\w+)\s+to\s+(.+)$/i);
+
+            if (toolMatch) {
+              return {
+                tool: toolMatch[1].toLowerCase(),
+                input: { query: toolMatch[2] }
+              };
+            }
+
+            // Default to a generic step if parsing fails
+            return {
+              tool: 'generic',
+              input: { instruction: stepDescription }
+            };
+          });
+
+          executionPlan = {
+            steps: planSteps,
+            planId: planId.toString(),
+            taskText: parsedTask.description || parsedTask.title || ''
           };
+
           parsedTask.planId = planId.toString();
         } catch (planError) {
           this.logger.error('Error creating execution plan', { error: planError });
@@ -104,7 +131,7 @@ export class TaskParser {
 
       // Create a fallback minimal task
       const fallbackTask: ParsedTask = {
-        id: uuidv4(),
+        id: uuid.v4(),
         type: 'unknown',
         title: 'Parsing Error',
         description: userInput,

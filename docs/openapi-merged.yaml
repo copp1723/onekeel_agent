@@ -1,0 +1,1054 @@
+openapi: 3.0.0
+info:
+  title: AgentFlow API
+  description: |
+    API documentation for the AgentFlow application.
+    This API provides endpoints for task management, workflow execution, and authentication.
+  version: 1.0.0
+  contact:
+    name: AgentFlow Support
+    email: support@agentflow.com
+servers:
+  - url: /api
+    description: Default API server
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        message:
+          type: string
+          description: Detailed error message
+      required:
+        - error
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the task
+        taskType:
+          type: string
+          description: Type of the task
+        taskText:
+          type: string
+          description: Original task text
+        taskData:
+          type: object
+          description: Task-specific parameters
+        status:
+          type: string
+          enum:
+            - pending
+            - running
+            - completed
+            - failed
+          description: Current status of the task
+        userId:
+          type: string
+          description: ID of the user who created the task
+        createdAt:
+          type: string
+          format: date-time
+          description: When the task was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the task was last updated
+      required:
+        - id
+        - taskType
+        - taskText
+        - status
+    Workflow:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the workflow
+        name:
+          type: string
+          description: Name of the workflow
+        description:
+          type: string
+          description: Description of the workflow
+        status:
+          type: string
+          enum:
+            - pending
+            - running
+            - completed
+            - failed
+            - paused
+          description: Current status of the workflow
+        userId:
+          type: string
+          description: ID of the user who created the workflow
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+        createdAt:
+          type: string
+          format: date-time
+          description: When the workflow was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the workflow was last updated
+      required:
+        - id
+        - name
+        - status
+    WorkflowStep:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the step
+        type:
+          type: string
+          enum:
+            - emailIngestion
+            - browserAction
+            - insightGeneration
+            - crm
+            - dataProcessing
+            - api
+            - custom
+          description: Type of the step
+        name:
+          type: string
+          description: Name of the step
+        config:
+          type: object
+          description: Step-specific configuration
+        status:
+          type: string
+          enum:
+            - pending
+            - running
+            - completed
+            - failed
+          description: Current status of the step
+      required:
+        - id
+        - type
+        - name
+        - config
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the user
+        email:
+          type: string
+          format: email
+          description: User's email address
+        firstName:
+          type: string
+          description: User's first name
+        lastName:
+          type: string
+          description: User's last name
+        profileImageUrl:
+          type: string
+          format: uri
+          description: URL to the user's profile image
+      required:
+        - id
+        - email
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Check if the API server is running
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API server is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: up
+                  version:
+                    type: string
+                    example: 1.0.0
+                  message:
+                    type: string
+                    example: API server is running
+  /tasks:
+    get:
+      summary: List all tasks
+      description: Get a list of all tasks
+      operationId: listTasks
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new task
+      description: Submit a new task for processing
+      operationId: createTask
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task:
+                  type: string
+                  description: Task description
+              required:
+                - task
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  jobId:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /tasks/{taskId}:
+    get:
+      summary: Get task by ID
+      description: Get details of a specific task
+      operationId: getTask
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /test-parser:
+    post:
+      summary: Test task parser
+      description: Test the task parser with a given input
+      operationId: testParser
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task:
+                  type: string
+                  description: Task description to parse
+              required:
+                - task
+      responses:
+        '200':
+          description: Parsed task result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: '#/components/schemas/Task'
+                  executionPlan:
+                    type: object
+                    description: Execution plan for the task
+                  error:
+                    type: string
+                    description: Error message if parsing failed
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /submit-task:
+    post:
+      summary: Submit task for immediate execution
+      description: Submit a task for immediate processing with high priority
+      operationId: submitTask
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task:
+                  type: string
+                  description: Task description
+              required:
+                - task
+      responses:
+        '201':
+          description: Task submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  jobId:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /workflows:
+    get:
+      summary: List all workflows
+      description: Get a list of all workflows or filter by status
+      operationId: listWorkflows
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - pending
+              - running
+              - completed
+              - failed
+              - paused
+      responses:
+        '200':
+          description: List of workflows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Workflow'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /workflows/{id}:
+    get:
+      summary: Get workflow by ID
+      description: Get details of a specific workflow
+      operationId: getWorkflow
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Workflow details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /workflows/{id}/reset:
+    post:
+      summary: Reset workflow
+      description: Reset a workflow to pending status
+      operationId: resetWorkflow
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Workflow reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /workflows/{id}/notifications:
+    post:
+      summary: Configure workflow notifications
+      description: Configure email notifications for a workflow
+      operationId: configureWorkflowNotifications
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+              required:
+                - emails
+      responses:
+        '200':
+          description: Notifications configured successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/login:
+    get:
+      summary: Login
+      description: Redirect to authentication provider for login
+      operationId: login
+      responses:
+        '302':
+          description: Redirect to authentication provider
+  /auth/callback:
+    get:
+      summary: Authentication callback
+      description: Callback endpoint for authentication provider
+      operationId: authCallback
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to application after successful authentication
+        '401':
+          description: Authentication failed
+  /auth/logout:
+    get:
+      summary: Logout
+      description: Logout the current user
+      operationId: logout
+      security:
+        - cookieAuth: []
+      responses:
+        '302':
+          description: Redirect to login page after logout
+  /auth/user:
+    get:
+      summary: Get current user
+      description: Get information about the currently authenticated user
+      operationId: getCurrentUser
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - User ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /jobs:
+    get:
+      summary: List all jobs
+      description: Get a list of all jobs or filter by status
+      operationId: listJobs
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - waiting
+              - active
+              - completed
+              - failed
+              - delayed
+      responses:
+        '200':
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    taskId:
+                      type: string
+                      format: uuid
+                    status:
+                      type: string
+                    progress:
+                      type: number
+                    result:
+                      type: object
+                    createdAt:
+                      type: string
+                      format: date-time
+                    updatedAt:
+                      type: string
+                      format: date-time
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /jobs/{id}:
+    get:
+      summary: Get job by ID
+      description: Get details of a specific job
+      operationId: getJob
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job details with associated task
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      taskId:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                      progress:
+                        type: number
+                      result:
+                        type: object
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+                  task:
+                    $ref: '#/components/schemas/Task'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /jobs/{id}/retry:
+    post:
+      summary: Retry a job
+      description: Retry a failed job
+      operationId: retryJob
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job retry initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  message:
+                    type: string
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /credentials:
+    get:
+      summary: List all credentials
+      description: Get a list of all credentials for the authenticated user
+      operationId: listCredentials
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: platform
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter credentials by platform
+      responses:
+        '200':
+          description: List of credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    platform:
+                      type: string
+                    label:
+                      type: string
+                    created:
+                      type: string
+                      format: date-time
+                    updated:
+                      type: string
+                      format: date-time
+                    hasRefreshToken:
+                      type: boolean
+                    data:
+                      type: object
+                      description: Platform-specific credential data
+        '401':
+          description: Unauthorized - User ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Add a new credential
+      description: Create a new credential for the authenticated user
+      operationId: addCredential
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                platform:
+                  type: string
+                  description: Platform identifier
+                label:
+                  type: string
+                  description: User-friendly label for the credential
+                data:
+                  type: object
+                  description: Platform-specific credential data
+                refreshToken:
+                  type: string
+                  description: Optional refresh token
+                refreshTokenExpiry:
+                  type: string
+                  format: date-time
+                  description: Optional refresh token expiry date
+              required:
+                - platform
+                - data
+      responses:
+        '201':
+          description: Credential created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  platform:
+                    type: string
+                  label:
+                    type: string
+                  created:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - User ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /credentials/{id}:
+    get:
+      summary: Get credential by ID
+      description: Get details of a specific credential
+      operationId: getCredential
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Credential details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  platform:
+                    type: string
+                  label:
+                    type: string
+                  created:
+                    type: string
+                    format: date-time
+                  updated:
+                    type: string
+                    format: date-time
+                  hasRefreshToken:
+                    type: boolean
+                  data:
+                    type: object
+                    description: Platform-specific credential data
+        '401':
+          description: Unauthorized - User ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update credential
+      description: Update an existing credential
+      operationId: updateCredential
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                  description: User-friendly label for the credential
+                data:
+                  type: object
+                  description: Platform-specific credential data
+                refreshToken:
+                  type: string
+                  description: Optional refresh token
+                refreshTokenExpiry:
+                  type: string
+                  format: date-time
+                  description: Optional refresh token expiry date
+                active:
+                  type: boolean
+                  description: Whether the credential is active
+      responses:
+        '200':
+          description: Credential updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  platform:
+                    type: string
+                  label:
+                    type: string
+                  updated:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized - User ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete credential
+      description: Delete a credential (soft delete)
+      operationId: deleteCredential
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Credential deleted successfully
+        '401':
+          description: Unauthorized - User ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
