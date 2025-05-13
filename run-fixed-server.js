@@ -18,6 +18,8 @@ import { db } from './dist/shared/db.js';
 import { workflows } from './dist/shared/schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import emailRoutes from './dist/server/routes/fixed-emails.js';
+import schedulesRouter from './src/server/routes/schedules.js';
+import { initializeScheduler } from './src/services/scheduler.js';
 
 // Load environment variables
 dotenv.config();
@@ -40,6 +42,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // API routes
 app.use('/api/emails', emailRoutes);
+app.use('/api/schedules', schedulesRouter);
+
+// Initialize the scheduler
+initializeScheduler().catch(error => {
+  console.error('Failed to initialize scheduler:', error);
+});
 
 // Routes
 app.get('/', (req, res) => {
