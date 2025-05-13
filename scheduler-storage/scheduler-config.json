@@ -1,0 +1,20 @@
+{
+  "schedules": [
+    {
+      "id": "2a385f63-3eb0-4f0a-8cd5-e3a7881a5349",
+      "workflowId": "test-1747153144755",
+      "intent": "Updated Test Schedule",
+      "platform": "TestPlatform",
+      "cron": "*/5 * * * *",
+      "status": "active",
+      "nextRunAt": "2025-05-13T16:24:00.000Z",
+      "lastRunAt": null,
+      "retryCount": 0,
+      "enabled": true,
+      "createdAt": "2025-05-13T16:19:04.760Z",
+      "updatedAt": "2025-05-13T16:19:09.801Z",
+      "cronExpression": "*/5 * * * *"
+    }
+  ],
+  "updatedAt": "2025-05-13T16:21:10.722Z"
+}
