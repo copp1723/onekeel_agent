@@ -1,0 +1,260 @@
+{
+  "distribution_config": {
+    "email": "josh@projectxlabs.ai",
+    "role": "MARKETING",
+    "name": "Dave Marketing",
+    "platforms": [
+      "VinSolutions"
+    ],
+    "channels": [
+      "FILE"
+    ],
+    "frequency": "IMMEDIATE",
+    "lastDistributed": null,
+    "active": true
+  },
+  "timestamp": "2025-05-13T15:29:24.921Z",
+  "insights": {
+    "insights": {
+      "summary": "The dealership's performance in early May 2024 shows strong sales with SUVs being the top-selling body style. John Smith is the leading sales representative, contributing significantly to the dealership's gross profit. There is room for improvement in the sales of finance products and reducing inventory days for certain models.",
+      "value_insights": [
+        "SUVs are the most popular body style, accounting for 50% of the sales.",
+        "John Smith is the top-performing sales representative, responsible for 50% of the total sales and achieving the highest gross profit per sale.",
+        "The Volvo XC90 and BMW X5 had the highest gross profits, indicating strong demand and pricing strategy.",
+        "The average days in inventory is 16.25 days, with the Tesla Model Y having the shortest time at 5 days, indicating high demand.",
+        "Finance products are underutilized, with an average of 1.5 products sold per vehicle."
+      ],
+      "actionable_flags": [
+        "Increase focus on promoting finance products, especially for sales representatives who are currently underperforming in this area.",
+        "Consider strategies to reduce inventory days for models like the Toyota Camry and Honda Civic, which have longer inventory periods.",
+        "Leverage the success of SUVs by increasing inventory and marketing efforts for these models.",
+        "Provide training or incentives for sales representatives to improve the sales of finance products."
+      ],
+      "key_metrics": {
+        "total_sales": 6,
+        "total_revenue": 343790,
+        "total_gross_profit": 32280,
+        "average_price": 42973.75,
+        "average_gross_profit": 4035,
+        "average_days_in_inventory": 16.25,
+        "average_finance_products": 1.5
+      },
+      "risk_areas": [
+        {
+          "risk": "High days in inventory for certain models like the Toyota Camry and Honda Civic.",
+          "mitigation": "Implement targeted promotions or discounts to accelerate sales of these models."
+        },
+        {
+          "risk": "Low sales of finance products.",
+          "mitigation": "Enhance training for sales representatives on the benefits of finance products and introduce incentives for selling them."
+        }
+      ],
+      "confidence": "high"
+    },
+    "quality": {
+      "quality_dimensions": {
+        "completeness": 8,
+        "relevance": 9,
+        "specificity": 8,
+        "coherence": 9,
+        "innovation": 7
+      },
+      "strengths": [
+        "The insights provide a comprehensive overview of the dealership's performance, covering sales, inventory, and finance products.",
+        "The identification of John Smith as a top-performing sales representative is specific and backed by data.",
+        "Actionable flags and risk areas are clearly outlined, offering practical steps for improvement."
+      ],
+      "improvement_areas": [
+        "The insights could benefit from more detailed analysis of the underperformance in finance product sales, such as identifying specific barriers or customer feedback.",
+        "While the summary mentions strong sales, it could include more context about market conditions or seasonal trends to enhance understanding.",
+        "Innovation could be improved by suggesting novel strategies or technologies to address the identified issues, such as digital marketing tactics or AI-driven inventory management."
+      ],
+      "verification_steps": [
+        "Cross-check the sales data with dealership records to ensure accuracy of sales figures and representative performance.",
+        "Analyze customer feedback or surveys to understand the low uptake of finance products and identify potential improvements.",
+        "Review historical sales data to determine if the trends observed in May 2024 are consistent with past performance or if they represent a new pattern."
+      ],
+      "overall_score": 82
+    },
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 50000,
+        "confidence_level": "medium",
+        "timeframe": "6-12 months",
+        "implementation_complexity": "medium"
+      },
+      "cost_savings": {
+        "potential_reduction": 15000,
+        "confidence_level": "medium",
+        "timeframe": "6-12 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "satisfaction": "Improved satisfaction through better inventory management and enhanced finance product offerings.",
+        "retention": "Increased retention by offering more attractive finance products and reducing wait times for popular models.",
+        "acquisition": "Potential to acquire new customers by expanding SUV inventory and targeted promotions."
+      },
+      "operational_efficiency": {
+        "impact_areas": [
+          "Inventory management",
+          "Sales training",
+          "Finance product sales"
+        ],
+        "potential_improvement_level": "high"
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Increase focus on promoting finance products.",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Reduce inventory days for Toyota Camry and Honda Civic.",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Leverage the success of SUVs by increasing inventory and marketing efforts.",
+          "impact": "high",
+          "effort": "high",
+          "priority_ranking": 3
+        },
+        {
+          "recommendation": "Provide training or incentives for sales representatives to improve the sales of finance products.",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 4
+        }
+      ],
+      "risk_assessment": {
+        "implementation_risks": [
+          "Resistance to change from sales representatives.",
+          "Potential overstocking of SUVs leading to increased holding costs.",
+          "Insufficient training resources for finance product sales."
+        ],
+        "confidence_score": "high"
+      }
+    },
+    "visualizations": {
+      "primary_visualizations": [
+        {
+          "title": "Sales Distribution by Body Style",
+          "type": "Pie Chart",
+          "description": "Visualizes the proportion of sales by body style to highlight the popularity of SUVs.",
+          "data_fields": [
+            "body_style",
+            "count"
+          ]
+        },
+        {
+          "title": "Sales Representative Performance",
+          "type": "Bar Chart",
+          "description": "Compares sales representatives based on total sales and gross profit to identify top performers.",
+          "data_fields": [
+            "sales_rep",
+            "total_sales",
+            "total_gross_profit"
+          ]
+        },
+        {
+          "title": "Inventory Days by Model",
+          "type": "Bar Chart",
+          "description": "Shows average days in inventory for each model to identify models with high inventory days.",
+          "data_fields": [
+            "model",
+            "average_days_in_inventory"
+          ]
+        },
+        {
+          "title": "Gross Profit by Model",
+          "type": "Horizontal Bar Chart",
+          "description": "Highlights models with the highest gross profit to understand demand and pricing strategy.",
+          "data_fields": [
+            "model",
+            "gross_profit"
+          ]
+        }
+      ],
+      "secondary_visualizations": [
+        {
+          "title": "Finance Products Sold per Vehicle",
+          "type": "Line Chart",
+          "description": "Tracks the average number of finance products sold per vehicle over time to identify trends.",
+          "data_fields": [
+            "sale_date",
+            "average_finance_products"
+          ]
+        },
+        {
+          "title": "Inventory Days Comparison",
+          "type": "Stacked Bar Chart",
+          "description": "Compares inventory days across different models to identify those with longer inventory periods.",
+          "data_fields": [
+            "model",
+            "days_in_inventory"
+          ]
+        }
+      ],
+      "executive_dashboard": {
+        "layout": "Grid",
+        "sections": [
+          {
+            "title": "Sales Overview",
+            "visualizations": [
+              "Sales Distribution by Body Style",
+              "Sales Representative Performance"
+            ]
+          },
+          {
+            "title": "Inventory Insights",
+            "visualizations": [
+              "Inventory Days by Model",
+              "Inventory Days Comparison"
+            ]
+          },
+          {
+            "title": "Profit Analysis",
+            "visualizations": [
+              "Gross Profit by Model",
+              "Finance Products Sold per Vehicle"
+            ]
+          }
+        ]
+      },
+      "data_preparation_notes": [
+        "Aggregate sales data by body style to calculate the proportion of sales for each style.",
+        "Summarize sales and gross profit data by sales representative to identify top performers.",
+        "Calculate average days in inventory for each model to identify models with high inventory days.",
+        "Aggregate gross profit data by model to determine models with the highest profitability.",
+        "Track the number of finance products sold per vehicle over time to identify trends."
+      ]
+    },
+    "metadata": {
+      "platform": "VinSolutions",
+      "timestamp": "2025-05-13T15:28:54.632Z",
+      "promptName": "automotive-analyst",
+      "promptVersion": "v2.0.0",
+      "executionTime": 8911,
+      "tokenUsage": 1660,
+      "dataSummary": {
+        "platform": "VinSolutions",
+        "timestamp": "2025-05-13T15:28:54.632Z",
+        "recordCount": 8,
+        "dataFields": [
+          "id",
+          "make",
+          "model",
+          "year",
+          "trim",
+          "sale_date",
+          "price",
+          "cost",
+          "gross_profit",
+          "days_in_inventory"
+        ]
+      }
+    }
+  }
+}

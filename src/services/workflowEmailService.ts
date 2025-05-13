@@ -1,151 +1,118 @@
-/**
- * Workflow Email Service
- * Handles sending emails for workflow events like completion, failure, etc.
- */
-
-import { Workflow, workflows } from '../shared/schema.js';
 import { db } from '../shared/db.js';
+import { emails, emailLogs, emailNotifications } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { sendEmail } from './mailerService.js';
-import { generateWorkflowSummaryHtml, generateWorkflowSummaryText } from './emailTemplates.js';
+import nodemailer from 'nodemailer';
+import { generateWorkflowSummaryHtml } from './emailTemplates.js';
 
-interface WorkflowEmailOptions {
-  workflow: Workflow;
-  recipients: string | string[];
-  subject?: string;
-  includeInsights?: boolean;
-  fromName?: string;
-  fromEmail?: string;
+interface EmailNotificationConfig {
+  recipientEmail: string;
+  sendOnCompletion?: boolean;
+  sendOnFailure?: boolean;
 }
 
-/**
- * Default email configuration
- */
-const DEFAULT_EMAIL_CONFIG = {
-  fromName: 'Workflow System',
-  fromEmail: 'noreply@example.com',
-  subject: 'Workflow Summary Report'
-};
+interface EmailResult {
+  success: boolean;
+  message?: string;
+  emailId?: string;
+}
 
-/**
- * Send a workflow summary email
- */
-export async function sendWorkflowSummaryEmail(options: WorkflowEmailOptions): Promise<boolean> {
-  try {
-    const { workflow, recipients, includeInsights = true } = options;
-    
-    // Format recipients as array
-    const recipientsList = Array.isArray(recipients) ? recipients : [recipients];
-    
-    // Extract email-friendly data from workflow
-    const emailData = await extractWorkflowData(workflow, includeInsights);
-    
-    // Generate email content
-    const html = generateWorkflowSummaryHtml(emailData);
-    const text = generateWorkflowSummaryText(emailData);
-    
-    // Configure email
-    const subject = options.subject || `${DEFAULT_EMAIL_CONFIG.subject}: ${workflow.status.toUpperCase()}`;
-    const fromName = options.fromName || DEFAULT_EMAIL_CONFIG.fromName;
-    const fromEmail = options.fromEmail || DEFAULT_EMAIL_CONFIG.fromEmail;
-    
-    // Prepare recipient format for SendGrid
-    const formattedRecipients = recipientsList.map(email => ({ 
-      email,
-      name: email.split('@')[0] // Use part before @ as name for simple personalization
-    }));
-    
-    // Send the email
-    await sendEmail({
-      from: { name: fromName, email: fromEmail },
-      to: formattedRecipients,
-      content: {
-        subject,
-        html,
-        text
-      },
-      workflowId: workflow.id
-    });
-    
-    console.log(`Workflow summary email sent for workflow ${workflow.id} to ${recipientsList.join(', ')}`);
-    return true;
-  } catch (error) {
-    console.error('Failed to send workflow summary email:', error);
-    return false;
+// Initialize nodemailer transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
   }
+});
+
+export async function configureNotification(workflowId: string, config: EmailNotificationConfig) {
+  const [notification] = await db.insert(emailNotifications)
+    .values({
+      workflowId,
+      recipientEmail: config.recipientEmail,
+      sendOnCompletion: config.sendOnCompletion ?? true,
+      sendOnFailure: config.sendOnFailure ?? true
+    })
+    .returning();
+
+  return notification;
 }
 
-/**
- * Extract needed data from workflow for email template
- */
-async function extractWorkflowData(workflow: Workflow, includeInsights: boolean): Promise<any> {
-  // Base data from workflow
-  const data: any = {
-    workflowId: workflow.id,
-    workflowStatus: workflow.status,
-    createdAt: workflow.createdAt,
-    completedAt: workflow.lastUpdated,
-  };
-  
-  // Extract context data if available
-  if (workflow.context) {
-    // Cast context to any to access dynamic properties
-    const context = workflow.context as any;
-    
-    // Add summary if available
-    if (context.summary) {
-      data.summary = context.summary;
-    } else if (context.__lastStepResult?.summary) {
-      data.summary = context.__lastStepResult.summary;
-    }
-    
-    // Add error if workflow failed
-    if (workflow.status === 'failed' && workflow.lastError) {
-      data.error = workflow.lastError;
-    }
-    
-    // Extract insights if requested
-    if (includeInsights) {
-      // Try to find insights in context (common patterns)
-      if (context.__lastStepResult?.insights) {
-        data.insights = context.__lastStepResult.insights;
-      } else if (context.insights) {
-        data.insights = context.insights;
-      }
-      
-      // If insights is not an array, convert to array
-      if (data.insights && !Array.isArray(data.insights)) {
-        data.insights = [data.insights];
-      }
-    }
+export async function getNotificationSettings(workflowId: string) {
+  const [settings] = await db.select()
+    .from(emailNotifications)
+    .where(eq(emailNotifications.workflowId, workflowId));
+
+  return settings;
+}
+
+export async function deleteNotification(workflowId: string) {
+  const result = await db.delete(emailNotifications)
+    .where(eq(emailNotifications.workflowId, workflowId))
+    .returning();
+
+  return { success: true, deleted: result.length > 0 };
+}
+
+export async function getEmailLogs(workflowId: string) {
+  return db.select()
+    .from(emailLogs)
+    .where(eq(emailLogs.workflowId, workflowId))
+    .orderBy(emailLogs.createdAt);
+}
+
+export async function retryEmail(emailLogId: string): Promise<EmailResult> {
+  const [log] = await db.select()
+    .from(emailLogs)
+    .where(eq(emailLogs.id, emailLogId));
+
+  if (!log) {
+    throw new Error('Email log not found');
   }
-  
-  return data;
+
+  return sendWorkflowEmail(log.workflowId, log.recipientEmail);
 }
 
-/**
- * Send an email when a workflow completes
- * This is a convenience function for the common use case
- */
-export async function sendWorkflowCompletionEmail(workflowId: string, recipients: string | string[]): Promise<boolean> {
+export async function sendWorkflowEmail(workflowId: string, recipientEmail: string): Promise<EmailResult> {
   try {
-    // Get the workflow from database
-    const [workflow] = await db
-      .select()
-      .from(workflows)
-      .where(eq(workflows.id, workflowId));
-    
+    const [workflow] = await db.select()
+      .from(emails)
+      .where(eq(emails.workflowId, workflowId));
+
     if (!workflow) {
-      console.error(`Cannot send completion email: Workflow ${workflowId} not found`);
-      return false;
+      throw new Error('Workflow not found');
     }
-    
-    return await sendWorkflowSummaryEmail({
-      workflow,
-      recipients
+
+    const emailContent = generateWorkflowSummaryHtml(workflow);
+
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || 'workflow@example.com',
+      to: recipientEmail,
+      subject: `Workflow ${workflowId} Update`,
+      html: emailContent
     });
+
+    const [log] = await db.insert(emailLogs)
+      .values({
+        workflowId,
+        recipientEmail,
+        status: 'sent',
+        messageId: info.messageId
+      })
+      .returning();
+
+    return {
+      success: true,
+      message: 'Email sent successfully',
+      emailId: log.id
+    };
   } catch (error) {
-    console.error(`Failed to send completion email for workflow ${workflowId}:`, error);
-    return false;
+    console.error('Error sending email:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to send email'
+    };
   }
 }
