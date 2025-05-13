@@ -1,0 +1,273 @@
+{
+  "distribution_config": {
+    "email": "josh@projectxlabs.ai",
+    "role": "MARKETING",
+    "name": "Dave Marketing",
+    "platforms": [
+      "VinSolutions"
+    ],
+    "channels": [
+      "FILE"
+    ],
+    "frequency": "IMMEDIATE",
+    "lastDistributed": null,
+    "active": true
+  },
+  "timestamp": "2025-05-13T15:47:02.398Z",
+  "insights": {
+    "insights": {
+      "summary": "The dealership has shown strong sales performance in May 2024, with SUVs being the most popular body style. John Smith is the top-performing sales representative, contributing significantly to the dealership's success. There is an opportunity to improve the sales of finance products and reduce days in inventory for certain models.",
+      "value_insights": [
+        "SUVs are the most popular body style, accounting for 50% of sales.",
+        "John Smith is the top sales representative, responsible for 50% of the total sales.",
+        "The BMW X5 and Volvo XC90 have the highest gross profits, indicating strong demand and pricing power.",
+        "The average days in inventory is 16.25, with the Tesla Model Y having the shortest time at 5 days.",
+        "Finance products are underutilized, with two sales having zero finance products attached."
+      ],
+      "actionable_flags": [
+        "Increase focus on selling finance products, especially for models with lower finance attachment rates.",
+        "Implement strategies to reduce days in inventory for models like the Toyota Camry and Honda Civic.",
+        "Leverage John Smith's sales techniques across the team to improve overall sales performance.",
+        "Consider promotional strategies to boost sales of sedans, which have lower gross profits compared to SUVs."
+      ],
+      "key_metrics": {
+        "total_sales": 343730,
+        "average_price": 42966.25,
+        "average_gross_profit": 4035,
+        "average_days_in_inventory": 16.25,
+        "total_finance_products": 12,
+        "average_finance_products_per_sale": 1.5
+      },
+      "risk_areas": [
+        {
+          "risk": "High days in inventory for certain models like the Toyota Camry and Honda Civic.",
+          "mitigation": "Implement targeted marketing campaigns and discounts to accelerate sales."
+        },
+        {
+          "risk": "Low attachment rate of finance products.",
+          "mitigation": "Train sales representatives on the benefits of finance products to increase attachment rates."
+        }
+      ],
+      "confidence": "high"
+    },
+    "quality": {
+      "quality_dimensions": {
+        "completeness": 8,
+        "relevance": 9,
+        "specificity": 8,
+        "coherence": 9,
+        "innovation": 7
+      },
+      "strengths": [
+        "The insights provide a comprehensive overview of sales performance, highlighting key areas such as top-performing models and sales representatives.",
+        "The insights are relevant to the dealership's operations, focusing on sales, inventory management, and finance product attachment rates.",
+        "The insights are coherent, with a logical flow from summary to detailed value insights and actionable flags.",
+        "The insights identify specific models and sales representatives, adding specificity to the analysis."
+      ],
+      "improvement_areas": [
+        "The insights could benefit from more detailed analysis of the reasons behind the low finance product attachment rates.",
+        "Innovation could be improved by suggesting more creative or unconventional strategies for addressing identified risks and opportunities.",
+        "The insights could include more detailed comparisons with industry benchmarks or historical performance data to provide context."
+      ],
+      "verification_steps": [
+        "Verify the sales data for accuracy, ensuring that the reported figures for total sales, average price, and gross profit match the raw data.",
+        "Cross-check the inventory data to confirm the average days in inventory and identify any discrepancies with the reported figures.",
+        "Review the finance product sales data to validate the reported attachment rates and identify any patterns or trends.",
+        "Conduct interviews with sales representatives to gather qualitative insights on sales techniques and finance product sales strategies."
+      ],
+      "overall_score": 82
+    },
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 50000,
+        "confidence_level": "medium-high",
+        "timeframe": "6 months",
+        "implementation_complexity": "medium"
+      },
+      "cost_savings": {
+        "potential_reduction": 15000,
+        "confidence_level": "medium",
+        "timeframe": "6 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "effects_on_satisfaction": "Improved satisfaction through better sales processes and product offerings.",
+        "effects_on_retention": "Increased retention through enhanced finance product offerings.",
+        "effects_on_acquisition": "Potential increase in acquisition through targeted marketing and promotions."
+      },
+      "operational_efficiency": {
+        "impact_areas": [
+          "Inventory management",
+          "Sales training",
+          "Finance product attachment"
+        ],
+        "potential_improvement_level": "moderate"
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Increase focus on selling finance products.",
+          "impact": "High",
+          "effort": "Medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Implement strategies to reduce days in inventory.",
+          "impact": "Medium",
+          "effort": "Medium",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Leverage John Smith's sales techniques.",
+          "impact": "Medium",
+          "effort": "Low",
+          "priority_ranking": 3
+        },
+        {
+          "recommendation": "Consider promotional strategies for sedans.",
+          "impact": "Low",
+          "effort": "Medium",
+          "priority_ranking": 4
+        }
+      ],
+      "risk_assessment": {
+        "implementation_risks": [
+          "Resistance to change in sales techniques.",
+          "Potential initial decrease in sales while training is implemented.",
+          "Increased marketing costs for promotional strategies."
+        ],
+        "confidence_score": "high"
+      }
+    },
+    "visualizations": {
+      "primary_visualizations": [
+        {
+          "title": "Sales Performance by Body Style",
+          "type": "Pie Chart",
+          "description": "Visualizes the distribution of sales by body style, highlighting the dominance of SUVs.",
+          "data_fields": [
+            "body_style",
+            "sales_count"
+          ]
+        },
+        {
+          "title": "Top Sales Representative Contribution",
+          "type": "Bar Chart",
+          "description": "Shows the sales contribution of each sales representative, emphasizing John Smith's performance.",
+          "data_fields": [
+            "sales_rep",
+            "total_sales"
+          ]
+        },
+        {
+          "title": "Gross Profit by Model",
+          "type": "Horizontal Bar Chart",
+          "description": "Displays gross profit for each model, identifying high-profit vehicles like BMW X5 and Volvo XC90.",
+          "data_fields": [
+            "model",
+            "gross_profit"
+          ]
+        },
+        {
+          "title": "Days in Inventory by Model",
+          "type": "Scatter Plot",
+          "description": "Illustrates the days in inventory for each model, highlighting models with high inventory days.",
+          "data_fields": [
+            "model",
+            "days_in_inventory"
+          ]
+        }
+      ],
+      "secondary_visualizations": [
+        {
+          "title": "Finance Product Attachment Rate",
+          "type": "Line Chart",
+          "description": "Tracks the attachment rate of finance products over time to identify trends and opportunities for improvement.",
+          "data_fields": [
+            "sale_date",
+            "finance_products"
+          ]
+        },
+        {
+          "title": "Average Gross Profit by Body Style",
+          "type": "Column Chart",
+          "description": "Compares average gross profit across different body styles to identify profitable segments.",
+          "data_fields": [
+            "body_style",
+            "average_gross_profit"
+          ]
+        }
+      ],
+      "executive_dashboard": {
+        "layout": [
+          {
+            "row": 1,
+            "columns": [
+              {
+                "width": 6,
+                "visualization": "Sales Performance by Body Style"
+              },
+              {
+                "width": 6,
+                "visualization": "Top Sales Representative Contribution"
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "columns": [
+              {
+                "width": 6,
+                "visualization": "Gross Profit by Model"
+              },
+              {
+                "width": 6,
+                "visualization": "Days in Inventory by Model"
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "columns": [
+              {
+                "width": 12,
+                "visualization": "Finance Product Attachment Rate"
+              }
+            ]
+          }
+        ]
+      },
+      "data_preparation_notes": [
+        "Aggregate sales data by body style to calculate sales count for the pie chart.",
+        "Sum total sales for each sales representative to prepare data for the bar chart.",
+        "Calculate gross profit for each model and prepare a sorted list for the horizontal bar chart.",
+        "Prepare a dataset with model and corresponding days in inventory for the scatter plot.",
+        "Track finance product attachment rate over time by aggregating finance products sold per day."
+      ]
+    },
+    "metadata": {
+      "platform": "VinSolutions",
+      "timestamp": "2025-05-13T15:46:23.785Z",
+      "promptName": "automotive-analyst",
+      "promptVersion": "v2.0.0",
+      "executionTime": 9714,
+      "tokenUsage": 1622,
+      "dataSummary": {
+        "platform": "VinSolutions",
+        "timestamp": "2025-05-13T15:46:23.785Z",
+        "recordCount": 8,
+        "dataFields": [
+          "id",
+          "make",
+          "model",
+          "year",
+          "trim",
+          "sale_date",
+          "price",
+          "cost",
+          "gross_profit",
+          "days_in_inventory"
+        ]
+      }
+    }
+  }
+}
