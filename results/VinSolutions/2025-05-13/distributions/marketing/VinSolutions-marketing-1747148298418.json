@@ -1,0 +1,258 @@
+{
+  "distribution_config": {
+    "email": "josh@projectxlabs.ai",
+    "role": "MARKETING",
+    "name": "Dave Marketing",
+    "platforms": [
+      "VinSolutions"
+    ],
+    "channels": [
+      "FILE"
+    ],
+    "frequency": "IMMEDIATE",
+    "lastDistributed": null,
+    "active": true
+  },
+  "timestamp": "2025-05-13T14:58:18.418Z",
+  "insights": {
+    "insights": {
+      "summary": "The dealership has shown strong performance in May 2024, with SUVs being the top-selling body style and John Smith emerging as the top sales representative. There is room for improvement in finance product sales, particularly for Mary Johnson, and reducing days in inventory for certain models.",
+      "value_insights": [
+        "SUVs are the most popular body style, accounting for 50% of sales.",
+        "John Smith is the top-performing sales representative, responsible for 50% of the sales and achieving the highest gross profit per vehicle.",
+        "The BMW X5 had the highest gross profit among all vehicles sold.",
+        "Vehicles with fewer days in inventory tend to have higher gross profits, indicating efficient inventory turnover is beneficial."
+      ],
+      "actionable_flags": [
+        "Focus on promoting SUVs, as they are the top-selling category.",
+        "Provide additional training or incentives for Mary Johnson to increase finance product sales.",
+        "Consider strategies to reduce days in inventory, especially for models like the Toyota Camry and Honda Civic.",
+        "Leverage John Smith's sales techniques across the team to improve overall sales performance."
+      ],
+      "key_metrics": {
+        "total_sales": 8,
+        "total_revenue": 343730,
+        "total_gross_profit": 32280,
+        "average_price": 42966.25,
+        "average_gross_profit": 4035,
+        "average_days_in_inventory": 16.25,
+        "average_finance_products_per_sale": 1.5
+      },
+      "risk_areas": [
+        {
+          "risk": "High days in inventory for certain models like the Toyota Camry and Honda Civic.",
+          "mitigation": "Implement targeted marketing campaigns or discounts to expedite sales of these models."
+        },
+        {
+          "risk": "Low finance product sales by Mary Johnson.",
+          "mitigation": "Provide targeted training on finance products and consider offering incentives for increased sales."
+        }
+      ],
+      "confidence": "high"
+    },
+    "quality": {
+      "quality_dimensions": {
+        "completeness": 8,
+        "relevance": 9,
+        "specificity": 8,
+        "coherence": 9,
+        "innovation": 7
+      },
+      "strengths": [
+        "The insights provide a clear summary of the dealership's performance, highlighting key areas such as top-selling body styles and top-performing sales representatives.",
+        "The insights are well-supported by specific data points, such as the percentage of SUV sales and the gross profit details for the BMW X5.",
+        "Actionable flags are provided, offering practical steps for improving sales and inventory management."
+      ],
+      "improvement_areas": [
+        "The insights could benefit from more detailed analysis of the factors contributing to the high days in inventory for certain models.",
+        "There is a need for more innovative strategies beyond training and incentives, such as exploring new sales channels or partnerships.",
+        "The insights could include a broader market context, such as comparing the dealership's performance to industry benchmarks or trends."
+      ],
+      "verification_steps": [
+        "Review sales data to confirm the accuracy of the SUV sales percentage and the performance of John Smith.",
+        "Analyze inventory turnover rates and compare them with industry standards to validate the efficiency claims.",
+        "Conduct a detailed review of finance product sales data to assess Mary Johnson's performance and identify specific areas for improvement."
+      ],
+      "overall_score": 82
+    },
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 25000,
+        "confidence_level": "medium",
+        "timeframe": "6 months",
+        "implementation_complexity": "medium"
+      },
+      "cost_savings": {
+        "potential_reduction": 10000,
+        "confidence_level": "medium",
+        "timeframe": "6 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "satisfaction": "improved through targeted promotions and faster inventory turnover",
+        "retention": "increased by leveraging popular models and enhancing sales experience",
+        "acquisition": "boosted by marketing campaigns and improved sales techniques"
+      },
+      "operational_efficiency": {
+        "impact_areas": [
+          "inventory management",
+          "sales training",
+          "marketing strategy"
+        ],
+        "potential_improvement_level": "high"
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Focus on promoting SUVs",
+          "impact": "high",
+          "effort": "low",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Reduce days in inventory for Toyota Camry and Honda Civic",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Provide training and incentives for Mary Johnson",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 3
+        },
+        {
+          "recommendation": "Leverage John Smith's sales techniques",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 4
+        }
+      ],
+      "risk_assessment": {
+        "implementation_risks": [
+          "Potential resistance to new sales techniques",
+          "Difficulty in reducing inventory days without impacting margins",
+          "Training may not immediately translate to increased finance product sales"
+        ],
+        "confidence_score": "high"
+      }
+    },
+    "visualizations": {
+      "primary_visualizations": [
+        {
+          "title": "Sales by Body Style",
+          "type": "Pie Chart",
+          "description": "Visual representation of sales distribution by body style to highlight the popularity of SUVs.",
+          "data_fields": [
+            "body_style",
+            "count"
+          ]
+        },
+        {
+          "title": "Top Sales Representative Performance",
+          "type": "Bar Chart",
+          "description": "Comparison of sales representatives based on total sales and gross profit to emphasize John Smith's performance.",
+          "data_fields": [
+            "sales_rep",
+            "total_sales",
+            "total_gross_profit"
+          ]
+        },
+        {
+          "title": "Gross Profit by Vehicle Model",
+          "type": "Horizontal Bar Chart",
+          "description": "Highlight the gross profit achieved by different vehicle models, with a focus on the BMW X5.",
+          "data_fields": [
+            "model",
+            "gross_profit"
+          ]
+        },
+        {
+          "title": "Days in Inventory vs. Gross Profit",
+          "type": "Scatter Plot",
+          "description": "Illustrate the relationship between days in inventory and gross profit to show the benefits of efficient inventory turnover.",
+          "data_fields": [
+            "days_in_inventory",
+            "gross_profit"
+          ]
+        }
+      ],
+      "secondary_visualizations": [
+        {
+          "title": "Finance Product Sales by Representative",
+          "type": "Stacked Bar Chart",
+          "description": "Showcase the number of finance products sold by each sales representative, highlighting areas for improvement.",
+          "data_fields": [
+            "sales_rep",
+            "finance_products"
+          ]
+        },
+        {
+          "title": "Average Days in Inventory by Model",
+          "type": "Column Chart",
+          "description": "Display average days in inventory for each model to identify models with high inventory turnover times.",
+          "data_fields": [
+            "model",
+            "average_days_in_inventory"
+          ]
+        }
+      ],
+      "executive_dashboard": {
+        "layout": "Grid",
+        "sections": [
+          {
+            "title": "Sales Overview",
+            "visualizations": [
+              "Sales by Body Style",
+              "Top Sales Representative Performance"
+            ]
+          },
+          {
+            "title": "Profit Analysis",
+            "visualizations": [
+              "Gross Profit by Vehicle Model",
+              "Days in Inventory vs. Gross Profit"
+            ]
+          },
+          {
+            "title": "Operational Insights",
+            "visualizations": [
+              "Finance Product Sales by Representative",
+              "Average Days in Inventory by Model"
+            ]
+          }
+        ]
+      },
+      "data_preparation_notes": [
+        "Aggregate sales data by body style to calculate the percentage of total sales.",
+        "Summarize sales and gross profit data by sales representative.",
+        "Calculate average days in inventory for each vehicle model.",
+        "Ensure data is cleaned and missing values are handled appropriately before visualization."
+      ]
+    },
+    "metadata": {
+      "platform": "VinSolutions",
+      "timestamp": "2025-05-13T14:57:50.791Z",
+      "promptName": "automotive-analyst",
+      "promptVersion": "v2.0.0",
+      "executionTime": 7152,
+      "tokenUsage": 1603,
+      "dataSummary": {
+        "platform": "VinSolutions",
+        "timestamp": "2025-05-13T14:57:50.791Z",
+        "recordCount": 8,
+        "dataFields": [
+          "id",
+          "make",
+          "model",
+          "year",
+          "trim",
+          "sale_date",
+          "price",
+          "cost",
+          "gross_profit",
+          "days_in_inventory"
+        ]
+      }
+    }
+  }
+}
