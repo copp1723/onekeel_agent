@@ -1,20 +1,20 @@
 {
   "pages": {
+    "/api/health-monitoring/[...path]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/health-monitoring/[...path]/route.js"
+    ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/health-monitoring/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/health-monitoring/page.js"
-    ],
-    "/api/health-monitoring/[...path]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/health-monitoring/[...path]/route.js"
+      "static/chunks/app/page.js"
     ]
   }
 }
