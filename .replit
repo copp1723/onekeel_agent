@@ -138,7 +138,8 @@ args = "node run-health-dashboard.js"
 waitForPort = 5002
 
 [deployment]
-run = ["sh", "-c", "npm install dotenv axios drizzle-orm postgres fellou-eko typescript ts-node && npx tsc && node dist/index.js"]
+run = ["sh", "-c", "npx tsc && node dist/index.js"]
+build = ["sh", "-c", "npm install"]
 
 [[ports]]
 localPort = 3000
