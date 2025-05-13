@@ -1,0 +1,266 @@
+{
+  "distribution_config": {
+    "email": "josh@projectxlabs.ai",
+    "role": "EXECUTIVE",
+    "name": "John Executive",
+    "platforms": [
+      "VinSolutions"
+    ],
+    "channels": [
+      "EMAIL",
+      "FILE"
+    ],
+    "frequency": "IMMEDIATE",
+    "lastDistributed": null,
+    "active": true
+  },
+  "timestamp": "2025-05-13T14:51:31.752Z",
+  "insights": {
+    "insights": {
+      "summary": "The dealership is performing well with strong sales in SUVs and notable contributions from sales representative John Smith. However, there are opportunities to improve sales of sedans and increase the attachment rate of finance products.",
+      "value_insights": [
+        "SUVs are the top-performing body style, with high sales and gross profits.",
+        "John Smith is the top sales representative, contributing significantly to the dealership's sales and profits.",
+        "The average days in inventory is relatively low, indicating efficient turnover, particularly for SUVs.",
+        "Finance products are being sold with most vehicles, but there is room to increase the attachment rate, especially with sedans."
+      ],
+      "actionable_flags": [
+        "Focus on increasing the sales of sedans by targeting promotions or incentives.",
+        "Enhance training for sales representatives on selling finance products, particularly for those selling sedans.",
+        "Consider stocking more SUVs, given their quick turnover and higher profitability.",
+        "Implement targeted marketing strategies to boost the sales of underperforming models like the Honda Civic."
+      ],
+      "key_metrics": {
+        "total_sales": 343730,
+        "average_price": 42966.25,
+        "average_gross_profit": 4036.25,
+        "average_days_in_inventory": 16.25,
+        "suv_sales_percentage": 62.5,
+        "sedan_sales_percentage": 25,
+        "average_finance_products_per_sale": 1.5
+      },
+      "risk_areas": [
+        {
+          "risk": "High dependency on SUV sales could be risky if market preferences shift.",
+          "mitigation": "Diversify inventory and marketing efforts to boost sales of other body styles."
+        },
+        {
+          "risk": "Low finance product attachment rate with sedans.",
+          "mitigation": "Provide additional training and incentives for sales reps to improve finance product sales."
+        }
+      ],
+      "confidence": "high"
+    },
+    "quality": {
+      "quality_dimensions": {
+        "completeness": 8,
+        "relevance": 9,
+        "specificity": 8,
+        "coherence": 9,
+        "innovation": 7
+      },
+      "strengths": [
+        "The insights provide a comprehensive overview of the dealership's performance, highlighting key areas such as SUV sales and individual contributions from sales representatives.",
+        "The insights are highly relevant to the dealership's current operations, focusing on actionable areas like improving sedan sales and finance product attachment rates.",
+        "The coherence of the insights is strong, with a logical flow from summary to detailed insights and actionable flags."
+      ],
+      "improvement_areas": [
+        "The insights could benefit from more specific data points or examples to support claims, such as detailed comparisons of sales performance across different models or time periods.",
+        "Innovation could be enhanced by suggesting novel strategies or technologies to improve sales and operations, such as leveraging digital marketing or customer relationship management tools."
+      ],
+      "verification_steps": [
+        "Cross-reference the sales data with historical performance to validate trends in SUV and sedan sales.",
+        "Analyze the sales performance of John Smith and other representatives over a longer period to confirm consistency in contributions.",
+        "Review finance product sales data to verify the attachment rates and identify specific areas for improvement.",
+        "Conduct market research to assess potential shifts in consumer preferences that could impact SUV sales."
+      ],
+      "overall_score": 82
+    },
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 500000,
+        "confidence_level": "medium",
+        "timeframe": "12 months",
+        "implementation_complexity": "medium"
+      },
+      "cost_savings": {
+        "potential_reduction": 100000,
+        "confidence_level": "medium",
+        "timeframe": "12 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "satisfaction": "improved through better product offerings and finance options",
+        "retention": "increased by 5% due to enhanced customer experience",
+        "acquisition": "boosted by targeted marketing and promotions"
+      },
+      "operational_efficiency": {
+        "impact_areas": [
+          "inventory management",
+          "sales training",
+          "marketing strategies"
+        ],
+        "potential_improvement_level": "high"
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Focus on increasing the sales of sedans by targeting promotions or incentives.",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Enhance training for sales representatives on selling finance products, particularly for those selling sedans.",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Consider stocking more SUVs, given their quick turnover and higher profitability.",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 3
+        },
+        {
+          "recommendation": "Implement targeted marketing strategies to boost the sales of underperforming models like the Honda Civic.",
+          "impact": "medium",
+          "effort": "high",
+          "priority_ranking": 4
+        }
+      ],
+      "risk_assessment": {
+        "implementation_risks": [
+          "Market preferences may shift away from SUVs, impacting sales.",
+          "Sales representatives may resist additional training.",
+          "Promotional costs may exceed budget if not managed carefully."
+        ],
+        "confidence_score": "high"
+      }
+    },
+    "visualizations": {
+      "primary_visualizations": [
+        {
+          "title": "Sales Performance by Body Style",
+          "type": "Stacked Bar Chart",
+          "description": "Visualize the sales and gross profits by body style to highlight the dominance of SUVs and the potential for sedans.",
+          "data_fields": [
+            "body_style",
+            "total_sales",
+            "gross_profit"
+          ]
+        },
+        {
+          "title": "Top Sales Representative Contribution",
+          "type": "Pie Chart",
+          "description": "Show the contribution of each sales representative to the total sales, emphasizing John Smith's significant impact.",
+          "data_fields": [
+            "sales_rep",
+            "total_sales"
+          ]
+        },
+        {
+          "title": "Average Days in Inventory by Body Style",
+          "type": "Horizontal Bar Chart",
+          "description": "Illustrate the average days in inventory for each body style, highlighting the efficient turnover of SUVs.",
+          "data_fields": [
+            "body_style",
+            "average_days_in_inventory"
+          ]
+        },
+        {
+          "title": "Finance Product Attachment Rate",
+          "type": "Grouped Bar Chart",
+          "description": "Compare the average number of finance products sold per vehicle across different body styles, focusing on the lower rates for sedans.",
+          "data_fields": [
+            "body_style",
+            "average_finance_products_per_sale"
+          ]
+        }
+      ],
+      "secondary_visualizations": [
+        {
+          "title": "Sales Trend Over Time",
+          "type": "Line Chart",
+          "description": "Track the sales trend over time to identify any seasonal patterns or shifts in sales performance.",
+          "data_fields": [
+            "sale_date",
+            "total_sales"
+          ]
+        },
+        {
+          "title": "Profitability by Vehicle Model",
+          "type": "Bubble Chart",
+          "description": "Show the relationship between sales volume, average price, and gross profit for different vehicle models.",
+          "data_fields": [
+            "model",
+            "total_sales",
+            "average_price",
+            "gross_profit"
+          ]
+        }
+      ],
+      "executive_dashboard": {
+        "layout": "Grid",
+        "sections": [
+          {
+            "title": "Sales Overview",
+            "visualizations": [
+              "Sales Performance by Body Style",
+              "Top Sales Representative Contribution"
+            ]
+          },
+          {
+            "title": "Inventory and Turnover",
+            "visualizations": [
+              "Average Days in Inventory by Body Style"
+            ]
+          },
+          {
+            "title": "Finance Product Insights",
+            "visualizations": [
+              "Finance Product Attachment Rate"
+            ]
+          },
+          {
+            "title": "Trends and Opportunities",
+            "visualizations": [
+              "Sales Trend Over Time",
+              "Profitability by Vehicle Model"
+            ]
+          }
+        ]
+      },
+      "data_preparation_notes": [
+        "Aggregate sales and gross profit data by body style and sales representative for the primary visualizations.",
+        "Calculate average days in inventory and average finance products per sale for each body style.",
+        "Ensure date fields are in a consistent format for time-based visualizations.",
+        "Filter and clean data to remove any outliers or errors that could skew the visualizations."
+      ]
+    },
+    "metadata": {
+      "platform": "VinSolutions",
+      "timestamp": "2025-05-13T14:51:00.709Z",
+      "promptName": "automotive-analyst",
+      "promptVersion": "v2.0.0",
+      "executionTime": 7587,
+      "tokenUsage": 1589,
+      "dataSummary": {
+        "platform": "VinSolutions",
+        "timestamp": "2025-05-13T14:51:00.709Z",
+        "recordCount": 8,
+        "dataFields": [
+          "id",
+          "make",
+          "model",
+          "year",
+          "trim",
+          "sale_date",
+          "price",
+          "cost",
+          "gross_profit",
+          "days_in_inventory"
+        ]
+      }
+    }
+  }
+}
