@@ -1,0 +1,6 @@
+Date,Customer,Vehicle,Status,Price,DaysOnLot,LeadSource,SalesPerson
+"2025-05-13","Customer A","Honda Accord","New Lead",32500,15,"Website","Rep 1"
+"2025-05-13","Customer B","Toyota Camry","Test Drive",29800,22,"Phone","Rep 2"
+"2025-05-13","Customer C","Ford F-150","Negotiation",45600,8,"Walk-in","Rep 3"
+"2025-05-13","Customer D","Chevrolet Tahoe","Purchased",52300,30,"Referral","Rep 1"
+"2025-05-13","Customer E","Nissan Altima","New Lead",26400,12,"Website","Rep 4"
