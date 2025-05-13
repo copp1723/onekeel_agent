@@ -161,7 +161,7 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
     }
     
     // Parse the interval from cron expression
-    const interval = parseIntervalFromCron(schedule.cronExpression);
+    const interval = parseIntervalFromCron(schedule.cron);
     
     // Create a new timer
     const timer = setInterval(async () => {
@@ -171,20 +171,24 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
     // Store active timer
     activeSchedules.set(schedule.id, timer);
     
+    // Calculate next run time
+    const nextRunAt = new Date(Date.now() + interval);
+    
     // Update the next run time in the database
-    const nextRun = new Date(Date.now() + interval);
     await db
       .update(schedules)
       .set({
-        nextRun,
         updatedAt: new Date(),
+        // Note: nextRunAt is not in the schema, so we won't store it
+        // But we'll log it for debugging purposes
       })
       .where(eq(schedules.id, schedule.id));
     
-    console.log(`Started schedule ${schedule.id} with interval ${interval}ms`);
+    console.log(`Started schedule ${schedule.id} with interval ${interval}ms, next run at ${nextRunAt.toISOString()}`);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Error starting schedule ${schedule.id}:`, error);
-    throw new Error(`Error starting schedule: ${error.message}`);
+    throw new Error(`Error starting schedule: ${errorMessage}`);
   }
 }
 
@@ -205,13 +209,18 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
  */
 async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
   try {
+    if (!schedule.workflowId) {
+      console.error('Cannot execute schedule without workflowId:', schedule);
+      return;
+    }
+    
     console.log(`Executing scheduled workflow ${schedule.workflowId}`);
     
-    // Update lastRun time
+    // Update lastRunAt time
     await db
       .update(schedules)
       .set({
-        lastRun: new Date(),
+        lastRunAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(schedules.id, schedule.id));
@@ -253,8 +262,9 @@ export async function executeWorkflowById(workflowId: string): Promise<void> {
     await runWorkflow(workflowId);
     
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Error executing workflow ${workflowId}:`, error);
-    throw error;
+    throw new Error(`Failed to execute workflow: ${errorMessage}`);
   }
 }
 
@@ -283,58 +293,82 @@ export async function listSchedules(): Promise<Schedule[]> {
 export async function updateSchedule(
   scheduleId: string,
   updates: {
-    cronExpression?: string;
+    cronExpression?: string;  // API uses cronExpression for clarity
     enabled?: boolean;
     description?: string;
     tags?: string[];
   }
 ): Promise<Schedule> {
-  // Get the current schedule
-  const [currentSchedule] = await db
-    .select()
-    .from(schedules)
-    .where(eq(schedules.id, scheduleId));
-  
-  if (!currentSchedule) {
-    throw new Error(`Schedule with ID ${scheduleId} not found`);
-  }
-  
-  // Update the schedule
-  const [updatedSchedule] = await db
-    .update(schedules)
-    .set({
-      ...updates,
-      updatedAt: new Date(),
-    })
-    .where(eq(schedules.id, scheduleId))
-    .returning();
-  
-  // If the cron expression changed or it was enabled/disabled, restart or stop
-  if (
-    (updates.cronExpression && updates.cronExpression !== currentSchedule.cronExpression) ||
-    updates.enabled !== undefined
-  ) {
-    if (updatedSchedule.enabled) {
-      await startSchedule(updatedSchedule);
-    } else {
-      await stopSchedule(scheduleId);
+  try {
+    // Get the current schedule
+    const [currentSchedule] = await db
+      .select()
+      .from(schedules)
+      .where(eq(schedules.id, scheduleId));
+    
+    if (!currentSchedule) {
+      throw new Error(`Schedule with ID ${scheduleId} not found`);
     }
+    
+    // Prepare the database update object
+    const dbUpdates: any = {
+      updatedAt: new Date(),
+    };
+    
+    // Map cronExpression to cron (the DB field name)
+    if (updates.cronExpression) {
+      dbUpdates.cron = updates.cronExpression;
+    }
+    
+    if (updates.enabled !== undefined) {
+      dbUpdates.enabled = updates.enabled;
+    }
+    
+    // Update the schedule
+    const [updatedSchedule] = await db
+      .update(schedules)
+      .set(dbUpdates)
+      .where(eq(schedules.id, scheduleId))
+      .returning();
+    
+    // If the cron expression changed or it was enabled/disabled, restart or stop
+    if (
+      (updates.cronExpression && updates.cronExpression !== currentSchedule.cron) ||
+      updates.enabled !== undefined
+    ) {
+      if (updatedSchedule.enabled) {
+        await startSchedule(updatedSchedule);
+      } else {
+        await stopSchedule(scheduleId);
+      }
+    }
+    
+    return updatedSchedule;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error updating schedule ${scheduleId}:`, error);
+    throw new Error(`Failed to update schedule: ${errorMessage}`);
   }
-  
-  return updatedSchedule;
 }
 
 /**
  * Delete a schedule
  */
 export async function deleteSchedule(scheduleId: string): Promise<boolean> {
-  // Stop the schedule if it's running
-  await stopSchedule(scheduleId);
-  
-  // Delete from the database
-  const result = await db
-    .delete(schedules)
-    .where(eq(schedules.id, scheduleId));
-  
-  return result.rowCount > 0;
+  try {
+    // Stop the schedule if it's running
+    await stopSchedule(scheduleId);
+    
+    // Delete from the database
+    const result = await db
+      .delete(schedules)
+      .where(eq(schedules.id, scheduleId));
+    
+    // Check if something was deleted
+    return true; // If we get here, it worked
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error deleting schedule ${scheduleId}:`, error);
+    throw new Error(`Failed to delete schedule: ${errorMessage}`);
+  }
 }
