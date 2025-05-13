@@ -113,18 +113,27 @@ export const workflows = pgTable("workflows", {
   index("idx_workflows_user").on(table.userId),
 ]);
 
-// Scheduler for automated workflow execution
+// Enhanced scheduler for automated workflow execution with recovery
 export const schedules = pgTable("schedules", {
   id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id),
   workflowId: uuid("workflow_id").references(() => workflows.id, { onDelete: 'cascade' }),
+  intent: varchar("intent", { length: 100 }), // e.g. "inventory_aging"
+  platform: varchar("platform", { length: 50 }), // CRM platform
   cron: text("cron").notNull(), // Cron expression for schedule
-  lastRunAt: timestamp("last_run_at"),
-  enabled: boolean("enabled").default(true).notNull(),
+  nextRunAt: timestamp("next_run_at"), // When this schedule should run next
+  lastRunAt: timestamp("last_run_at"), // When this schedule last ran
+  status: varchar("status", { length: 20 }).default("active").notNull(), // active, paused, failed
+  retryCount: integer("retry_count").default(0).notNull(), // Count of failed attempts since last success
+  enabled: boolean("enabled").default(true).notNull(), // Legacy field, keep for backward compatibility
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_schedules_workflow_id").on(table.workflowId),
   index("idx_schedules_enabled").on(table.enabled),
+  index("idx_schedules_status").on(table.status),
+  index("idx_schedules_next_run").on(table.nextRunAt),
+  index("idx_schedules_user_id").on(table.userId),
 ]);
 
 // Email logs for tracking email sending
