@@ -48,6 +48,10 @@ args = "Scheduler Demo"
 task = "workflow.run"
 args = "Auto Email Notification Test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Health Monitoring Dashboard"
+
 [[workflows.workflow]]
 name = "AI Agent Demo"
 author = "agent"
@@ -124,12 +128,17 @@ author = "agent"
 task = "shell.exec"
 args = "node test-workflow-auto-notifications.js test@example.com"
 
+[[workflows.workflow]]
+name = "Health Monitoring Dashboard"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node run-health-dashboard.js"
+waitForPort = 5002
+
 [deployment]
 run = ["sh", "-c", "npm install dotenv axios drizzle-orm postgres fellou-eko typescript ts-node && npx tsc && node dist/index.js"]
-
-[[ports]]
-localPort = 5000
-externalPort = 80
 
 [[ports]]
 localPort = 3000
@@ -138,3 +147,15 @@ externalPort = 3000
 [[ports]]
 localPort = 3001
 externalPort = 3001
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3003
+
+[[ports]]
+localPort = 5002
+externalPort = 3002

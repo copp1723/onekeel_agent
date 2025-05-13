@@ -131,4 +131,32 @@ export const emailNotifications = pgTable("email_notifications", {
 }, (table) => [
     index("idx_email_notifications_workflow_id").on(table.workflowId),
 ]);
+// Health check tables for API and service monitoring
+export const healthChecks = pgTable("health_checks", {
+    id: varchar("id", { length: 50 }).primaryKey(), // Use a stable identifier like 'database', 'email', etc.
+    name: varchar("name", { length: 100 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull(), // 'ok', 'warning', 'error'
+    responseTime: integer("response_time").notNull(), // in milliseconds
+    lastChecked: timestamp("last_checked").notNull(),
+    message: text("message"),
+    details: text("details"), // JSON stringified details
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+    index("idx_health_checks_status").on(table.status),
+    index("idx_health_checks_last_checked").on(table.lastChecked),
+]);
+// Health check logs for historical tracking
+export const healthLogs = pgTable("health_logs", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    checkId: varchar("check_id", { length: 50 }).notNull().references(() => healthChecks.id),
+    timestamp: timestamp("timestamp").notNull(),
+    status: varchar("status", { length: 20 }).notNull(), // 'ok', 'warning', 'error'
+    responseTime: integer("response_time").notNull(), // in milliseconds
+    message: text("message"),
+    details: text("details"), // JSON stringified details
+}, (table) => [
+    index("idx_health_logs_check_id").on(table.checkId),
+    index("idx_health_logs_timestamp").on(table.timestamp),
+]);
 //# sourceMappingURL=schema.js.map
