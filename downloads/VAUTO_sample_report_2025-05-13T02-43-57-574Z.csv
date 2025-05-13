@@ -1,0 +1,6 @@
+Report Date,Stock#,VIN,Make,Model,Price,Cost,Age,Category,Source
+"2025-05-13","A123","1HGCM82633A123456","Honda","Accord",32500,29500,15,"Sedan","Auction"
+"2025-05-13","B234","2T1BU4EE2AC123456","Toyota","Camry",29800,27000,22,"Sedan","Trade-in"
+"2025-05-13","C345","1FTEX1EM5EF123456","Ford","F-150",45600,41200,8,"Truck","Dealer Transfer"
+"2025-05-13","D456","3GNFK16Z23G123456","Chevrolet","Tahoe",52300,47800,30,"SUV","Auction"
+"2025-05-13","E567","1N4AL3AP8DN123456","Nissan","Altima",26400,23500,12,"Sedan","Trade-in"

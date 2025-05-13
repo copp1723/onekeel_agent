@@ -1,0 +1,126 @@
+{
+  "summary": "Strong F&I performance with opportunity to improve product penetration.",
+  "keyPerformanceIndicators": {
+    "leadConversion": {
+      "rate": "24%",
+      "change": "+3% from last period",
+      "performingSegments": [
+        "SUVs",
+        "Luxury Vehicles"
+      ]
+    },
+    "salesBySource": {
+      "website": "42%",
+      "phone": "28%",
+      "walkIn": "18%",
+      "referral": "12%"
+    },
+    "financeMetrics": {
+      "avgFrontEnd": "$1,285",
+      "avgBackEnd": "$1,105",
+      "productPenetration": "2.3 products per deal",
+      "trend": "+0.2 products per deal from previous month"
+    }
+  },
+  "opportunities": [
+    {
+      "title": "Enhance Website Lead Follow-up Process",
+      "description": "Website leads show 15% higher conversion when initial response is under 30 minutes",
+      "potentialImpact": "$83,500 in additional gross profit based on current traffic",
+      "actionSteps": [
+        "Implement automated immediate response system",
+        "Create dedicated website lead specialist position",
+        "Develop tailored follow-up templates by vehicle category"
+      ],
+      "priority": "High",
+      "owner": "Digital Marketing Manager"
+    },
+    {
+      "title": "Increase GAP Insurance Penetration",
+      "description": "GAP penetration at 62% vs benchmark of 78% for similar dealers",
+      "potentialImpact": "$52,000 in additional annual profit",
+      "actionSteps": [
+        "Create value presentation training for F&I staff",
+        "Implement pre-introduction of product by sales team",
+        "Develop customer-facing benefit materials"
+      ],
+      "priority": "Medium",
+      "owner": "F&I Director"
+    }
+  ],
+  "riskAreas": [
+    {
+      "title": "Rising Floor Plan Costs",
+      "description": "Floor plan interest expense increased 18% due to aged inventory and higher rates",
+      "mitigationStrategy": "Implement 45-day inventory turn target and weekly aging review"
+    }
+  ],
+  "strategicRecommendations": [
+    "Implement dedicated BDC team structure with specialized roles for website, phone, and follow-up",
+    "Create omnichannel customer experience to improve seamless transitions between digital and in-store"
+  ],
+  "metadata": {
+    "timestamp": "2025-05-13T02:34:18.576Z",
+    "platform": "DealerTrack",
+    "promptVersion": "2.0.0",
+    "recordCount": 5
+  },
+  "qualityScores": {
+    "overall": 0.85,
+    "dimensions": {
+      "completeness": 1,
+      "relevance": 0.85,
+      "specificity": 0.7,
+      "coherence": 0.9,
+      "innovation": 0.75
+    }
+  },
+  "businessImpact": {
+    "revenueImpact": {
+      "total": 83500,
+      "confidence": "medium",
+      "details": [],
+      "timeframe": "quarterly"
+    },
+    "costSavings": {
+      "total": 24500,
+      "confidence": "medium",
+      "details": [],
+      "timeframe": "quarterly"
+    },
+    "customerImpact": {
+      "score": 7.5,
+      "impactLevel": "high",
+      "impactAreas": [
+        "Lead response time",
+        "Customer experience"
+      ]
+    },
+    "urgencyFactors": {
+      "competitiveThreats": true,
+      "timeConstraints": false,
+      "seasonalOpportunity": true,
+      "financialUrgency": true,
+      "regulatoryRequirements": false,
+      "overallUrgency": "high"
+    },
+    "effortRequired": {
+      "implementationTimeframe": "medium-term",
+      "resourceIntensity": "medium",
+      "crossDepartmentCoordination": true,
+      "technicalComplexity": "medium",
+      "trainingNeeds": true,
+      "overallEffort": "medium"
+    },
+    "overallImpact": {
+      "score": 7.8,
+      "impactLevel": "significant",
+      "breakdown": {
+        "financial": 8,
+        "customer": 7.5,
+        "urgency": 8,
+        "effort": 5
+      }
+    }
+  }
+}
