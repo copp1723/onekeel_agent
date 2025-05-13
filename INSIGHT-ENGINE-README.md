@@ -1,175 +1,170 @@
 # Enhanced Insight Engine
 
-The Enhanced Insight Engine is a powerful component of our AI agent backend system that generates high-quality, actionable insights from automotive dealership data. It combines specialized prompts, quality scoring, business impact assessment, and role-based distribution to deliver valuable intelligence to dealership stakeholders.
+This document provides details about the enhanced insight engine, its capabilities, components, and integration points.
 
-## Components
+## Overview
 
-### 1. Enhanced Prompt System
+The Enhanced Insight Engine is designed to generate high-quality, actionable business insights from automotive dealership data. It uses a combination of specialized prompts, quality evaluation metrics, and role-based distribution to ensure insights are valuable and reach the right stakeholders.
 
-The engine uses a modular prompt architecture with specialized prompts stored in JSON format:
+## Architecture
 
-- **Automotive Analyst (v2.0.0)**: Generates structured insights from automotive data
-- **Business Impact Assessment (v2.0.0)**: Quantifies potential business outcomes
-- **Quality Evaluation (v2.0.0)**: Scores insights across multiple quality dimensions
-- **Tone-Adaptive Communication (v2.0.0)**: Adapts content for different stakeholder roles
-- **Visualization Enhancement (v2.0.0)**: Recommends effective data visualizations
+The system consists of several key components:
 
-### 2. Insight Generator
+1. **Enhanced Insight Generator**: Core engine that analyzes data using specialized prompts
+2. **Quality Evaluation**: Assesses insight quality across multiple dimensions
+3. **Business Impact Assessment**: Evaluates potential financial outcomes
+4. **Visualization Recommendations**: Suggests effective data visualizations
+5. **Insight Distribution Service**: Delivers insights to appropriate stakeholders
+6. **Mailer Service**: Handles email delivery with SendGrid and Nodemailer support
 
-The `enhancedInsightGenerator.js` service orchestrates the insight generation process:
+## Insight Generation Process
 
-```javascript
-// Generate basic insights
-const basicInsights = await generateEnhancedInsights(dealershipData, {
-  platform: 'VinSolutions',
-  saveResults: true
-});
+The insight generation follows these steps:
 
-// Generate comprehensive insights with all options
-const comprehensiveInsights = await generateEnhancedInsights(dealershipData, {
-  platform: 'VinSolutions',
-  evaluateQuality: true,
-  assessBusinessImpact: true,
-  generateVisualizations: true,
-  adaptForStakeholders: true,
-  saveResults: true
-});
+1. **Data Ingestion**: Data from CRM platforms (VinSolutions, VAUTO, DealerTrack) is ingested
+2. **Primary Analysis**: The automotive analyst prompt generates structured insights
+3. **Quality Evaluation**: Insights are scored across multiple dimensions
+4. **Business Impact Assessment**: Potential revenue, cost, and customer impacts are evaluated
+5. **Visualization Enhancement**: Appropriate visualization recommendations are added
+6. **Role Adaptation**: Insights are tailored for different stakeholder roles
+7. **Distribution**: Insights are delivered through configured channels
 
-// Generate insights with quality scoring
-const qualityScoredInsights = await generateInsightsWithQualityScoring(dealershipData, {
-  platform: 'VinSolutions',
-  saveResults: true
-});
-```
+## Quality Evaluation
 
-### 3. Quality Scoring System
+Insights are evaluated across multiple dimensions:
 
-Each insight is evaluated across multiple dimensions:
+- **Completeness**: How thorough the analysis is (1-10)
+- **Relevance**: How aligned insights are with business goals (1-10)
+- **Specificity**: How detailed and concrete the recommendations are (1-10)
+- **Coherence**: How well insights connect and flow logically (1-10)
+- **Innovation**: How novel and creative the suggestions are (1-10)
 
-- **Completeness**: How thoroughly the insights address key business questions (1-10)
-- **Relevance**: How directly the insights relate to core business objectives (1-10)
-- **Specificity**: How precise and detailed the recommendations are (1-10)
-- **Coherence**: How logically structured and internally consistent the insights are (1-10)
-- **Innovation**: How novel and creative the suggested approaches are (1-10)
+The overall quality score is a weighted average of these dimensions.
 
-The system provides an overall quality score (1-100) as well as specific strengths, improvement areas, and verification steps.
+## Business Impact Assessment
 
-### 4. Role-Based Distribution
+Business impact is assessed across three key areas:
 
-The `insightDistributionService.js` adapts and delivers insights to different stakeholders based on their roles:
+- **Revenue Impact**: Potential gain and confidence level
+- **Cost Impact**: Potential savings and confidence level
+- **Customer Impact**: Impact level and description
 
-- **Executive**: C-suite leaders focused on strategic insights
-- **Sales Manager**: Sales leadership focused on team performance
-- **Marketing**: Marketing team focused on campaign effectiveness
-- **Finance**: Finance team focused on financial analysis
-- **Service**: Service department focused on customer retention
+## Role-Based Distribution
 
-```javascript
-// Distribute insights to stakeholders
-const distributionResults = await distributeInsights(insights, stakeholders);
+The system supports tailoring insights for different stakeholder roles:
 
-// Schedule regular distribution
-const scheduleConfig = await scheduleDistribution(
-  'Dealership Performance Report',
-  stakeholders,
-  {
-    frequency: 'WEEKLY',
-    dayOfWeek: 'MONDAY',
-    time: '09:00'
-  }
-);
-```
+- **EXECUTIVE**: Focus on business impact, financial outcomes, and strategic implications
+- **SALES_MANAGER**: Focus on sales performance, team metrics, and opportunity identification
+- **MARKETING**: Focus on market trends, customer preferences, and campaign effectiveness
 
-## Data Flow
+## Distribution Channels
 
-1. **Data Ingestion**: Raw dealership data is loaded from email reports or browser automation
-2. **Preprocessing**: Data is normalized, cleaned, and enriched with summary statistics
-3. **Insight Generation**: Specialized prompts analyze the data to generate structured insights
-4. **Quality Evaluation**: Insights are scored across multiple quality dimensions
-5. **Business Impact Assessment**: Potential business outcomes are quantified
-6. **Stakeholder Adaptation**: Content is tailored for different stakeholder roles
-7. **Distribution**: Insights are delivered via email, dashboard, or API endpoints
-8. **Storage**: All results are saved with proper versioning and metadata
+Insights can be distributed through multiple channels:
 
-## Implementation Details
+- **Email**: HTML-formatted emails with insights, metrics, and recommendations
+- **File**: JSON files with complete insight data
+- **Dashboard**: (Placeholder) For future web dashboard integration
+- **API**: (Placeholder) For future external system integration
 
-### Folder Structure
+## Delivery Scheduling
 
-```
-src/
-├── prompts/                    # Specialized prompt files
-│   ├── automotive-analyst.json
-│   ├── business-impact.json
-│   ├── quality-evaluation.json
-│   ├── tone-adaptive.json
-│   └── visualization-enhanced.json
-├── services/
-│   ├── enhancedInsightGenerator.js  # Main insight generation service
-│   └── insightDistributionService.js # Role-based distribution
-└── utils/
-    └── promptEngine.js         # Prompt loading and execution utilities
-results/
-└── {platform}/                 # Results organized by platform
-    └── {date}/                 # Further organized by date
-        └── insights-{timestamp}.json # Individual insight results
-```
+Distribution frequency can be configured per stakeholder:
 
-### Insight Output Format
+- **IMMEDIATE**: Distribute as soon as insights are generated
+- **DAILY**: Distribute once per day
+- **WEEKLY**: Distribute once per week
+- **MONTHLY**: Distribute once per month
 
-Each insight result includes:
+## Sample Data Support
 
-- **Metadata**: Timestamp, platform, record count, version info
-- **Primary Insights**: The core analytical findings
-- **Quality Scores**: Evaluation across quality dimensions
-- **Business Impact**: Assessment of potential business outcomes
-- **Visualization Recommendations**: Suggestions for effective visualizations
-- **Stakeholder Briefings**: Role-specific content adaptations
+The system includes sample automotive dealership data for testing purposes. To use sample data, set `USE_SAMPLE_DATA=true` in the environment variables or pass the option in the configuration.
 
-## Testing
+## Mailer Service
 
-The system includes comprehensive test scripts:
+Email delivery is handled by the Mailer Service, which supports:
 
-- `test-prompt-engine.js`: Tests prompt loading and execution
-- `test-insight-engine-stability.js`: Tests insight generation across vendors
-- `test-distribution-service.js`: Tests role-based distribution
+- SendGrid API (primary delivery method)
+- Nodemailer (fallback delivery method)
+- Test preview URLs for development
 
-## Extending the System
+## Implementing the Insight Engine
 
-To add new insight types:
-
-1. Create a new prompt file in `src/prompts/` following the established format
-2. Add corresponding logic to the insight generator service
-3. Update distribution role mappings if needed
-4. Add test cases to validate the new insight type
-
-## Example Usage
+### Basic Usage
 
 ```javascript
-// Import the services
 import { generateEnhancedInsights } from './src/services/enhancedInsightGenerator.js';
-import { distributeInsights } from './src/services/insightDistributionService.js';
+import { createDistributionConfig, distributeInsights } from './src/services/insightDistributionService.js';
 
-// Generate insights from dealership data
-const insights = await generateEnhancedInsights(dealershipData, {
-  platform: 'VinSolutions',
-  evaluateQuality: true,
-  assessBusinessImpact: true,
-  adaptForStakeholders: true,
-  saveResults: true
-});
+// Generate insights
+const data = [...]; // Your CRM data
+const platform = 'VinSolutions';
+const enhancedInsights = await generateEnhancedInsights(data, platform);
 
-// Define stakeholders for distribution
-const stakeholders = [
-  {
-    id: 'user-123',
-    name: 'John Smith',
-    role: 'EXECUTIVE',
-    email: 'john.smith@dealership.com'
-  },
-  // Additional stakeholders...
-];
+// Create distribution configuration
+const executiveConfig = createDistributionConfig(
+  'executive@example.com',
+  'EXECUTIVE',
+  'John Executive',
+  [platform],
+  ['EMAIL', 'FILE'],
+  'IMMEDIATE'
+);
 
-// Distribute insights to stakeholders
-const distributionResults = await distributeInsights(insights, stakeholders);
-console.log(`Successfully distributed to ${distributionResults.successful.length} stakeholders`);
+// Distribute insights
+const result = await distributeInsights(enhancedInsights, executiveConfig);
 ```
+
+### Testing
+
+Use the test script to verify the functionality:
+
+```bash
+node test-insight-engine-stability.js
+```
+
+This will generate insights using sample data and test the distribution process.
+
+## File Structure
+
+Key files for the insight engine:
+
+- `src/services/enhancedInsightGenerator.js` - Core insight generation service
+- `src/services/insightDistributionService.js` - Role-based distribution service
+- `src/services/mailerService.js` - Email delivery service
+- `src/prompts/*.json` - Specialized prompt files
+- `src/utils/promptEngine.js` - Prompt management utility
+
+## Result Storage
+
+All generated insights are stored in the file system with this structure:
+
+```
+/results
+  /[platform]
+    /[date]
+      - [platform]-[timestamp].json  // Original insights
+      /distributions
+        /executive
+          - [platform]-executive-[timestamp].json
+        /sales_manager
+          - [platform]-sales_manager-[timestamp].json
+        /marketing
+          - [platform]-marketing-[timestamp].json
+```
+
+## Extensibility
+
+The system is designed to be extensible:
+
+- Add new prompts by creating JSON files in the `src/prompts` directory
+- Add new distribution channels by implementing new channel handlers
+- Support additional platforms by adding platform-specific data processing
+
+## Future Enhancements
+
+Planned enhancements include:
+
+1. Integration with a web dashboard for insight visualization
+2. Enhanced search and historical trend analysis
+3. Feedback mechanism to improve insight quality over time
+4. Multi-language support for global dealerships

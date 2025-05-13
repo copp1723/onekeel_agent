@@ -1,0 +1,90 @@
+{
+  "role": "MARKETING",
+  "recipient": {
+    "id": "1747142434208-459",
+    "email": "josh@projectxlabs.ai",
+    "name": "Dave Marketing"
+  },
+  "insights": {
+    "adapted_insights": {
+      "adapted_summary": "In May 2024, our dealership saw strong sales performance, particularly with SUVs. However, there is a need to boost sedan sales and enhance the attachment rate of finance products. Marketing can play a crucial role in addressing these areas by aligning promotional strategies with current market trends and customer preferences.",
+      "key_points": [
+        "SUVs are the leading body style, making up 50% of sales, indicating a strong consumer preference.",
+        "Sedans are experiencing slower turnover, suggesting a need for targeted marketing efforts.",
+        "Finance products are attached to 62.5% of sales, presenting an opportunity for increased revenue through enhanced marketing strategies."
+      ],
+      "action_items": [
+        "Develop targeted marketing campaigns to increase the appeal and sales of sedans, potentially using promotions or special offers.",
+        "Collaborate with the sales team to create marketing materials that highlight the benefits of finance products, aiming to boost their attachment rate.",
+        "Analyze customer feedback and market trends to refine messaging and promotional tactics for SUVs and sedans."
+      ],
+      "metrics_to_track": [
+        "Sedan sales percentage and days in inventory",
+        "Finance product attachment rate",
+        "Customer engagement with sedan-focused marketing campaigns"
+      ],
+      "communication_notes": "When presenting this information, highlight the potential for increased revenue through targeted marketing strategies. Use visual aids to show the current sales distribution and potential growth areas. Emphasize the role of marketing in driving sales and customer engagement."
+    },
+    "recommended_visualizations": [
+      {
+        "title": "Sales by Body Style",
+        "type": "Pie Chart",
+        "description": "Visual representation of sales distribution across different body styles to highlight the popularity of SUVs.",
+        "data_fields": [
+          "body_style",
+          "sales_count"
+        ]
+      },
+      {
+        "title": "Top Sales Representative Performance",
+        "type": "Bar Chart",
+        "description": "Comparison of sales representatives based on total sales and gross profit to emphasize John Smith's performance.",
+        "data_fields": [
+          "sales_rep",
+          "total_sales",
+          "total_gross_profit"
+        ]
+      }
+    ],
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 15000,
+        "confidence_level": "medium",
+        "timeframe": "6 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "satisfaction": "Improved satisfaction through targeted promotions and better finance options.",
+        "retention": "Increased retention by enhancing the buying experience and offering better finance deals.",
+        "acquisition": "Potential to attract new customers through promotions and improved sales strategies."
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Focus marketing efforts on promoting sedans to reduce their days in inventory.",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Provide additional training or incentives to sales representatives to increase the attachment rate of finance products.",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Leverage John Smith's success by having him mentor other sales representatives.",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 3
+        }
+      ]
+    },
+    "metadata": {
+      "role": "MARKETING",
+      "generatedAt": "2025-05-13T13:20:59.874Z",
+      "platform": "VinSolutions",
+      "qualityScore": 84
+    }
+  },
+  "timestamp": "2025-05-13T13:20:59.875Z"
+}

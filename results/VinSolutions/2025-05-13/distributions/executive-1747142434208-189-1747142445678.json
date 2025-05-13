@@ -1,0 +1,94 @@
+{
+  "role": "EXECUTIVE",
+  "recipient": {
+    "id": "1747142434208-189",
+    "email": "josh@projectxlabs.ai",
+    "name": "John Executive"
+  },
+  "insights": {
+    "adapted_insights": {
+      "adapted_summary": "In May 2024, our dealership demonstrated robust performance, notably with SUVs leading sales and a standout contribution from top sales representative John Smith. However, there is a strategic opportunity to enhance sedan sales and boost the attachment rate of finance products, potentially increasing overall profitability.",
+      "key_points": [
+        "SUVs are driving 50% of sales, indicating a strong consumer preference.",
+        "John Smith's exceptional performance contributes significantly to sales volume and profitability.",
+        "Current gross profit margin stands at 12.4%, with potential for improvement through enhanced finance product sales.",
+        "Sedans exhibit slower turnover, suggesting a need for strategic inventory management.",
+        "Finance products are attached to 62.5% of sales, presenting an opportunity to increase revenue."
+      ],
+      "action_items": [
+        "Develop a strategic plan to optimize sedan sales, potentially through targeted promotions or inventory management.",
+        "Enhance finance product offerings and sales strategies to improve attachment rates.",
+        "Consider implementing a mentorship program leveraging John Smith's sales techniques to elevate overall team performance."
+      ],
+      "metrics_to_track": [
+        "Total sales and revenue growth",
+        "Gross profit margin improvements",
+        "SUV vs. sedan sales ratio",
+        "Finance product attachment rate",
+        "Average days in inventory for sedans"
+      ],
+      "communication_notes": "Focus on the strategic implications of current sales trends and the potential financial impact of improving sedan turnover and finance product attachment rates. Highlight John Smith's performance as a model for team development. Use visual aids to illustrate sales trends and financial outcomes for clarity."
+    },
+    "recommended_visualizations": [
+      {
+        "title": "Sales by Body Style",
+        "type": "Pie Chart",
+        "description": "Visual representation of sales distribution across different body styles to highlight the popularity of SUVs.",
+        "data_fields": [
+          "body_style",
+          "sales_count"
+        ]
+      },
+      {
+        "title": "Top Sales Representative Performance",
+        "type": "Bar Chart",
+        "description": "Comparison of sales representatives based on total sales and gross profit to emphasize John Smith's performance.",
+        "data_fields": [
+          "sales_rep",
+          "total_sales",
+          "total_gross_profit"
+        ]
+      }
+    ],
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 15000,
+        "confidence_level": "medium",
+        "timeframe": "6 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "satisfaction": "Improved satisfaction through targeted promotions and better finance options.",
+        "retention": "Increased retention by enhancing the buying experience and offering better finance deals.",
+        "acquisition": "Potential to attract new customers through promotions and improved sales strategies."
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Focus marketing efforts on promoting sedans to reduce their days in inventory.",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Provide additional training or incentives to sales representatives to increase the attachment rate of finance products.",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Leverage John Smith's success by having him mentor other sales representatives.",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 3
+        }
+      ]
+    },
+    "metadata": {
+      "role": "EXECUTIVE",
+      "generatedAt": "2025-05-13T13:20:42.695Z",
+      "platform": "VinSolutions",
+      "qualityScore": 84
+    }
+  },
+  "timestamp": "2025-05-13T13:20:45.678Z"
+}
