@@ -54,9 +54,10 @@ export async function initializeScheduler(): Promise<void> {
         
         // Try to start the schedule
         await startSchedule(schedule);
-      } catch (scheduleError) {
-        console.error(`Failed to start schedule ${schedule.id}:`, scheduleError);
-        startupErrors.push(`Schedule ${schedule.id}: ${scheduleError.message}`);
+      } catch (error) {
+        console.error(`Failed to start schedule ${schedule.id}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        startupErrors.push(`Schedule ${schedule.id}: ${errorMessage}`);
         // Continue with other schedules even if this one fails
       }
     }

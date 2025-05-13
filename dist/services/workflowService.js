@@ -98,25 +98,49 @@ export async function runWorkflow(workflowId) {
             // Send completion email if workflow has a notification email configured
             try {
                 // First try to send using the new email notification system
-                const result = await sendWorkflowCompletionEmail(finalWorkflow.id);
-                if (!result.success) {
-                    // If no notification settings found in the database, fall back to context-based notifications
-                    const context = finalWorkflow.context ?
-                        (typeof finalWorkflow.context === 'string' ?
-                            JSON.parse(finalWorkflow.context) :
-                            finalWorkflow.context) :
-                        {};
-                    // If notification emails are configured in context, send completion email
-                    if (context.notifyEmail) {
-                        const recipients = Array.isArray(context.notifyEmail)
-                            ? context.notifyEmail
-                            : [context.notifyEmail];
-                        console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
-                        await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+                const result = await sendWorkflowCompletionEmail(finalWorkflow.id, []);
+                if (typeof result === 'boolean') {
+                    // Handle old boolean return type for backwards compatibility
+                    if (!result) {
+                        // Fall back to context-based notifications
+                        const context = finalWorkflow.context ?
+                            (typeof finalWorkflow.context === 'string' ?
+                                JSON.parse(finalWorkflow.context) :
+                                finalWorkflow.context) :
+                            {};
+                        // If notification emails are configured in context, send completion email
+                        if (context.notifyEmail) {
+                            const recipients = Array.isArray(context.notifyEmail)
+                                ? context.notifyEmail
+                                : [context.notifyEmail];
+                            console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
+                            await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+                        }
                     }
                 }
                 else {
-                    console.log(`Workflow completion email sent: ${result.message}`);
+                    // Cast the result to the defined type to ensure TypeScript is happy
+                    const emailResult = result;
+                    // Handle object return type with success property
+                    if (emailResult && !emailResult.success) {
+                        // Fall back to context-based notifications
+                        const context = finalWorkflow.context ?
+                            (typeof finalWorkflow.context === 'string' ?
+                                JSON.parse(finalWorkflow.context) :
+                                finalWorkflow.context) :
+                            {};
+                        // If notification emails are configured in context, send completion email
+                        if (context.notifyEmail) {
+                            const recipients = Array.isArray(context.notifyEmail)
+                                ? context.notifyEmail
+                                : [context.notifyEmail];
+                            console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
+                            await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
+                        }
+                    }
+                    else if (emailResult && emailResult.message) {
+                        console.log(`Workflow completion email sent: ${emailResult.message}`);
+                    }
                 }
             }
             catch (emailError) {
@@ -295,28 +319,28 @@ export async function deleteWorkflow(workflowId) {
  */
 export async function getWorkflows(status, userId) {
     try {
-        // Start with the base query
-        const baseQuery = db.select().from(workflows);
-        // Build the complete query with filters
-        let completeQuery = baseQuery;
-        // Apply filters if provided
+        // Build the query with filters
+        let query = db.select().from(workflows);
+        // Apply filters conditionally
+        const conditions = [];
         if (status) {
-            // We need to cast the status to WorkflowStatus type
-            completeQuery = db.select().from(workflows).where(eq(workflows.status, status));
+            conditions.push(eq(workflows.status, status));
         }
         if (userId) {
-            if (status) {
-                // If we already have a status filter, add the userId filter
-                completeQuery = db.select().from(workflows)
-                    .where(and(eq(workflows.status, status), eq(workflows.userId, userId)));
-            }
-            else {
-                // If we don't have a status filter, just add the userId filter
-                completeQuery = db.select().from(workflows).where(eq(workflows.userId, userId));
-            }
+            conditions.push(eq(workflows.userId, userId));
+        }
+        // Apply all conditions if we have any
+        if (conditions.length === 1) {
+            // Cast the query to any to bypass the type error
+            // This is safe because we know the structure of the query
+            query = query.where(conditions[0]);
+        }
+        else if (conditions.length > 1) {
+            // Cast the query to any to bypass the type error
+            query = query.where(and(...conditions));
         }
         // Execute the query with ordering
-        const results = await completeQuery.orderBy(workflows.createdAt);
+        const results = await query.orderBy(workflows.createdAt);
         // Return the results in reverse chronological order
         return results.reverse();
     }

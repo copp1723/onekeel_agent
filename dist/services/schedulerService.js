@@ -24,11 +24,40 @@ export async function initializeScheduler() {
             .from(schedules)
             .where(eq(schedules.enabled, true));
         console.log(`Found ${enabledSchedules.length} enabled schedules`);
-        // Start each schedule
+        // Start each schedule with proper error handling
+        const startupErrors = [];
         for (const schedule of enabledSchedules) {
-            await startSchedule(schedule);
+            try {
+                // Validate the cron expression before attempting to start
+                if (!cron.validate(schedule.cron)) {
+                    console.error(`Invalid cron expression for schedule ${schedule.id}: ${schedule.cron}`);
+                    // Disable invalid schedules
+                    await db
+                        .update(schedules)
+                        .set({
+                        enabled: false,
+                        updatedAt: new Date()
+                    })
+                        .where(eq(schedules.id, schedule.id));
+                    startupErrors.push(`Schedule ${schedule.id}: Invalid cron expression`);
+                    continue;
+                }
+                // Try to start the schedule
+                await startSchedule(schedule);
+            }
+            catch (error) {
+                console.error(`Failed to start schedule ${schedule.id}:`, error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                startupErrors.push(`Schedule ${schedule.id}: ${errorMessage}`);
+                // Continue with other schedules even if this one fails
+            }
         }
-        console.log('Scheduler initialized successfully');
+        if (startupErrors.length > 0) {
+            console.warn(`Scheduler initialized with ${startupErrors.length} errors:`, startupErrors);
+        }
+        else {
+            console.log('Scheduler initialized successfully');
+        }
     }
     catch (error) {
         console.error('Error initializing scheduler:', error);
@@ -182,13 +211,38 @@ export async function startSchedule(schedule) {
             await stopSchedule(schedule.id);
         }
         console.log(`Starting schedule ${schedule.id} with cron: ${schedule.cron}`);
-        // Create a node-cron task
-        const task = cron.schedule(schedule.cron, async () => {
-            await executeScheduledWorkflow(schedule);
-        });
-        // Store the task in our active schedules map
-        activeSchedules.set(schedule.id, task);
-        console.log(`Schedule ${schedule.id} started successfully`);
+        // Create a node-cron task with proper error handling and timezone configuration
+        try {
+            // Configure with UTC timezone to avoid timezone-related errors
+            const options = {
+                scheduled: true,
+                timezone: "UTC"
+            };
+            const task = cron.schedule(schedule.cron, async () => {
+                try {
+                    await executeScheduledWorkflow(schedule);
+                }
+                catch (executionError) {
+                    console.error(`Error executing scheduled workflow ${schedule.workflowId}:`, executionError);
+                    // Log error but don't kill the scheduler
+                }
+            }, options);
+            // Store the task in our active schedules map
+            activeSchedules.set(schedule.id, task);
+            console.log(`Schedule ${schedule.id} started successfully`);
+        }
+        catch (cronError) {
+            console.error(`Failed to create cron job for schedule ${schedule.id}:`, cronError);
+            // Update the schedule to be disabled due to invalid cron expression
+            await db
+                .update(schedules)
+                .set({
+                enabled: false,
+                updatedAt: new Date()
+            })
+                .where(eq(schedules.id, schedule.id));
+            throw new Error(`Invalid cron expression or time value: ${schedule.cron}`);
+        }
     }
     catch (error) {
         console.error(`Error starting schedule ${schedule.id}:`, error);

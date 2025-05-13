@@ -1,310 +1,214 @@
 /**
- * Workflow Email Service
- * Handles sending emails for workflow events like completion, failure, etc.
- * 
- * This service provides the following functionality:
- * - Sending workflow summary emails
- * - Managing email notification settings
- * - Tracking email delivery status
+ * Fixed Workflow Email Service
+ * Handles sending email notifications related to workflow events
+ * Uses the fixed-mailerService for reliable email delivery
  */
-import { workflows, emailNotifications, emailLogs } from '../shared/schema.js';
-import { db } from '../shared/db.js';
-import { eq, and, desc, or, isNull } from 'drizzle-orm';
-import { sendEmail, getEmailLogs as getEmailLogsFromMailer } from './fixed-mailerService.js';
-import { 
-  generateWorkflowSummaryHtml, 
-  generateWorkflowSummaryText 
-} from './emailTemplates.js';
-import { v4 as uuidv4 } from 'uuid';
 
-/**
- * Default email configuration
- */
-const DEFAULT_EMAIL_CONFIG = {
-  fromName: 'Workflow System',
-  fromEmail: 'noreply@example.com',
-  subject: 'Workflow Summary Report'
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../shared/db.js';
+import { workflows, emailNotifications, emailLogs } from '../shared/schema.js';
+import { sendEmail } from './fixed-mailerService.js';
+import { eq, and } from 'drizzle-orm';
+
+// Default templates
+const DEFAULT_TEMPLATES = {
+  completion: {
+    subject: 'Workflow Completed: {{workflowName}}',
+    text: 'Your workflow "{{workflowName}}" has completed successfully.\n\n'
+      + 'Summary: {{summary}}\n\n'
+      + 'Insights:\n{{insights}}\n\n'
+      + 'Workflow ID: {{workflowId}}\n'
+      + 'Completed at: {{completedAt}}\n',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+        <h2 style="color: #4CAF50;">Workflow Completed: {{workflowName}}</h2>
+        <p>Your workflow has completed successfully.</p>
+        
+        <h3 style="margin-top: 20px;">Summary</h3>
+        <p>{{summary}}</p>
+        
+        <h3 style="margin-top: 20px;">Insights</h3>
+        <ul>
+          {{#each insights}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ul>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #757575;">
+          <p>Workflow ID: {{workflowId}}<br>
+          Completed at: {{completedAt}}</p>
+        </div>
+      </div>
+    `
+  },
+  failure: {
+    subject: 'Workflow Failed: {{workflowName}}',
+    text: 'Your workflow "{{workflowName}}" has failed.\n\n'
+      + 'Error: {{error}}\n\n'
+      + 'Workflow ID: {{workflowId}}\n'
+      + 'Failed at: {{failedAt}}\n',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+        <h2 style="color: #F44336;">Workflow Failed: {{workflowName}}</h2>
+        <p>Unfortunately, your workflow has failed.</p>
+        
+        <h3 style="margin-top: 20px;">Error Details</h3>
+        <p style="background-color: #FFEBEE; padding: 10px; border-radius: 4px;">{{error}}</p>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #757575;">
+          <p>Workflow ID: {{workflowId}}<br>
+          Failed at: {{failedAt}}</p>
+        </div>
+      </div>
+    `
+  }
 };
 
 /**
- * Send a workflow summary email
+ * Configure email notifications for a workflow
+ * @param {object} params Configuration parameters
+ * @param {string} params.workflowId ID of the workflow to configure notifications for
+ * @param {string} params.recipientEmail Email address to send notifications to
+ * @param {boolean} [params.sendOnCompletion=true] Send notifications on workflow completion
+ * @param {boolean} [params.sendOnFailure=true] Send notifications on workflow failure
+ * @returns {Promise<object>} The created notification settings
  */
-export async function sendWorkflowSummaryEmail(options) {
-  try {
-    const { workflow, recipients, includeInsights = true } = options;
-    
-    // Format recipients as array
-    const recipientsList = Array.isArray(recipients) ? recipients : [recipients];
-    
-    // Extract email-friendly data from workflow
-    const emailData = await extractWorkflowData(workflow, includeInsights);
-    
-    // Generate email content
-    const html = generateWorkflowSummaryHtml(emailData);
-    const text = generateWorkflowSummaryText(emailData);
-    
-    // Configure email
-    const subject = options.subject || `${DEFAULT_EMAIL_CONFIG.subject}: ${workflow.status.toUpperCase()}`;
-    const fromName = options.fromName || DEFAULT_EMAIL_CONFIG.fromName;
-    const fromEmail = options.fromEmail || DEFAULT_EMAIL_CONFIG.fromEmail;
-    
-    // Prepare recipient format for SendGrid
-    const formattedRecipients = recipientsList.map(email => ({
-      email,
-      name: email.split('@')[0] // Use part before @ as name for simple personalization
-    }));
-    
-    // Send the email
-    await sendEmail({
-      from: { name: fromName, email: fromEmail },
-      to: formattedRecipients,
-      content: {
-        subject,
-        html,
-        text
-      },
-      workflowId: workflow.id
-    });
-    
-    console.log(`Workflow summary email sent for workflow ${workflow.id} to ${recipientsList.join(', ')}`);
-    return {
-      success: true,
-      message: `Email sent to ${recipientsList.join(', ')}`
-    };
-  } catch (error) {
-    console.error('Failed to send workflow summary email:', error);
-    return {
-      success: false,
-      message: 'Failed to send email',
-      error: error.message
-    };
-  }
-}
-
-/**
- * Extract needed data from workflow for email template
- */
-async function extractWorkflowData(workflow, includeInsights) {
-  // Base data from workflow
-  const data = {
-    workflowId: workflow.id,
-    workflowStatus: workflow.status,
-    createdAt: workflow.createdAt,
-    completedAt: workflow.lastUpdated,
-  };
+export async function configureEmailNotifications(params) {
+  const { workflowId, recipientEmail, sendOnCompletion = true, sendOnFailure = true } = params;
   
-  // Extract context data if available
-  if (workflow.context) {
-    // Cast context to any to access dynamic properties
-    const context = workflow.context;
-    
-    // Add summary if available
-    if (context.summary) {
-      data.summary = context.summary;
-    } else if (context.__lastStepResult?.summary) {
-      data.summary = context.__lastStepResult.summary;
-    }
-    
-    // Add error if workflow failed
-    if (workflow.status === 'failed' && workflow.lastError) {
-      data.error = workflow.lastError;
-    }
-    
-    // Extract insights if requested
-    if (includeInsights) {
-      // Try to find insights in context (common patterns)
-      if (context.__lastStepResult?.insights) {
-        data.insights = context.__lastStepResult.insights;
-      } else if (context.insights) {
-        data.insights = context.insights;
-      }
-      
-      // If insights is not an array, convert to array
-      if (data.insights && !Array.isArray(data.insights)) {
-        data.insights = [data.insights];
-      }
-    }
-  }
-  
-  return data;
-}
-
-/**
- * Send an email when a workflow completes
- * This is a convenience function for the common use case
- */
-export async function sendWorkflowCompletionEmail(workflowId, recipients) {
   try {
-    // Get the workflow from database
+    // Validate workflow exists
     const [workflow] = await db
       .select()
       .from(workflows)
       .where(eq(workflows.id, workflowId));
     
     if (!workflow) {
-      console.error(`Cannot send completion email: Workflow ${workflowId} not found`);
-      return {
-        success: false,
-        message: `Workflow ${workflowId} not found`,
-        error: 'Workflow not found'
-      };
+      throw new Error(`Workflow with ID ${workflowId} not found`);
     }
     
-    return await sendWorkflowSummaryEmail({
-      workflow,
-      recipients
-    });
-  } catch (error) {
-    console.error(`Failed to send completion email for workflow ${workflowId}:`, error);
-    return {
-      success: false,
-      message: 'Failed to send email',
-      error: error.message
-    };
-  }
-}
-
-/**
- * Configure email notifications for a workflow
- * 
- * @param {object} settings - Email notification settings
- * @returns {object} Created notification settings
- */
-export async function configureEmailNotifications(settings) {
-  try {
-    // Validate required fields
-    if (!settings.recipientEmail) {
-      throw new Error('Recipient email is required');
-    }
+    // Check for existing notifications for this workflow
+    const [existingNotification] = await db
+      .select()
+      .from(emailNotifications)
+      .where(eq(emailNotifications.workflowId, workflowId));
     
-    // Generate ID if not provided
-    const id = settings.id || uuidv4();
-    
-    // Create or update notification settings
-    const [notification] = await db
-      .insert(emailNotifications)
-      .values({
-        id,
-        workflowId: settings.workflowId,
-        recipientEmail: settings.recipientEmail,
-        sendOnCompletion: settings.sendOnCompletion ?? true,
-        sendOnFailure: settings.sendOnFailure ?? true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: emailNotifications.id,
-        set: {
-          workflowId: settings.workflowId,
-          recipientEmail: settings.recipientEmail,
-          sendOnCompletion: settings.sendOnCompletion ?? true,
-          sendOnFailure: settings.sendOnFailure ?? true,
+    if (existingNotification) {
+      // Update existing notification
+      const [updatedNotification] = await db
+        .update(emailNotifications)
+        .set({
+          recipientEmail,
+          sendOnCompletion,
+          sendOnFailure,
           updatedAt: new Date()
-        }
-      })
-      .returning();
-    
-    console.log(`Email notification settings configured with ID: ${notification.id}`);
-    return notification;
+        })
+        .where(eq(emailNotifications.id, existingNotification.id))
+        .returning();
+      
+      return updatedNotification;
+    } else {
+      // Create new notification
+      const [newNotification] = await db
+        .insert(emailNotifications)
+        .values({
+          id: uuidv4(),
+          workflowId,
+          recipientEmail,
+          sendOnCompletion,
+          sendOnFailure,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      return newNotification;
+    }
   } catch (error) {
-    console.error('Failed to configure email notifications:', error);
+    console.error(`Error configuring email notifications:`, error);
     throw error;
   }
 }
 
 /**
- * Get email notification settings by various filters
- * 
- * @param {object} filters - Filters to apply
- * @returns {array} Matching notification settings
+ * Get email notification settings for a workflow
+ * @param {string} workflowId ID of the workflow
+ * @returns {Promise<object|null>} Notification settings or null if none exist
  */
-export async function getEmailNotificationSettings(filters = {}) {
+export async function getEmailNotificationSettings(workflowId) {
   try {
-    let query = db.select().from(emailNotifications);
+    const [notification] = await db
+      .select()
+      .from(emailNotifications)
+      .where(eq(emailNotifications.workflowId, workflowId));
     
-    // Apply filters if provided
-    if (filters.id) {
-      query = query.where(eq(emailNotifications.id, filters.id));
-    }
-    
-    if (filters.workflowId) {
-      query = query.where(eq(emailNotifications.workflowId, filters.workflowId));
-    }
-    
-    // Execute query
-    const settings = await query;
-    return settings;
+    return notification || null;
   } catch (error) {
-    console.error('Failed to get email notification settings:', error);
+    console.error(`Error getting email notification settings:`, error);
     throw error;
   }
 }
 
 /**
- * Delete email notification settings by ID
- * 
- * @param {string} id - Notification settings ID
- * @returns {boolean} True if deleted, false if not found
+ * Delete email notification settings for a workflow
+ * @param {string} workflowId ID of the workflow
+ * @returns {Promise<boolean>} True if settings were deleted, false if they didn't exist
  */
-export async function deleteEmailNotificationSettings(id) {
+export async function deleteEmailNotificationSettings(workflowId) {
   try {
-    // Delete notification settings
     const result = await db
       .delete(emailNotifications)
-      .where(eq(emailNotifications.id, id))
-      .returning();
+      .where(eq(emailNotifications.workflowId, workflowId));
     
-    const deleted = result.length > 0;
-    if (deleted) {
-      console.log(`Email notification settings with ID ${id} deleted`);
-    } else {
-      console.log(`Email notification settings with ID ${id} not found`);
-    }
-    
-    return deleted;
+    return result.count > 0;
   } catch (error) {
-    console.error(`Failed to delete email notification settings ${id}:`, error);
+    console.error(`Error deleting email notification settings:`, error);
     throw error;
   }
 }
 
 /**
- * Get email logs for a specific workflow
- * 
- * @param {string} workflowId - Workflow ID
- * @returns {array} Email logs for the workflow
+ * Get email logs for a workflow
+ * @param {string} workflowId ID of the workflow
+ * @returns {Promise<Array>} Array of email log entries
  */
 export async function getEmailLogs(workflowId) {
   try {
-    return await getEmailLogsFromMailer(workflowId);
+    const logs = await db
+      .select()
+      .from(emailLogs)
+      .where(eq(emailLogs.workflowId, workflowId))
+      .orderBy(emailLogs.createdAt);
+    
+    return logs;
   } catch (error) {
-    console.error(`Failed to get email logs for workflow ${workflowId}:`, error);
+    console.error(`Error getting email logs:`, error);
     throw error;
   }
 }
 
 /**
  * Retry sending a failed email
- * 
- * @param {string} emailLogId - Email log ID to retry
- * @returns {object} Updated email log
+ * @param {string} emailLogId ID of the failed email log entry
+ * @returns {Promise<object>} Result of the retry attempt
  */
 export async function retryFailedEmail(emailLogId) {
   try {
-    // Get the failed email log
+    // Get the email log
     const [emailLog] = await db
       .select()
       .from(emailLogs)
-      .where(and(
-        eq(emailLogs.id, emailLogId),
-        eq(emailLogs.status, 'failed')
-      ));
+      .where(eq(emailLogs.id, emailLogId));
     
     if (!emailLog) {
-      throw new Error(`Email log ${emailLogId} not found or is not in 'failed' state`);
+      throw new Error(`Email log ${emailLogId} not found`);
     }
     
-    // Get the workflow associated with this email
+    if (emailLog.status !== 'failed') {
+      throw new Error(`Email is not in failed state (current: ${emailLog.status})`);
+    }
+    
+    // Get workflow details
     const [workflow] = await db
       .select()
       .from(workflows)
@@ -314,121 +218,321 @@ export async function retryFailedEmail(emailLogId) {
       throw new Error(`Workflow ${emailLog.workflowId} not found`);
     }
     
-    // Send a new email based on this workflow
-    console.log(`Retrying failed email ${emailLogId} for workflow ${workflow.id}`);
-    const result = await sendWorkflowSummaryEmail({
-      workflow,
-      recipients: emailLog.recipients
-    });
+    // Send the email
+    const result = await sendWorkflowCompletionEmail(
+      workflow.id,
+      emailLog.recipientEmail
+    );
     
     return result;
   } catch (error) {
-    console.error(`Failed to retry email ${emailLogId}:`, error);
-    return {
-      success: false,
-      message: `Failed to retry email: ${error.message}`,
-      error: error.message
-    };
+    console.error(`Error retrying failed email:`, error);
+    throw error;
   }
 }
 
 /**
- * Process workflow status change and send notifications if configured
- * This function is called automatically when a workflow status changes
- * 
- * @param {string} workflowId - Workflow ID
- * @returns {Promise<{success: boolean, sent: number, errors: number}>} Result of notification processing
+ * Send a workflow completion email
+ * @param {string} workflowId ID of the completed workflow
+ * @param {string} recipientEmail Email address to send to
+ * @returns {Promise<object>} Result of the send operation
  */
-export async function processWorkflowStatusNotifications(workflowId) {
+export async function sendWorkflowCompletionEmail(workflowId, recipientEmail) {
   try {
-    console.log(`Processing email notifications for workflow ${workflowId}`);
-    
-    // Get the workflow
+    // Get workflow details
     const [workflow] = await db
       .select()
       .from(workflows)
       .where(eq(workflows.id, workflowId));
     
     if (!workflow) {
-      console.warn(`Cannot process notifications: Workflow ${workflowId} not found`);
-      return { success: false, sent: 0, errors: 0, message: 'Workflow not found' };
+      return {
+        success: false,
+        error: `Workflow ${workflowId} not found`
+      };
     }
     
-    // Only process notifications for completed or failed workflows
-    if (workflow.status !== 'completed' && workflow.status !== 'failed') {
-      console.log(`Skipping notifications for workflow ${workflowId} with status ${workflow.status}`);
-      return { success: true, sent: 0, errors: 0, message: 'Workflow not in completed or failed state' };
+    // Format the context data for the email
+    const context = workflow.context || {};
+    const insights = context.insights || [];
+    const summary = context.summary || 'No summary available';
+    
+    // Generate email content
+    const emailContent = {
+      subject: `Workflow Completed: ${workflow.name}`,
+      text: generateWorkflowSummaryText(workflow),
+      html: generateWorkflowSummaryHtml(workflow)
+    };
+    
+    // Send the email
+    const result = await sendEmail({
+      to: recipientEmail,
+      content: emailContent,
+      workflowId: workflow.id
+    });
+    
+    return result;
+  } catch (error) {
+    console.error(`Error sending workflow completion email:`, error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Process email notifications for a workflow based on its status
+ * This function is called automatically when workflow status changes
+ * 
+ * @param {string} workflowId ID of the workflow
+ * @returns {Promise<object>} Result of the notification processing
+ */
+export async function processWorkflowStatusNotifications(workflowId) {
+  try {
+    // Get workflow details
+    const [workflow] = await db
+      .select()
+      .from(workflows)
+      .where(eq(workflows.id, workflowId));
+    
+    if (!workflow) {
+      return {
+        success: false,
+        message: `Workflow ${workflowId} not found`,
+        sent: 0
+      };
     }
     
-    // Get notification settings for this specific workflow
-    let notificationSettings = await db
+    // Get notification settings
+    const [notification] = await db
       .select()
       .from(emailNotifications)
       .where(eq(emailNotifications.workflowId, workflowId));
     
-    // If no specific notification found, get any global notification settings
-    // (In a real-world app, we'd have a global settings table)
-    
-    // If no notification settings found, skip
-    if (!notificationSettings || notificationSettings.length === 0) {
-      console.log(`No notification settings found for workflow ${workflowId}`);
-      return { success: true, sent: 0, errors: 0, message: 'No matching notification settings' };
+    if (!notification) {
+      return {
+        success: true,
+        message: 'No email notification settings configured for this workflow',
+        sent: 0
+      };
     }
     
-    console.log(`Found ${notificationSettings.length} notification settings for workflow ${workflowId}`);
+    // Check workflow status and notification settings to determine if email should be sent
+    let shouldSendEmail = false;
+    let emailType = '';
     
-    // Process each notification setting
-    let sent = 0;
-    let errors = 0;
-    
-    for (const setting of notificationSettings) {
-      try {
-        // Check if we should send notification based on workflow status
-        const shouldSend = (
-          (workflow.status === 'completed' && setting.sendOnCompletion) ||
-          (workflow.status === 'failed' && setting.sendOnFailure)
-        );
-        
-        if (!shouldSend) {
-          console.log(`Skipping notification ${setting.id} based on workflow status ${workflow.status}`);
-          continue;
-        }
-        
-        // Send the notification
-        console.log(`Sending notification to ${setting.recipientEmail} for workflow ${workflowId}`);
-        const result = await sendWorkflowSummaryEmail({
-          workflow,
-          recipients: [setting.recipientEmail], // Convert single email to array for compatibility
-          includeInsights: true
-        });
-        
-        if (result.success) {
-          sent++;
-        } else {
-          errors++;
-          console.error(`Failed to send notification: ${result.message}`);
-        }
-      } catch (error) {
-        errors++;
-        console.error(`Error processing notification ${setting.id}:`, error);
-      }
+    if (workflow.status === 'completed' && notification.sendOnCompletion) {
+      shouldSendEmail = true;
+      emailType = 'completion';
+    } else if (workflow.status === 'failed' && notification.sendOnFailure) {
+      shouldSendEmail = true;
+      emailType = 'failure';
     }
     
-    console.log(`Notification processing completed for workflow ${workflowId}: sent=${sent}, errors=${errors}`);
-    return { 
-      success: true, 
-      sent, 
-      errors, 
-      message: `Processed ${sent + errors} notifications with ${errors} errors` 
+    if (!shouldSendEmail) {
+      return {
+        success: true,
+        message: `No email needed for status ${workflow.status}`,
+        sent: 0
+      };
+    }
+    
+    // Send the appropriate email
+    let result;
+    if (emailType === 'completion') {
+      result = await sendWorkflowCompletionEmail(workflowId, notification.recipientEmail);
+    } else if (emailType === 'failure') {
+      result = await sendWorkflowFailureEmail(workflowId, notification.recipientEmail);
+    }
+    
+    return {
+      success: result.success,
+      message: result.success ? 'Email notification sent' : `Failed to send email: ${result.error}`,
+      sent: result.success ? 1 : 0,
+      emailType,
+      logId: result.logId
     };
+    
   } catch (error) {
-    console.error(`Failed to process workflow notifications for ${workflowId}:`, error);
-    return { 
-      success: false, 
-      sent: 0, 
-      errors: 1, 
-      message: `Error processing notifications: ${error.message}`,
+    console.error(`Error processing workflow status notifications:`, error);
+    return {
+      success: false,
+      message: `Error: ${error.message}`,
+      sent: 0
+    };
+  }
+}
+
+/**
+ * Send a workflow failure email
+ * @param {string} workflowId ID of the failed workflow
+ * @param {string} recipientEmail Email address to send to
+ * @returns {Promise<object>} Result of the send operation
+ */
+export async function sendWorkflowFailureEmail(workflowId, recipientEmail) {
+  try {
+    // Get workflow details
+    const [workflow] = await db
+      .select()
+      .from(workflows)
+      .where(eq(workflows.id, workflowId));
+    
+    if (!workflow) {
+      return {
+        success: false,
+        error: `Workflow ${workflowId} not found`
+      };
+    }
+    
+    // Format the error message
+    const errorMessage = workflow.lastError || 'Unknown error occurred';
+    
+    // Generate email content
+    const emailContent = {
+      subject: `Workflow Failed: ${workflow.name}`,
+      text: generateWorkflowFailureText(workflow),
+      html: generateWorkflowFailureHtml(workflow)
+    };
+    
+    // Send the email
+    const result = await sendEmail({
+      to: recipientEmail,
+      content: emailContent,
+      workflowId: workflow.id
+    });
+    
+    return result;
+  } catch (error) {
+    console.error(`Error sending workflow failure email:`, error);
+    return {
+      success: false,
       error: error.message
     };
   }
+}
+
+/**
+ * Generate plain text email content for a completed workflow
+ * @param {object} workflow The workflow object
+ * @returns {string} Formatted plain text email content
+ */
+function generateWorkflowSummaryText(workflow) {
+  const context = workflow.context || {};
+  const insights = context.insights || [];
+  const summary = context.summary || 'No summary available';
+  
+  let text = `Workflow "${workflow.name}" has completed successfully.\n\n`;
+  text += `Summary: ${summary}\n\n`;
+  
+  // Add insights if available
+  if (insights.length > 0) {
+    text += 'Insights:\n';
+    insights.forEach((insight, index) => {
+      text += `${index + 1}. ${insight}\n`;
+    });
+    text += '\n';
+  }
+  
+  // Add technical details
+  text += `Workflow ID: ${workflow.id}\n`;
+  text += `Completed at: ${new Date().toISOString()}\n`;
+  text += `Platform: ${workflow.platform || 'Not specified'}\n`;
+  
+  return text;
+}
+
+/**
+ * Generate HTML email content for a completed workflow
+ * @param {object} workflow The workflow object
+ * @returns {string} Formatted HTML email content
+ */
+function generateWorkflowSummaryHtml(workflow) {
+  const context = workflow.context || {};
+  const insights = context.insights || [];
+  const summary = context.summary || 'No summary available';
+  
+  let insightsList = '';
+  if (insights.length > 0) {
+    insightsList = insights.map(insight => `<li style="margin-bottom: 8px;">${insight}</li>`).join('');
+  } else {
+    insightsList = '<li>No insights available</li>';
+  }
+  
+  // Create HTML email
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <h2 style="color: #4CAF50;">Workflow Completed: ${workflow.name}</h2>
+      <p>Your workflow has completed successfully.</p>
+      
+      <h3 style="margin-top: 20px; color: #555;">Summary</h3>
+      <p style="background-color: #f9f9f9; padding: 10px; border-radius: 4px;">${summary}</p>
+      
+      <h3 style="margin-top: 20px; color: #555;">Insights</h3>
+      <ul style="padding-left: 20px;">
+        ${insightsList}
+      </ul>
+      
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #757575;">
+        <p>
+          Workflow ID: ${workflow.id}<br>
+          Completed at: ${new Date().toISOString()}<br>
+          Platform: ${workflow.platform || 'Not specified'}
+        </p>
+      </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+/**
+ * Generate plain text email content for a failed workflow
+ * @param {object} workflow The workflow object
+ * @returns {string} Formatted plain text email content
+ */
+function generateWorkflowFailureText(workflow) {
+  const errorMessage = workflow.lastError || 'Unknown error occurred';
+  
+  let text = `Workflow "${workflow.name}" has failed.\n\n`;
+  text += `Error: ${errorMessage}\n\n`;
+  
+  // Add technical details
+  text += `Workflow ID: ${workflow.id}\n`;
+  text += `Failed at: ${new Date().toISOString()}\n`;
+  text += `Platform: ${workflow.platform || 'Not specified'}\n`;
+  text += `Current step: ${workflow.currentStep || 0}\n`;
+  
+  return text;
+}
+
+/**
+ * Generate HTML email content for a failed workflow
+ * @param {object} workflow The workflow object
+ * @returns {string} Formatted HTML email content
+ */
+function generateWorkflowFailureHtml(workflow) {
+  const errorMessage = workflow.lastError || 'Unknown error occurred';
+  
+  // Create HTML email
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <h2 style="color: #F44336;">Workflow Failed: ${workflow.name}</h2>
+      <p>Unfortunately, your workflow has failed.</p>
+      
+      <h3 style="margin-top: 20px; color: #555;">Error Details</h3>
+      <p style="background-color: #FFEBEE; padding: 10px; border-radius: 4px; color: #B71C1C;">${errorMessage}</p>
+      
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #757575;">
+        <p>
+          Workflow ID: ${workflow.id}<br>
+          Failed at: ${new Date().toISOString()}<br>
+          Platform: ${workflow.platform || 'Not specified'}<br>
+          Current step: ${workflow.currentStep || 0}
+        </p>
+      </div>
+    </div>
+  `;
+  
+  return html;
 }
