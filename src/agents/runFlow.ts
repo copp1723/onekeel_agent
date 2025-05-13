@@ -6,8 +6,8 @@
 import { chromium } from 'playwright-core';
 import type { Browser, Page } from 'playwright-core';
 import path from 'path';
-// This import is commented out because we're using a local implementation for testing
-// import { getEmailOTP as fetchEmailOTP } from '../utils/emailOTP.js';
+// Import the proper emailOTP handler
+import { getOTPFromEmail } from '../utils/emailOTP.js';
 import { FlowStep, EnvVars } from '../types.js';
 
 // Load platform configurations using dynamic import
@@ -227,15 +227,32 @@ async function executeOTPStep(page: Page, step: FlowStep, envVars: EnvVars): Pro
     throw new Error(`Expected otpEmail action for OTP step, got: ${step.action}`);
   }
 
-  // Get the OTP code from email using the local implementation
-  // Note: In production, we would use the imported fetchEmailOTP instead
-  const otpCode = await getEmailOTP(envVars.OTP_EMAIL_USER);
+  console.log('Waiting for and retrieving OTP code from email...');
+  
+  // Maximum number of attempts to get OTP
+  const MAX_OTP_ATTEMPTS = 5;
+  let otpCode: string | null = null;
+  
+  // Try multiple times with a delay to account for email delivery delay
+  for (let attempt = 0; attempt < MAX_OTP_ATTEMPTS; attempt++) {
+    // Get OTP from email using our utility function
+    otpCode = await getOTPFromEmail(envVars.OTP_EMAIL_USER || '');
+    
+    if (otpCode) {
+      console.log(`Retrieved OTP code on attempt ${attempt + 1}`);
+      break;
+    }
+    
+    console.log(`OTP not found yet, waiting (attempt ${attempt + 1}/${MAX_OTP_ATTEMPTS})...`);
+    // Wait 5 seconds between attempts
+    await new Promise(resolve => setTimeout(resolve, 5000));
+  }
   
   if (!otpCode) {
-    throw new Error('Failed to retrieve OTP code from email');
+    throw new Error('Failed to retrieve OTP code from email after multiple attempts');
   }
 
-  console.log('Retrieved OTP code from email');
+  console.log('Successfully retrieved OTP code from email');
 
   // Fill the OTP code into the form
   if (step.selector) {
@@ -270,7 +287,8 @@ async function executeDownloadStep(page: Page, step: FlowStep, _envVars: EnvVars
   await page.waitForSelector(step.rowSelector, { state: 'visible' });
 
   // Set up download path
-  const downloadPath = path.resolve(process.cwd(), step.saveAs || 'report.csv');
+  const downloadDir = _envVars.DOWNLOAD_DIR || './downloads';
+  const downloadPath = path.resolve(process.cwd(), downloadDir, step.saveAs || 'report.csv');
 
   // Click the download button and wait for download
   const [download] = await Promise.all([
@@ -283,12 +301,4 @@ async function executeDownloadStep(page: Page, step: FlowStep, _envVars: EnvVars
   console.log(`Downloaded file saved to: ${downloadPath}`);
 
   return downloadPath;
-}
-
-// Use the imported fetchEmailOTP function instead of this local version
-async function getEmailOTP(username: string): Promise<string> {
-  console.log(`Getting OTP for ${username}...`);
-  // In a real implementation, this would connect to an email service via the imported function
-  // For now, we'll return a placeholder code for testing
-  return '123456';
 }

@@ -1,26 +1,91 @@
 /**
- * Email OTP retrieval utility
- * Connects to an email service to retrieve one-time passwords
+ * Email OTP Retrieval
+ *
+ * This module handles retrieving One-Time Passwords (OTPs) from email accounts.
+ * It connects to the specified email account, searches for OTP messages,
+ * and extracts the codes using regular expressions.
  */
+import * as ImapLib from 'imap-simple';
+import { simpleParser } from 'mailparser';
 /**
- * Retrieves an OTP code from email
- * @param username - Email account username
- * @param _password - Email account password (not used in simplified implementation)
- * @returns Promise resolving to the OTP code or null if not found
+ * Retrieve an OTP code from an email account
+ * This function connects to an email account, searches for recent emails
+ * containing OTP codes, and extracts the first code it finds.
+ *
+ * @param emailUser - Email username
+ * @param emailPass - Email password
+ * @param emailHost - IMAP server hostname
+ * @param options - Additional options like port, timeouts, etc.
+ * @returns The OTP code as a string, or null if none found
  */
-export async function getEmailOTP(username, _password) {
+export async function getEmailOTP(emailUser, emailPass, emailHost, options = {}) {
+    if (!emailUser || !emailPass || !emailHost) {
+        console.warn('Missing required email credentials for OTP retrieval');
+        return null;
+    }
+    const port = options.port || 993;
+    const tls = options.tls !== false;
+    const minutesAgo = options.minutesAgo || 5;
+    const regexPattern = options.regexPattern || /\b(\d{6})\b/;
+    // Calculate search time window
+    const searchSince = new Date();
+    searchSince.setMinutes(searchSince.getMinutes() - minutesAgo);
+    const sinceDate = searchSince.toISOString();
+    // Default search criteria for OTP emails
+    const searchCriteria = options.searchCriteria || [
+        'UNSEEN',
+        ['SINCE', sinceDate],
+        ['SUBJECT', 'verification'],
+        ['OR', ['SUBJECT', 'code'], ['SUBJECT', 'OTP'], ['SUBJECT', 'verification']]
+    ];
+    // Configure connection
+    const config = {
+        user: emailUser,
+        password: emailPass,
+        host: emailHost,
+        port,
+        tls,
+        tlsOptions: {
+            rejectUnauthorized: false
+        }
+    };
     try {
-        console.log(`Attempting to retrieve OTP from email account: ${username}`);
-        // In a production implementation, this would:
-        // 1. Connect to the email server (IMAP/POP3)
-        // 2. Search for recent emails with subject containing "OTP" or "Verification"
-        // 3. Parse the email body to extract the OTP code
-        // 4. Return the OTP code
-        // For development/testing purposes, we'll simulate this with a delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        // Return a simulated OTP code
-        console.log('OTP code successfully retrieved');
-        return '123456';
+        console.log(`Connecting to ${emailHost} to retrieve OTP...`);
+        const connection = await ImapLib.connect({ imap: config });
+        // Open inbox
+        await connection.openBox('INBOX');
+        // Search for emails matching criteria
+        const searchResults = await connection.search(searchCriteria, {});
+        console.log(`Found ${searchResults.length} emails matching criteria`);
+        if (searchResults.length === 0) {
+            await connection.end();
+            return null;
+        }
+        // Fetch most recent email content
+        const messages = await connection.fetch(searchResults, {
+            bodies: ['TEXT', 'HEADER'],
+            markSeen: true
+        });
+        // Process emails in reverse order (newest first)
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const message = messages[i];
+            const textPart = message.parts.find((part) => part.which === 'TEXT');
+            if (textPart) {
+                const parsed = await simpleParser(textPart.body);
+                const text = parsed.text || '';
+                // Use regex to find OTP code
+                const match = text.match(regexPattern);
+                if (match && match[1]) {
+                    const otp = match[1];
+                    console.log(`OTP code found: ${otp.slice(0, 2)}****`);
+                    await connection.end();
+                    return otp;
+                }
+            }
+        }
+        await connection.end();
+        console.log('No OTP found in emails');
+        return null;
     }
     catch (error) {
         console.error('Error retrieving OTP from email:', error);
@@ -28,87 +93,45 @@ export async function getEmailOTP(username, _password) {
     }
 }
 /**
- * Real email OTP implementation would use a library like 'imap' or 'node-imap'
- * Example implementation (commented out to avoid dependency issues):
+ * Get OTP from email using environment variables
+ * This is a convenience wrapper that uses environment variables
+ * for email credentials.
+ *
+ * @param customAddress - Optional custom email address to use instead of EMAIL_USER
+ * @returns The OTP code or null if not found
  */
-/*
-import Imap from 'node-imap';
-import { simpleParser } from 'mailparser';
-
-export async function getEmailOTP(username: string, password: string): Promise<string | null> {
-  return new Promise((resolve, reject) => {
-    const imap = new Imap({
-      user: username,
-      password: password,
-      host: 'imap.gmail.com', // Adjust based on email provider
-      port: 993,
-      tls: true,
-      tlsOptions: { rejectUnauthorized: false }
-    });
-
-    function openInbox(cb) {
-      imap.openBox('INBOX', false, cb);
+export async function getOTPFromEmail(customAddress) {
+    const emailUser = customAddress || process.env.OTP_EMAIL_USER || process.env.EMAIL_USER || '';
+    const emailPass = process.env.OTP_EMAIL_PASS || process.env.EMAIL_PASS || '';
+    const emailHost = process.env.EMAIL_HOST || '';
+    const emailPort = process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : 993;
+    const emailTLS = process.env.EMAIL_TLS !== 'false';
+    if (!emailUser || !emailPass || !emailHost) {
+        console.warn('Missing required email configuration for OTP retrieval');
+        return null;
     }
-
-    imap.once('ready', () => {
-      openInbox((err, box) => {
-        if (err) return reject(err);
-        
-        // Search for recent emails with "OTP" or "Verification" in subject
-        const searchCriteria = [
-          'UNSEEN',
-          ['OR',
-            ['SUBJECT', 'OTP'],
-            ['SUBJECT', 'Verification']
-          ],
-          ['SINCE', new Date(Date.now() - 24 * 60 * 60 * 1000)]
-        ];
-        
-        const fetch = imap.search(searchCriteria, (err, results) => {
-          if (err) return reject(err);
-          if (!results || !results.length) return resolve(null);
-          
-          // Get the most recent email
-          const lastMessage = results[results.length - 1];
-          const f = imap.fetch(lastMessage, { bodies: '' });
-          
-          f.on('message', (msg) => {
-            msg.on('body', (stream) => {
-              simpleParser(stream, async (err, parsed) => {
-                if (err) return reject(err);
-                
-                const text = parsed.text || '';
-                
-                // Extract OTP code using regex
-                // This pattern needs to be adjusted based on the actual email format
-                const otpMatch = text.match(/code is: (\d{6})/i);
-                if (otpMatch && otpMatch[1]) {
-                  resolve(otpMatch[1]);
-                } else {
-                  resolve(null);
-                }
-              });
-            });
-          });
-          
-          f.once('error', reject);
-          f.once('end', () => {
-            imap.end();
-          });
-        });
-      });
+    return getEmailOTP(emailUser, emailPass, emailHost, {
+        port: emailPort,
+        tls: emailTLS
     });
-
-    imap.once('error', (err) => {
-      reject(err);
-    });
-
-    imap.once('end', () => {
-      console.log('IMAP connection ended');
-    });
-
-    imap.connect();
-  });
 }
-*/ 
+// For testing and demonstration purposes
+if (require.main === module) {
+    (async () => {
+        const emailUser = process.env.EMAIL_USER || '';
+        const emailPass = process.env.EMAIL_PASS || '';
+        const emailHost = process.env.EMAIL_HOST || '';
+        if (!emailUser || !emailPass || !emailHost) {
+            console.error('Missing required email configuration');
+            process.exit(1);
+        }
+        const otp = await getEmailOTP(emailUser, emailPass, emailHost);
+        if (otp) {
+            console.log(`✅ OTP retrieved: ${otp}`);
+        }
+        else {
+            console.log('❌ No OTP found');
+        }
+    })();
+}
 //# sourceMappingURL=emailOTP.js.map

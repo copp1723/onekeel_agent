@@ -5,6 +5,8 @@
 // Update import to use specific structures from playwright-core
 import { chromium } from 'playwright-core';
 import path from 'path';
+// Import the proper emailOTP handler
+import { getOTPFromEmail } from '../utils/emailOTP.js';
 // Load platform configurations using dynamic import
 // This works with Node16 module system
 const config = await import('../../configs/platforms.json', {
@@ -188,13 +190,26 @@ async function executeOTPStep(page, step, envVars) {
     if (step.action !== 'otpEmail') {
         throw new Error(`Expected otpEmail action for OTP step, got: ${step.action}`);
     }
-    // Get the OTP code from email using the local implementation
-    // Note: In production, we would use the imported fetchEmailOTP instead
-    const otpCode = await getEmailOTP(envVars.OTP_EMAIL_USER);
-    if (!otpCode) {
-        throw new Error('Failed to retrieve OTP code from email');
+    console.log('Waiting for and retrieving OTP code from email...');
+    // Maximum number of attempts to get OTP
+    const MAX_OTP_ATTEMPTS = 5;
+    let otpCode = null;
+    // Try multiple times with a delay to account for email delivery delay
+    for (let attempt = 0; attempt < MAX_OTP_ATTEMPTS; attempt++) {
+        // Get OTP from email using our utility function
+        otpCode = await getOTPFromEmail(envVars.OTP_EMAIL_USER || '');
+        if (otpCode) {
+            console.log(`Retrieved OTP code on attempt ${attempt + 1}`);
+            break;
+        }
+        console.log(`OTP not found yet, waiting (attempt ${attempt + 1}/${MAX_OTP_ATTEMPTS})...`);
+        // Wait 5 seconds between attempts
+        await new Promise(resolve => setTimeout(resolve, 5000));
     }
-    console.log('Retrieved OTP code from email');
+    if (!otpCode) {
+        throw new Error('Failed to retrieve OTP code from email after multiple attempts');
+    }
+    console.log('Successfully retrieved OTP code from email');
     // Fill the OTP code into the form
     if (step.selector) {
         await page.waitForSelector(step.selector);
@@ -223,7 +238,8 @@ async function executeDownloadStep(page, step, _envVars) {
     // Wait for the row to be visible
     await page.waitForSelector(step.rowSelector, { state: 'visible' });
     // Set up download path
-    const downloadPath = path.resolve(process.cwd(), step.saveAs || 'report.csv');
+    const downloadDir = _envVars.DOWNLOAD_DIR || './downloads';
+    const downloadPath = path.resolve(process.cwd(), downloadDir, step.saveAs || 'report.csv');
     // Click the download button and wait for download
     const [download] = await Promise.all([
         page.waitForEvent('download'),
@@ -233,12 +249,5 @@ async function executeDownloadStep(page, step, _envVars) {
     await download.saveAs(downloadPath);
     console.log(`Downloaded file saved to: ${downloadPath}`);
     return downloadPath;
-}
-// Use the imported fetchEmailOTP function instead of this local version
-async function getEmailOTP(username) {
-    console.log(`Getting OTP for ${username}...`);
-    // In a real implementation, this would connect to an email service via the imported function
-    // For now, we'll return a placeholder code for testing
-    return '123456';
 }
 //# sourceMappingURL=runFlow.js.map
