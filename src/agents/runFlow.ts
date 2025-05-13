@@ -5,16 +5,16 @@
 // Update import to use specific structures from playwright-core
 import { chromium } from 'playwright-core';
 import type { Browser, Page } from 'playwright-core';
-import path from 'path';
+import * as path from 'path';
 // Import the proper emailOTP handler
-import { getOTPFromEmail } from '../utils/emailOTP.js';
+import { checkEmailForOTP } from '../utils/emailOTP.js';
 import { FlowStep, EnvVars } from '../types.js';
 
-// Load platform configurations using dynamic import
-// This works with Node16 module system
-const config = await import('../../configs/platforms.json', { 
-  assert: { type: 'json' } 
-}).then(module => module.default);
+// Load platform configurations
+// Using require for compatibility
+// @ts-ignore
+import platformsConfig from '../../configs/platforms.json';
+const config = platformsConfig;
 
 // Maximum number of retries for flow execution
 const MAX_RETRIES = 1;
@@ -102,9 +102,9 @@ export async function runFlow(
     navigationSteps: FlowStep[];
     downloadSteps: FlowStep[];
   };
-  
+
   if (!platformConfig) {
-    throw new Error(`Platform "${platform}" not found in configuration`);
+    throw new Error(`Platform "${String(platform)}" not found in configuration`);
   }
 
   let lastError: unknown;
@@ -115,7 +115,7 @@ export async function runFlow(
       browser = await chromium.launch({ headless: true });
       const page: Page = await browser.newPage();
 
-      console.log(`Executing ${platform} flow (attempt ${attempt + 1})...`);
+      console.log(`Executing ${String(platform)} flow (attempt ${attempt + 1})...`);
 
       // 1. Execute login steps
       console.log('Executing login steps...');
@@ -143,22 +143,22 @@ export async function runFlow(
       }
 
       // Flow completed successfully
-      console.log(`${platform} flow completed successfully`);
+      console.log(`${String(platform)} flow completed successfully`);
       await browser.close();
       return downloadPath;
-      
+
     } catch (err: unknown) {
       lastError = err;
-      console.error(`runFlow [${platform}] attempt ${attempt} failed:`, err);
+      console.error(`runFlow [${String(platform)}] attempt ${attempt} failed:`, err);
       if (browser) await browser.close();
-      
+
       if (attempt < MAX_RETRIES) {
         console.log(`runFlow: retrying (${attempt + 1}/${MAX_RETRIES})…`);
         // Add delay before retry
         await new Promise(resolve => setTimeout(resolve, 3000));
         continue;
       }
-      
+
       // Exhausted retries
       throw new Error(
         `runFlow: failed after ${MAX_RETRIES + 1} attempts: ${
@@ -228,26 +228,43 @@ async function executeOTPStep(page: Page, step: FlowStep, envVars: EnvVars): Pro
   }
 
   console.log('Waiting for and retrieving OTP code from email...');
-  
+
   // Maximum number of attempts to get OTP
   const MAX_OTP_ATTEMPTS = 5;
   let otpCode: string | null = null;
-  
+
   // Try multiple times with a delay to account for email delivery delay
   for (let attempt = 0; attempt < MAX_OTP_ATTEMPTS; attempt++) {
     // Get OTP from email using our utility function
-    otpCode = await getOTPFromEmail(envVars.OTP_EMAIL_USER || '');
-    
+    const config = {
+      user: envVars.OTP_EMAIL_USER || '',
+      password: envVars.OTP_EMAIL_PASS || '',
+      host: envVars.EMAIL_HOST || 'imap.gmail.com',
+      port: parseInt(envVars.EMAIL_PORT || '993', 10),
+      tls: envVars.EMAIL_TLS !== 'false',
+      timeoutMs: 60000, // 1 minute timeout
+      markSeen: true,
+      otpPattern: new RegExp(envVars.OTP_PATTERN || 'OTP is: (\\d{6})'),
+      searchCriteria: {
+        criteria: [
+          'UNSEEN',
+          ['SUBJECT', envVars.OTP_SUBJECT || 'OTP'],
+          ['SINCE', new Date(Date.now() - 10 * 60 * 1000)] // Last 10 minutes
+        ]
+      }
+    };
+    otpCode = await checkEmailForOTP(config);
+
     if (otpCode) {
       console.log(`Retrieved OTP code on attempt ${attempt + 1}`);
       break;
     }
-    
+
     console.log(`OTP not found yet, waiting (attempt ${attempt + 1}/${MAX_OTP_ATTEMPTS})...`);
     // Wait 5 seconds between attempts
     await new Promise(resolve => setTimeout(resolve, 5000));
   }
-  
+
   if (!otpCode) {
     throw new Error('Failed to retrieve OTP code from email after multiple attempts');
   }

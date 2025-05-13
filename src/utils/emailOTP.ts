@@ -1,7 +1,7 @@
-import imap from 'imap-simple';
+import * as imap from 'imap-simple';
 import { ParsedMail, simpleParser } from 'mailparser';
-import nodemailer from 'nodemailer';
-import crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
+import * as crypto from 'crypto';
 
 interface EmailConfig {
   user: string;
@@ -97,57 +97,112 @@ export function verifyOTP(
 }
 
 // For checking emails for incoming OTP (useful for automation)
-export async function checkEmailForOTP(config: EmailConfig, searchCriteria: any = {}): Promise<string | null> {
+/**
+ * Configuration for email OTP retrieval with timeout
+ */
+export interface EmailOTPConfig extends EmailConfig {
+  /** Timeout in milliseconds for the entire operation (default: 30000) */
+  timeoutMs?: number;
+  /** OTP pattern to match in email text (default: /OTP is: (\d{6})/) */
+  otpPattern?: RegExp;
+  /** Whether to mark emails as seen after reading (default: true) */
+  markSeen?: boolean;
+  /** Search criteria for finding OTP emails */
+  searchCriteria?: any;
+}
+
+/**
+ * Checks emails for an OTP and returns it
+ * @param config - Email configuration with optional timeout and pattern settings
+ * @returns The OTP if found, null otherwise
+ */
+export async function checkEmailForOTP(config: EmailOTPConfig): Promise<string | null> {
+  // Set defaults for optional parameters
+  const timeoutMs = config.timeoutMs || 30000;
+  const otpPattern = config.otpPattern || /OTP is: (\d{6})/;
+  const markSeen = config.markSeen !== false; // Default to true
+
+  // Create a promise that will reject after the timeout
+  const timeoutPromise = new Promise<null>((_, reject) => {
+    setTimeout(() => reject(new Error(`OTP email check timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+
+  // Create the actual email checking promise
+  const checkPromise = new Promise<string | null>(async (resolve) => {
+    let connection: any = null;
+
+    try {
+      connection = await imap.connect({
+        imap: {
+          user: config.user,
+          password: config.password,
+          host: config.host,
+          port: config.port,
+          tls: config.tls,
+          authTimeout: 3000
+        }
+      });
+
+      await connection.openBox('INBOX');
+
+      // Default search for recent OTP emails
+      const defaultCriteria = [
+        'UNSEEN',
+        ['SUBJECT', 'OTP'],
+        ['SINCE', new Date(Date.now() - 24 * 60 * 60 * 1000)]
+      ];
+
+      // Use the criteria from searchCriteria if provided, otherwise use default
+      const criteria = config.searchCriteria?.criteria || defaultCriteria;
+
+      // Search for messages matching criteria with fetch options
+      const fetchOptions = {
+        bodies: ['HEADER', 'TEXT'],
+        markSeen: markSeen
+      };
+
+      // Search and fetch in one step
+      const messages = await connection.search(criteria, fetchOptions);
+
+      if (!messages || messages.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      // Process fetched messages
+      for (const message of messages) {
+        const all = message.parts.find((part: any) => part.which === 'TEXT');
+        const parsed: ParsedMail = await simpleParser(all?.body || '');
+
+        // Extract OTP using the provided regex pattern
+        const otpMatch = parsed.text?.match(otpPattern);
+        if (otpMatch && otpMatch[1]) {
+          resolve(otpMatch[1]);
+          return;
+        }
+      }
+
+      resolve(null);
+    } catch (error) {
+      console.error('Error checking email for OTP:', error);
+      resolve(null);
+    } finally {
+      // Always close the connection if it was opened
+      if (connection) {
+        try {
+          await connection.end();
+        } catch (err) {
+          console.error('Error closing IMAP connection:', err);
+        }
+      }
+    }
+  });
+
+  // Race the timeout against the actual operation
   try {
-    const connection = await imap.connect({
-      imap: {
-        user: config.user,
-        password: config.password,
-        host: config.host,
-        port: config.port,
-        tls: config.tls,
-        authTimeout: 3000
-      }
-    });
-
-    await connection.openBox('INBOX');
-
-    // Default search for recent OTP emails
-    const defaultCriteria = [
-      'UNSEEN',
-      ['SUBJECT', 'OTP'],
-      ['SINCE', new Date(Date.now() - 24 * 60 * 60 * 1000)]
-    ];
-
-    const searchResults = await connection.search(searchCriteria.criteria || defaultCriteria);
-
-    if (searchResults.length === 0) {
-      await connection.end();
-      return null;
-    }
-
-    const messages = await connection.search(searchResults, {
-      bodies: ['HEADER', 'TEXT'],
-      markSeen: true
-    });
-
-    // Process fetched messages
-    for (const message of messages) {
-      const all = message.parts.find(part => part.which === 'TEXT');
-      const parsed: ParsedMail = await simpleParser(all?.body || '');
-
-      // Extract OTP using regex - modify pattern based on your email format
-      const otpMatch = parsed.text?.match(/OTP is: (\d{6})/);
-      if (otpMatch && otpMatch[1]) {
-        await connection.end();
-        return otpMatch[1];
-      }
-    }
-
-    await connection.end();
-    return null;
+    return await Promise.race([checkPromise, timeoutPromise]);
   } catch (error) {
-    console.error('Error checking email for OTP:', error);
+    console.error('OTP retrieval failed:', error);
     return null;
   }
 }

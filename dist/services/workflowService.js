@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Import step handlers
 import { stepHandlers } from './stepHandlers.js';
 // Import email service
-import { sendWorkflowCompletionEmail } from './workflowEmailService.js';
+import { sendWorkflowCompletionEmail } from './workflowEmailServiceFixed.js';
 /**
  * Create a new workflow
  */
@@ -101,7 +101,7 @@ export async function runWorkflow(workflowId) {
             // Send completion email if workflow has a notification email configured
             try {
                 // First try to send using the new email notification system
-                const result = await sendWorkflowCompletionEmail(finalWorkflow.id, []);
+                const result = await sendWorkflowCompletionEmail(finalWorkflow.id);
                 if (typeof result === 'boolean') {
                     // Handle old boolean return type for backwards compatibility
                     if (!result) {

@@ -25,6 +25,25 @@ A flexible AI agent backend using Fellou Eko that executes various tasks includi
 - ✅ Role-based insight distribution
 - ✅ Scheduled report processing
 - ✅ Email notifications
+- ✅ OTP email verification for secure access
+
+### Recent Fixes
+- ✅ Fixed workflowEmailService.js for proper email notifications
+- ✅ Fixed taskParser.js export for correct task parsing
+- ✅ Fixed emailOTP.js module for OTP verification
+- ✅ Fixed schema.ts missing exports for database tables
+- ✅ Enhanced emailOTP.ts with improved error handling and timeout support
+- ✅ Fixed TypeScript errors in runFlow.ts
+- ✅ Created comprehensive developer onboarding guide
+- ✅ Set up Jest testing framework with initial tests
+- ✅ Fixed service layer type errors in emailQueue.ts, healthService.ts, scheduler.ts, and schedulerServiceSimple.ts
+- ✅ Enhanced email queue system with exponential backoff and retry functionality
+- ✅ Created integration tests for task parsing, workflow execution, and email notifications
+- ✅ Implemented proper error handling with custom error types and consistent patterns
+- ✅ Implemented rate limiting for API endpoints to prevent abuse
+- ✅ Set up CI pipeline using GitHub Actions for automated testing
+- ✅ Created email template system with HTML and plain text support
+- ✅ Optimized database queries with caching and indexing
 
 ## Prerequisites
 
@@ -194,6 +213,22 @@ You can also use the REST API to submit tasks and retrieve results. Start the AP
   - Returns: Clean extracted content and its summary with statistics
 - `GET http://localhost:3000/health` - Health check endpoint
 
+#### Rate Limiting
+
+All API endpoints are protected by rate limiting to prevent abuse:
+
+- Global rate limit: 100 requests per 15 minutes per IP address
+- Task submission endpoints (`/api/tasks` and `/submit-task`): 10 requests per minute
+- Authentication endpoints: 5 requests per minute
+- Health check endpoint: 30 requests per minute
+
+When a rate limit is exceeded, the API returns a `429 Too Many Requests` response with information about when the limit will reset. The response includes the following headers:
+
+- `X-RateLimit-Limit`: Maximum number of requests allowed
+- `X-RateLimit-Remaining`: Number of requests remaining
+- `X-RateLimit-Reset`: Time (in seconds) until the rate limit resets
+- `Retry-After`: Time (in seconds) to wait before making another request
+
 Example POST request to /submit-task:
 
 ```bash
@@ -278,6 +313,30 @@ All task executions are logged to the database with the following information:
 - `/submit-task` endpoint - Direct task execution with immediate response
 - `dist/index.js` - Simplified server with no database dependencies
 
+### Error Handling & Testing Components (Phase 4)
+- `src/shared/errorTypes.ts` - Custom error types for consistent error handling
+- `src/shared/errorHandler.ts` - Error handling utilities and middleware
+- `src/docs/ERROR_HANDLING.md` - Documentation for error handling patterns
+- `src/__tests__/integration/` - Integration tests for key workflows
+- `src/services/__tests__/` - Unit tests for service layer components
+
+### Security & CI Components (Phase 5)
+- `src/shared/middleware/rateLimiter.ts` - Rate limiting middleware for API protection
+- `src/docs/RATE_LIMITING.md` - Documentation for rate limiting configuration
+- `.github/workflows/ci.yml` - GitHub Actions CI pipeline configuration
+- `src/docs/CI_PROCESS.md` - Documentation for CI process
+
+### Email & Database Optimization Components (Phase 6)
+- `src/services/emailTemplateEngine.ts` - Email template rendering engine
+- `src/services/emailTemplateService.ts` - Service for sending templated emails
+- `src/services/emailTemplates/` - HTML and plain text email templates
+- `src/docs/EMAIL_TEMPLATES.md` - Documentation for email template system
+- `src/services/dbOptimizationService.ts` - Database optimization utilities
+- `src/services/queryOptimizer.ts` - Optimized database query patterns
+- `src/scripts/optimize-database.ts` - Script to add indexes and optimize tables
+- `src/scripts/test-query-performance.ts` - Script to test query performance
+- `src/docs/DATABASE_OPTIMIZATION.md` - Documentation for database optimization
+
 ### Database Schemas
 - `api_keys` - Secure storage for API keys
 - `dealer_credentials` - Secure storage for dealer login credentials
@@ -290,6 +349,14 @@ All task executions are logged to the database with the following information:
 - [Supabase](https://supabase.com/) - Database for storing API keys
 - [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
 - [Drizzle ORM](https://orm.drizzle.team/) - Database ORM
+- [Playwright](https://playwright.dev/) - Browser automation for CRM interactions
+- [imap-simple](https://www.npmjs.com/package/imap-simple) - Email OTP verification
+- [SendGrid](https://sendgrid.com/) - Email notifications
+- [Express](https://expressjs.com/) - Web server framework
+- [Express Rate Limit](https://www.npmjs.com/package/express-rate-limit) - API rate limiting
+- [Vitest](https://vitest.dev/) - Testing framework for unit and integration tests
+- [Nodemailer](https://nodemailer.com/) - Email sending library with retry capabilities
+- [Node Cache](https://www.npmjs.com/package/node-cache) - In-memory caching for database queries
 
 ## Extending the Project
 
@@ -340,6 +407,37 @@ To add more tools or capabilities:
    git remote add origin https://github.com/yourusername/agentflow.git
    git push -u origin main
    ```
+
+### Continuous Integration (CI)
+
+The project uses GitHub Actions for continuous integration. The CI pipeline automatically runs on every push to the main branch and on pull requests.
+
+The CI pipeline performs the following checks:
+
+1. **Lint**: Checks code formatting and TypeScript compilation
+2. **Test**: Runs unit and integration tests
+3. **Build**: Builds the application
+
+To view the CI configuration, see `.github/workflows/ci.yml`. For more information about the CI process, see `src/docs/CI_PROCESS.md`.
+
+To run the CI checks locally:
+
+```bash
+# Check code formatting
+npx eslint . --ext .js,.jsx,.ts,.tsx
+
+# Check TypeScript compilation
+npm run check-types
+
+# Run unit tests
+npm run test:unit
+
+# Run integration tests
+npm run test:integration
+
+# Build the application
+npm run build
+```
 
 ### Production Deployment
 

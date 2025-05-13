@@ -1,7 +1,7 @@
 // src/api/server.ts
 import express from 'express';
 import { routeHandler } from '../utils/routeHandler.js';
-import { parseTask } from '../services/taskParser.js';
+import parseTask from '../services/taskParser.js';
 import { getTaskLogs } from '../shared/logger.js';
 import dotenv from 'dotenv';
 import crypto from 'crypto';

@@ -166,6 +166,42 @@ export const emailNotifications = pgTable("email_notifications", {
   index("idx_email_notifications_workflow_id").on(table.workflowId!),
 ]);
 
+// Emails table for storing email content
+export const emails = pgTable("emails", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workflowId: uuid("workflow_id").references(() => workflows.id, { onDelete: 'set null' }),
+  recipientEmail: text("recipient_email").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  htmlBody: text("html_body"),
+  attachments: jsonb("attachments"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_emails_workflow_id").on(table.workflowId!),
+]);
+
+// Email queue for processing emails asynchronously
+export const emailQueue = pgTable("email_queue", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recipientEmail: text("recipient_email").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  htmlBody: text("html_body"),
+  options: jsonb("options").default({}),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, processing, sent, failed
+  attempts: integer("attempts").default(0).notNull(),
+  maxAttempts: integer("max_attempts").default(3).notNull(),
+  lastError: text("last_error"),
+  processAfter: timestamp("process_after"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_email_queue_status").on(table.status),
+  index("idx_email_queue_process_after").on(table.processAfter),
+]);
+
 // Health check tables for API and service monitoring
 export const healthChecks = pgTable("health_checks", {
   id: varchar("id", { length: 50 }).primaryKey(), // Use a stable identifier like 'database', 'email', etc.
@@ -196,6 +232,37 @@ export const healthLogs = pgTable("health_logs", {
   index("idx_health_logs_timestamp").on(table.timestamp),
 ]);
 
+// Dealer credentials for CRM access
+export const dealerCredentials = pgTable("dealer_credentials", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id),
+  dealerId: varchar("dealer_id", { length: 50 }).notNull(),
+  platform: varchar("platform", { length: 50 }).notNull(), // e.g., "vinsolutions", "vauto", "dealertrack"
+  username: text("username").notNull(),
+  encryptedPassword: text("encrypted_password").notNull(),
+  iv: text("iv").notNull(), // Initialization vector for encryption
+  active: boolean("active").default(true).notNull(),
+  lastUsed: timestamp("last_used"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_dealer_credentials_user_id").on(table.userId!),
+  index("idx_dealer_credentials_platform").on(table.platform),
+  index("idx_dealer_credentials_dealer_id").on(table.dealerId),
+]);
+
+// API keys for external services
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id", { length: 50 }).primaryKey(),
+  keyName: varchar("key_name", { length: 100 }).notNull().unique(),
+  keyValue: text("key_value").notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_api_keys_key_name").on(table.keyName),
+]);
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -224,12 +291,24 @@ export type HealthCheck = typeof healthChecks.$inferSelect;
 export type UpsertHealthLog = typeof healthLogs.$inferInsert;
 export type HealthLog = typeof healthLogs.$inferSelect;
 
+export type UpsertEmail = typeof emails.$inferInsert;
+export type Email = typeof emails.$inferSelect;
+
+export type UpsertEmailQueue = typeof emailQueue.$inferInsert;
+export type EmailQueue = typeof emailQueue.$inferSelect;
+
+export type UpsertDealerCredential = typeof dealerCredentials.$inferInsert;
+export type DealerCredential = typeof dealerCredentials.$inferSelect;
+
+export type UpsertApiKey = typeof apiKeys.$inferInsert;
+export type ApiKey = typeof apiKeys.$inferSelect;
+
 // Workflow step interfaces
-export type WorkflowStepType = 
-  | 'emailIngestion' 
-  | 'browserAction' 
+export type WorkflowStepType =
+  | 'emailIngestion'
+  | 'browserAction'
   | 'insightGeneration'
-  | 'crm' 
+  | 'crm'
   | 'dataProcessing'
   | 'api'
   | 'custom';

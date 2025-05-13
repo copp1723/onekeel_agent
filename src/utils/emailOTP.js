@@ -153,36 +153,50 @@ export async function checkEmailForOTP(config, searchCriteria = {}) {
 
 /**
  * Retrieves an OTP from an email account
- * @param {string} emailUser - Email username/address 
- * @returns {Promise<string|null>} The OTP if found, null otherwise
+ * @param {string} [sender] - Optional sender email to filter by
+ * @param {string} [subject] - Optional subject line to filter by
+ * @param {number} [minutesAgo=5] - How recent the email should be (in minutes)
+ * @returns {Promise<string|null>} The OTP code or null if not found
  */
-export async function getOTPFromEmail(emailUser) {
-  if (!emailUser) {
-    console.error('Email user not provided for OTP retrieval');
-    return null;
-  }
-  
-  // Get email configuration from environment variables
-  const config = {
-    user: process.env.OTP_EMAIL_USER || emailUser,
-    password: process.env.OTP_EMAIL_PASS || '',
-    host: process.env.EMAIL_HOST || '',
-    port: parseInt(process.env.EMAIL_PORT || '993', 10),
-    tls: process.env.EMAIL_TLS !== 'false'
-  };
-  
-  if (!config.password || !config.host) {
-    console.error('Missing email configuration for OTP retrieval');
-    return null;
-  }
-  
-  // Default search criteria for OTP emails
-  const searchCriteria = {
-    criteria: [
+export async function getOTPFromEmail(sender = null, subject = null, minutesAgo = 5) {
+  try {
+    // Get email configuration from environment variables
+    const config = {
+      user: process.env.OTP_EMAIL_USER || '',
+      password: process.env.OTP_EMAIL_PASS || '',
+      host: process.env.EMAIL_HOST || 'imap.gmail.com',
+      port: parseInt(process.env.EMAIL_PORT || '993', 10),
+      tls: process.env.EMAIL_TLS !== 'false'
+    };
+
+    if (!config.user || !config.password) {
+      console.error('Missing email configuration for OTP retrieval');
+      return null;
+    }
+
+    // Calculate the date for filtering recent emails
+    const searchDate = new Date();
+    searchDate.setMinutes(searchDate.getMinutes() - minutesAgo);
+
+    // Build search criteria
+    const criteria = [
       'UNSEEN',
-      ['SINCE', new Date(Date.now() - 10 * 60 * 1000)] // Last 10 minutes
-    ]
-  };
-  
-  return await checkEmailForOTP(config, searchCriteria);
+      ['SINCE', searchDate]
+    ];
+
+    if (sender) {
+      criteria.push(['FROM', sender]);
+    }
+
+    if (subject) {
+      criteria.push(['SUBJECT', subject]);
+    }
+
+    const searchCriteria = { criteria };
+
+    return await checkEmailForOTP(config, searchCriteria);
+  } catch (error) {
+    console.error('Error retrieving OTP from email:', error);
+    return null;
+  }
 }

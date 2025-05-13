@@ -1,7 +1,7 @@
 import authRouter from './auth.js';
 import credentialsRouter from './credentials.js';
 import workflowRoutes from './workflows.js';
-import { registerScheduleRoutes } from './schedules.js';
+import scheduleRoutes from './schedules.js';
 import { setupAuth } from '../replitAuth.js';
 import emailRoutes from './emails.js';
 /**
@@ -17,7 +17,7 @@ export async function registerAuthRoutes(app) {
     app.use('/api/workflows', workflowRoutes);
     app.use('/api/emails', emailRoutes);
     // Register schedule routes
-    registerScheduleRoutes(app);
+    app.use('/api/schedules', scheduleRoutes);
     console.log('Auth, workflow, email, and schedule routes registered');
 }
 //# sourceMappingURL=index.js.map

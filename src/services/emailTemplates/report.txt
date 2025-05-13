@@ -1,0 +1,34 @@
+REPORT: {{title}}
+{{date}}
+
+{{message}}
+
+{{#if summary}}
+SUMMARY:
+{{summary}}
+{{/if}}
+
+{{#if metrics}}
+KEY METRICS:
+{{#each metrics}}
+- {{this.label}}: {{this.value}}
+{{/each}}
+{{/if}}
+
+{{#if tableData}}
+{{tableTitle}}:
+{{#each tableHeaders}}{{this}}{{#if @last}}{{else}}	{{/if}}{{/each}}
+{{#each tableRows}}
+{{#each this}}{{this}}{{#if @last}}{{else}}	{{/if}}{{/each}}
+{{/each}}
+{{/if}}
+
+{{#if actionUrl}}
+{{actionText}}: {{actionUrl}}
+{{/if}}
+
+---
+This is an automated report. Please do not reply.
+{{#if unsubscribeUrl}}
+Unsubscribe: {{unsubscribeUrl}}
+{{/if}}

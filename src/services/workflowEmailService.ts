@@ -28,13 +28,14 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function configureNotification(workflowId: string, config: EmailNotificationConfig) {
-  const [notification] = await // @ts-ignore
-db.insert(emailNotifications)
+  const [notification] = await db.insert(emailNotifications)
     .values({
       workflowId,
       recipientEmail: config.recipientEmail,
       sendOnCompletion: config.sendOnCompletion ?? true,
-      sendOnFailure: config.sendOnFailure ?? true
+      sendOnFailure: config.sendOnFailure ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date()
     })
     .returning();
 
@@ -50,8 +51,7 @@ export async function getNotificationSettings(workflowId: string) {
 }
 
 export async function deleteNotification(workflowId: string) {
-  const result = await // @ts-ignore
-db.delete(emailNotifications)
+  const result = await db.delete(emailNotifications)
     .where(eq(emailNotifications.workflowId!, workflowId))
     .returning();
 
@@ -87,7 +87,14 @@ export async function sendWorkflowEmail(workflowId: string, recipientEmail: stri
       throw new Error('Workflow not found');
     }
 
-    const emailContent = generateWorkflowSummaryHtml(workflow);
+    // Add required workflowStatus field for the template
+    const templateData = {
+      ...workflow,
+      workflowId: workflowId,
+      workflowStatus: 'completed'
+    };
+
+    const emailContent = generateWorkflowSummaryHtml(templateData);
 
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM || 'workflow@example.com',
@@ -96,13 +103,16 @@ export async function sendWorkflowEmail(workflowId: string, recipientEmail: stri
       html: emailContent
     });
 
-    const [log] = await // @ts-ignore
-db.insert(emailLogs)
+    const [log] = await db.insert(emailLogs)
       .values({
         workflowId,
         recipientEmail,
+        subject: `Workflow ${workflowId} Update`,
         status: 'sent',
-        messageId: info.messageId
+        attempts: 1,
+        sentAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
       })
       .returning();
 

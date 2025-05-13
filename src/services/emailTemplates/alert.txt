@@ -1,0 +1,21 @@
+ALERT: {{title}}
+{{date}}
+
+! {{message}}
+
+{{#if details}}
+DETAILS:
+{{#each detailItems}}
+- {{this.label}}: {{this.value}}
+{{/each}}
+{{/if}}
+
+{{#if actionUrl}}
+{{actionText}}: {{actionUrl}}
+{{/if}}
+
+---
+This is an automated alert. Please do not reply.
+{{#if unsubscribeUrl}}
+Unsubscribe: {{unsubscribeUrl}}
+{{/if}}
