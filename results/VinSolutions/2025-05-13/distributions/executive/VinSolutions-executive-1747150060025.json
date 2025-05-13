@@ -1,0 +1,255 @@
+{
+  "distribution_config": {
+    "email": "josh@projectxlabs.ai",
+    "role": "EXECUTIVE",
+    "name": "John Executive",
+    "platforms": [
+      "VinSolutions"
+    ],
+    "channels": [
+      "EMAIL",
+      "FILE"
+    ],
+    "frequency": "IMMEDIATE",
+    "lastDistributed": null,
+    "active": true
+  },
+  "timestamp": "2025-05-13T15:27:40.025Z",
+  "insights": {
+    "insights": {
+      "summary": "The dealership's performance in early May 2024 shows strong sales with a focus on SUVs, which are the top-selling body style. John Smith is the top-performing sales representative, contributing significantly to the dealership's overall success. However, there are opportunities to improve sales of sedans and increase the attachment rate of finance products.",
+      "value_insights": [
+        "SUVs are the most popular body style, accounting for 50% of the sales.",
+        "John Smith is the top sales representative, responsible for 50% of the sales and achieving the highest gross profit margins.",
+        "The average gross profit per vehicle is $4035, with the highest being from the BMW X5.",
+        "Vehicles are sold relatively quickly, with an average of 16.25 days in inventory.",
+        "Finance products are attached to 75% of the sales, with John Smith leading in this area."
+      ],
+      "actionable_flags": [
+        "Enhance marketing efforts for sedans, which have a lower sales volume compared to SUVs.",
+        "Increase training and incentives for sales representatives to boost the attachment rate of finance products, particularly for Mary Johnson and Sarah Davis.",
+        "Consider strategies to reduce days in inventory for sedans, as they tend to stay longer in inventory."
+      ],
+      "key_metrics": {
+        "total_sales": 8,
+        "total_revenue": 343730,
+        "total_gross_profit": 32280,
+        "average_price": 42966.25,
+        "average_gross_profit": 4035,
+        "average_days_in_inventory": 16.25,
+        "finance_product_attachment_rate": 0.75
+      },
+      "risk_areas": [
+        {
+          "risk": "Lower sales volume for sedans compared to SUVs.",
+          "mitigation": "Implement targeted marketing campaigns and promotions to boost sedan sales."
+        },
+        {
+          "risk": "Low finance product attachment rate for certain sales representatives.",
+          "mitigation": "Provide additional training and incentives to improve finance product sales."
+        }
+      ],
+      "confidence": "high"
+    },
+    "quality": {
+      "quality_dimensions": {
+        "completeness": 8,
+        "relevance": 9,
+        "specificity": 8,
+        "coherence": 9,
+        "innovation": 7
+      },
+      "strengths": [
+        "The insights provide a clear summary of the dealership's performance, highlighting key areas such as top-selling body styles and top-performing sales representatives.",
+        "The insights are well-supported by specific data points, such as the percentage of sales accounted for by SUVs and the average gross profit per vehicle.",
+        "Actionable flags and risk areas are identified, providing clear guidance on potential improvements and mitigations."
+      ],
+      "improvement_areas": [
+        "The insights could benefit from more detailed analysis of the factors contributing to the lower sales volume of sedans, beyond just marketing efforts.",
+        "While the insights mention finance product attachment rates, they could explore more innovative strategies to improve these rates beyond training and incentives.",
+        "The insights could include a broader market context or comparison with industry benchmarks to enhance their depth and applicability."
+      ],
+      "verification_steps": [
+        "Verify the sales data to ensure that the percentages and figures mentioned (e.g., SUV sales percentage, average gross profit) are accurately calculated from the provided dataset.",
+        "Cross-check the performance of sales representatives with internal records to confirm the accuracy of the claims regarding top performers.",
+        "Review the dealership's marketing and sales strategies to validate the proposed actionable flags and risk mitigation strategies."
+      ],
+      "overall_score": 82
+    },
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 50000,
+        "confidence_level": "medium",
+        "timeframe": "6-12 months",
+        "implementation_complexity": "medium"
+      },
+      "cost_savings": {
+        "potential_reduction": 10000,
+        "confidence_level": "medium",
+        "timeframe": "6-12 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "effects_on_satisfaction": "Improved satisfaction through targeted marketing and better finance options.",
+        "effects_on_retention": "Increased retention by offering more attractive finance packages.",
+        "effects_on_acquisition": "Enhanced acquisition through focused sedan marketing campaigns."
+      },
+      "operational_efficiency": {
+        "impact_areas": [
+          "Inventory turnover",
+          "Sales training",
+          "Marketing effectiveness"
+        ],
+        "potential_improvement_level": "moderate"
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Enhance marketing efforts for sedans.",
+          "impact": "High",
+          "effort": "Medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Increase training and incentives for sales representatives.",
+          "impact": "High",
+          "effort": "Medium",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Reduce days in inventory for sedans.",
+          "impact": "Medium",
+          "effort": "High",
+          "priority_ranking": 3
+        }
+      ],
+      "risk_assessment": {
+        "implementation_risks": [
+          "Resistance to change from sales representatives.",
+          "Increased marketing costs without guaranteed sales uplift.",
+          "Potential disruption in sales processes during training."
+        ],
+        "confidence_score": "high"
+      }
+    },
+    "visualizations": {
+      "primary_visualizations": [
+        {
+          "title": "Sales by Body Style",
+          "type": "Pie Chart",
+          "description": "Visualizes the distribution of sales across different body styles, highlighting the dominance of SUVs.",
+          "data_fields": [
+            "body_style",
+            "count"
+          ]
+        },
+        {
+          "title": "Top Sales Representative Performance",
+          "type": "Bar Chart",
+          "description": "Shows the sales volume and gross profit contribution of each sales representative, emphasizing John Smith's performance.",
+          "data_fields": [
+            "sales_rep",
+            "total_sales",
+            "total_gross_profit"
+          ]
+        },
+        {
+          "title": "Average Days in Inventory by Body Style",
+          "type": "Bar Chart",
+          "description": "Compares the average days vehicles spend in inventory across different body styles to identify areas for improvement.",
+          "data_fields": [
+            "body_style",
+            "average_days_in_inventory"
+          ]
+        }
+      ],
+      "secondary_visualizations": [
+        {
+          "title": "Finance Product Attachment Rate by Sales Representative",
+          "type": "Stacked Bar Chart",
+          "description": "Illustrates the attachment rate of finance products per sales representative to identify training opportunities.",
+          "data_fields": [
+            "sales_rep",
+            "finance_products",
+            "total_sales"
+          ]
+        },
+        {
+          "title": "Gross Profit by Vehicle Model",
+          "type": "Horizontal Bar Chart",
+          "description": "Displays the gross profit per vehicle model, highlighting the most profitable models.",
+          "data_fields": [
+            "model",
+            "gross_profit"
+          ]
+        },
+        {
+          "title": "Sedan Sales Volume Over Time",
+          "type": "Line Chart",
+          "description": "Tracks the sales volume of sedans over time to assess the effectiveness of marketing efforts.",
+          "data_fields": [
+            "sale_date",
+            "body_style",
+            "count"
+          ]
+        }
+      ],
+      "executive_dashboard": {
+        "layout": "Grid",
+        "sections": [
+          {
+            "title": "Sales Overview",
+            "visualizations": [
+              "Sales by Body Style",
+              "Top Sales Representative Performance"
+            ]
+          },
+          {
+            "title": "Inventory and Profitability",
+            "visualizations": [
+              "Average Days in Inventory by Body Style",
+              "Gross Profit by Vehicle Model"
+            ]
+          },
+          {
+            "title": "Finance and Sales Trends",
+            "visualizations": [
+              "Finance Product Attachment Rate by Sales Representative",
+              "Sedan Sales Volume Over Time"
+            ]
+          }
+        ]
+      },
+      "data_preparation_notes": [
+        "Aggregate sales data by body style to calculate total sales and average days in inventory.",
+        "Summarize sales data by sales representative to determine total sales, gross profit, and finance product attachment rates.",
+        "Filter data to separate sedan sales for targeted analysis and trend tracking.",
+        "Ensure data is cleaned and formatted consistently, with all monetary values in the same currency and date formats standardized."
+      ]
+    },
+    "metadata": {
+      "platform": "VinSolutions",
+      "timestamp": "2025-05-13T15:27:13.156Z",
+      "promptName": "automotive-analyst",
+      "promptVersion": "v2.0.0",
+      "executionTime": 7513,
+      "tokenUsage": 1626,
+      "dataSummary": {
+        "platform": "VinSolutions",
+        "timestamp": "2025-05-13T15:27:13.156Z",
+        "recordCount": 8,
+        "dataFields": [
+          "id",
+          "make",
+          "model",
+          "year",
+          "trim",
+          "sale_date",
+          "price",
+          "cost",
+          "gross_profit",
+          "days_in_inventory"
+        ]
+      }
+    }
+  }
+}
