@@ -1,18 +1,20 @@
 import { Eko } from '@eko-ai/eko';
-import { createExecutionPlan } from '../agent/executePlan.js';
-import { Logger } from '../shared/logger.js';
+import { ExecutionPlan } from '../agent/executePlan.js';
+import { logger } from '../shared/logger.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ParsedTask {
   id: string;
   type: string;
-  title: string;
-  description: string;
-  steps: string[];
-  priority: number;
+  title?: string;
+  description?: string;
+  steps?: string[];
+  priority?: number;
   userId?: string;
   status?: string;
   planId?: string; // Database ID for the execution plan
+  parameters?: Record<string, any>; // For storing task-specific parameters
+  original?: string; // Original task text
   metadata?: Record<string, any>;
   createdAt?: Date;
   context?: Record<string, any>;
