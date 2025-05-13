@@ -1,0 +1,271 @@
+{
+  "distribution_config": {
+    "email": "josh@projectxlabs.ai",
+    "role": "EXECUTIVE",
+    "name": "John Executive",
+    "platforms": [
+      "VinSolutions"
+    ],
+    "channels": [
+      "EMAIL",
+      "FILE"
+    ],
+    "frequency": "IMMEDIATE",
+    "lastDistributed": null,
+    "active": true
+  },
+  "timestamp": "2025-05-13T15:18:20.635Z",
+  "insights": {
+    "insights": {
+      "summary": "The dealership has demonstrated strong sales performance with a focus on SUVs, which are the top-selling body style. John Smith is the leading sales representative, contributing significantly to the dealership's profits. However, there are opportunities to improve sales of sedans and increase the sale of finance products.",
+      "value_insights": [
+        "SUVs are the most popular body style, accounting for 50% of total sales.",
+        "John Smith is the top-performing sales representative, responsible for 50% of the total sales volume and generating the highest gross profit.",
+        "The average days in inventory for SUVs is lower than for sedans, indicating higher demand.",
+        "The BMW X5 and Volvo XC90 have the highest gross profit margins, suggesting a strong market position for premium SUVs.",
+        "Finance product sales are low, with an average of 1.5 products per vehicle sold."
+      ],
+      "actionable_flags": [
+        "Increase inventory of SUVs, particularly premium models like BMW X5 and Volvo XC90, to capitalize on high demand and profit margins.",
+        "Enhance training for sales representatives on selling finance products to increase per-vehicle profitability.",
+        "Focus marketing efforts on promoting sedans to reduce their average days in inventory.",
+        "Consider incentive programs for sales representatives to boost sales of finance products."
+      ],
+      "key_metrics": {
+        "total_sales": 8,
+        "total_revenue": 343730,
+        "total_cost": 311450,
+        "total_gross_profit": 32280,
+        "average_price": 42966.25,
+        "average_gross_profit": 4035,
+        "average_days_in_inventory": 16.25
+      },
+      "risk_areas": [
+        {
+          "risk": "High inventory days for sedans could lead to increased holding costs.",
+          "mitigation": "Implement targeted promotions and discounts to accelerate sedan sales."
+        },
+        {
+          "risk": "Low sales of finance products reduce potential revenue streams.",
+          "mitigation": "Provide additional training and incentives for sales reps to improve finance product sales."
+        }
+      ],
+      "confidence": "high"
+    },
+    "quality": {
+      "quality_dimensions": {
+        "completeness": 8,
+        "relevance": 9,
+        "specificity": 8,
+        "coherence": 9,
+        "innovation": 7
+      },
+      "strengths": [
+        "The insights provide a clear summary of the dealership's current sales performance, highlighting key areas such as SUV popularity and top-performing sales representatives.",
+        "Specific data points, such as the percentage of SUV sales and the contribution of John Smith to total sales, add credibility and detail to the insights.",
+        "Actionable flags are well-aligned with the identified opportunities and risks, offering practical steps for improvement."
+      ],
+      "improvement_areas": [
+        "The insights could benefit from a deeper analysis of the reasons behind low finance product sales and potential strategies to address this issue.",
+        "While the focus on SUVs is clear, additional context on market trends or customer preferences could enhance the relevance of the insights.",
+        "The insights could include more detailed segmentation of sales data, such as by customer demographics or geographic location, to provide a more comprehensive view."
+      ],
+      "verification_steps": [
+        "Cross-reference the sales data with industry reports to validate the popularity of SUVs and the performance of specific models like the BMW X5 and Volvo XC90.",
+        "Conduct interviews or surveys with sales representatives to understand challenges in selling finance products and gather suggestions for improvement.",
+        "Analyze historical sales data to identify trends in sedan sales and assess the effectiveness of past promotions or marketing efforts."
+      ],
+      "overall_score": 82
+    },
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 50000,
+        "confidence_level": "medium",
+        "timeframe": "6-12 months",
+        "implementation_complexity": "medium"
+      },
+      "cost_savings": {
+        "potential_reduction": 10000,
+        "confidence_level": "medium",
+        "timeframe": "6-12 months",
+        "implementation_complexity": "medium"
+      },
+      "customer_impact": {
+        "satisfaction": "improved due to better inventory alignment with demand",
+        "retention": "increased by offering more relevant finance products",
+        "acquisition": "enhanced through targeted marketing of sedans"
+      },
+      "operational_efficiency": {
+        "impact_areas": [
+          "inventory management",
+          "sales training",
+          "marketing effectiveness"
+        ],
+        "potential_improvement_level": "high"
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Increase inventory of SUVs, particularly premium models",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Enhance training for sales representatives on selling finance products",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Focus marketing efforts on promoting sedans",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 3
+        },
+        {
+          "recommendation": "Consider incentive programs for sales representatives to boost sales of finance products",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 4
+        }
+      ],
+      "risk_assessment": {
+        "implementation_risks": [
+          "Potential overstocking of SUVs if demand shifts",
+          "Insufficient training effectiveness leading to minimal improvement in finance product sales",
+          "Marketing efforts may not sufficiently reduce sedan inventory days"
+        ],
+        "confidence_score": "high"
+      }
+    },
+    "visualizations": {
+      "primary_visualizations": [
+        {
+          "title": "Sales Distribution by Body Style",
+          "type": "Pie Chart",
+          "description": "Visualize the proportion of sales by body style to highlight the dominance of SUVs.",
+          "data_fields": [
+            "body_style",
+            "count"
+          ]
+        },
+        {
+          "title": "Top Sales Representative Performance",
+          "type": "Bar Chart",
+          "description": "Compare sales volume and gross profit by sales representative to emphasize John Smith's contribution.",
+          "data_fields": [
+            "sales_rep",
+            "total_sales",
+            "total_gross_profit"
+          ]
+        },
+        {
+          "title": "Average Days in Inventory by Body Style",
+          "type": "Bar Chart",
+          "description": "Show the average days in inventory for each body style to identify demand trends.",
+          "data_fields": [
+            "body_style",
+            "average_days_in_inventory"
+          ]
+        },
+        {
+          "title": "Gross Profit Margin by Model",
+          "type": "Horizontal Bar Chart",
+          "description": "Highlight models with the highest gross profit margins, focusing on premium SUVs.",
+          "data_fields": [
+            "model",
+            "gross_profit_margin"
+          ]
+        }
+      ],
+      "secondary_visualizations": [
+        {
+          "title": "Finance Products Sold per Vehicle",
+          "type": "Histogram",
+          "description": "Display the distribution of finance products sold per vehicle to identify opportunities for improvement.",
+          "data_fields": [
+            "finance_products"
+          ]
+        },
+        {
+          "title": "Sales Volume and Gross Profit by Month",
+          "type": "Line Chart",
+          "description": "Track monthly sales volume and gross profit to identify trends over time.",
+          "data_fields": [
+            "sale_date",
+            "total_sales",
+            "total_gross_profit"
+          ]
+        },
+        {
+          "title": "Sedan Inventory Turnover",
+          "type": "Line Chart",
+          "description": "Monitor the average days in inventory for sedans over time to assess the impact of marketing efforts.",
+          "data_fields": [
+            "sale_date",
+            "average_days_in_inventory"
+          ]
+        }
+      ],
+      "executive_dashboard": {
+        "layout": "Grid",
+        "sections": [
+          {
+            "title": "Sales Overview",
+            "visualizations": [
+              "Sales Distribution by Body Style",
+              "Top Sales Representative Performance"
+            ]
+          },
+          {
+            "title": "Inventory Insights",
+            "visualizations": [
+              "Average Days in Inventory by Body Style",
+              "Sedan Inventory Turnover"
+            ]
+          },
+          {
+            "title": "Profitability Analysis",
+            "visualizations": [
+              "Gross Profit Margin by Model",
+              "Finance Products Sold per Vehicle"
+            ]
+          }
+        ],
+        "notes": "The dashboard is designed to provide a high-level overview of key performance indicators, trends, and opportunities for strategic decision-making."
+      },
+      "data_preparation_notes": [
+        "Aggregate sales data by body style to calculate the percentage of total sales.",
+        "Calculate total sales volume and gross profit for each sales representative.",
+        "Compute the average days in inventory for each body style and model.",
+        "Determine gross profit margins for each model by dividing gross profit by price.",
+        "Prepare monthly sales data to track trends over time."
+      ]
+    },
+    "metadata": {
+      "platform": "VinSolutions",
+      "timestamp": "2025-05-13T15:17:42.157Z",
+      "promptName": "automotive-analyst",
+      "promptVersion": "v2.0.0",
+      "executionTime": 10728,
+      "tokenUsage": 1634,
+      "dataSummary": {
+        "platform": "VinSolutions",
+        "timestamp": "2025-05-13T15:17:42.157Z",
+        "recordCount": 8,
+        "dataFields": [
+          "id",
+          "make",
+          "model",
+          "year",
+          "trim",
+          "sale_date",
+          "price",
+          "cost",
+          "gross_profit",
+          "days_in_inventory"
+        ]
+      }
+    }
+  }
+}

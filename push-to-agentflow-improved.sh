@@ -7,23 +7,9 @@ echo "Starting enhanced GitHub push script..."
 REPO_NAME="AGENTFLOW"
 GITHUB_USERNAME="copp1723"
 BRANCH_NAME="main"
-GITHUB_TOKEN=""
 
 # Ensure we're in the project root directory
 cd "$(dirname "$0")"
-
-# Ask for GitHub token if not provided
-if [ -z "$GITHUB_TOKEN" ]; then
-  echo "Enter your GitHub Personal Access Token (will not be echoed to screen):"
-  read -s GITHUB_TOKEN
-  echo
-fi
-
-# Make sure we have a token
-if [ -z "$GITHUB_TOKEN" ]; then
-  echo "Error: GitHub token is required"
-  exit 1
-fi
 
 # Remove any existing .git directory
 if [ -d ".git" ]; then
@@ -67,7 +53,7 @@ git commit -m "Initial commit of AGENTFLOW - AI Agent Backend"
 
 # Add remote using HTTPS
 echo "Setting up remote repository..."
-git remote add origin "https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_USERNAME/$REPO_NAME.git"
+git remote add origin "https://github.com/$GITHUB_USERNAME/$REPO_NAME.git"
 
 # Push with force and error handling
 echo "Pushing to GitHub repository..."
@@ -77,7 +63,3 @@ else
   echo "Push failed. Please check your GitHub credentials and repository permissions."
   exit 1
 fi
-
-# For security, remove the token from git config
-git config --unset remote.origin.url
-echo "Done! Repository URL: https://github.com/$GITHUB_USERNAME/$REPO_NAME"
