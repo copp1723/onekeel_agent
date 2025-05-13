@@ -1,145 +1,155 @@
 /**
  * Mailer Service
- * Handles email sending operations using SendGrid
+ * 
+ * This service handles sending emails using SendGrid with a fallback to Nodemailer.
+ * It provides a unified interface for email delivery with logging and retry capabilities.
  */
 
+import nodemailer from 'nodemailer';
 import sgMail from '@sendgrid/mail';
 
-// Service state
-let initialized = false;
+// Initialize SendGrid if API key is available
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('SendGrid mailer service initialized successfully');
+} else {
+  console.warn('SendGrid API key not found, will use Nodemailer fallback');
+}
 
-// Default sender (must be verified with SendGrid)
-let defaultSender = 'no-reply@example.com';
+// Fallback Nodemailer transport
+let nodemailerTransport;
 
 /**
- * Initialize the mailer service with API key
- * @param {object} options - Configuration options
- * @returns {boolean} True if initialization was successful
+ * Create a Nodemailer test account for fallback
+ * @returns {Promise<nodemailer.Transporter>} Configured transport
  */
-export function initialize(options = {}) {
-  // Check if SendGrid API key is available
-  const apiKey = process.env.SENDGRID_API_KEY;
-  
-  if (!apiKey) {
-    console.warn('SendGrid API key not found. Email sending will not be available.');
-    return false;
+async function createNodemailerTransport() {
+  if (nodemailerTransport) {
+    return nodemailerTransport;
   }
   
   try {
-    // Set API key
-    sgMail.setApiKey(apiKey);
-    
-    // Set default sender if provided
-    if (options.defaultSender) {
-      defaultSender = options.defaultSender;
+    // Create a test account if needed
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      const testAccount = await nodemailer.createTestAccount();
+      console.log('Nodemailer test account created for fallback');
+      
+      nodemailerTransport = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass
+        }
+      });
+    } else {
+      // Use configured email settings
+      nodemailerTransport = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT || 587,
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        }
+      });
     }
     
-    console.log('SendGrid mailer service initialized successfully');
-    initialized = true;
-    return true;
+    return nodemailerTransport;
   } catch (error) {
-    console.error('Error initializing SendGrid:', error);
-    return false;
+    console.error('Error creating Nodemailer transport:', error.message);
+    throw new Error('Failed to initialize email service');
   }
 }
 
 /**
- * Send email using SendGrid
- * @param {object} params - Email parameters
- * @param {string} params.to - Recipient email address
- * @param {string} params.subject - Email subject
- * @param {string} params.text - Plain text content
- * @param {string} params.html - HTML content
- * @param {string} params.from - Sender email (optional, defaults to system default)
- * @returns {Promise<object>} Result of the sending operation
+ * Send an email using SendGrid with Nodemailer fallback
+ * 
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.subject - Email subject
+ * @param {string} options.text - Plain text content
+ * @param {string} options.html - HTML content
+ * @param {string} [options.from] - Sender email (optional, uses default if not provided)
+ * @returns {Promise<Object>} Email sending result
  */
-export async function sendEmail(params) {
-  // Check if service is initialized
-  if (!initialized) {
-    initialize();
-    
-    if (!initialized) {
-      return { 
-        success: false, 
-        error: 'Mailer service not initialized' 
+export async function sendEmail(options) {
+  // Default from address if not provided
+  const from = options.from || process.env.DEFAULT_FROM_EMAIL || 'noreply@example.com';
+  
+  // Try SendGrid first if configured
+  if (process.env.SENDGRID_API_KEY) {
+    try {
+      const msg = {
+        to: options.to,
+        from,
+        subject: options.subject,
+        text: options.text,
+        html: options.html
       };
+      
+      await sgMail.send(msg);
+      
+      return {
+        success: true,
+        message: 'Email sent via SendGrid',
+        provider: 'sendgrid',
+        emailId: `sg_${Date.now()}`
+      };
+    } catch (error) {
+      console.error('SendGrid error:', error);
+      console.log('Falling back to Nodemailer');
+      // Fall back to Nodemailer
     }
   }
   
-  // Validate required parameters
-  if (!params.to) {
-    return { 
-      success: false, 
-      error: 'Recipient email address is required' 
-    };
-  }
-  
-  if (!params.subject) {
-    return { 
-      success: false, 
-      error: 'Email subject is required' 
-    };
-  }
-  
-  if (!params.text && !params.html) {
-    return { 
-      success: false, 
-      error: 'Email content (text or HTML) is required' 
-    };
-  }
-  
+  // Use Nodemailer as fallback
   try {
-    // Create email message
-    const msg = {
-      to: params.to,
-      from: params.from || defaultSender,
-      subject: params.subject,
-      text: params.text || '', // Plain text fallback
-      html: params.html || params.text || '', // HTML content with text fallback
-    };
+    const transport = await createNodemailerTransport();
     
-    // Send the email
-    await sgMail.send(msg);
+    const info = await transport.sendMail({
+      from,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html
+    });
     
-    return { 
-      success: true, 
-      message: 'Email sent successfully' 
+    console.log('Email sent via Nodemailer fallback');
+    if (info.messageId && info.previewUrl) {
+      console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+    }
+    
+    return {
+      success: true,
+      message: 'Email sent via Nodemailer',
+      provider: 'nodemailer',
+      emailId: info.messageId,
+      previewUrl: nodemailer.getTestMessageUrl(info)
     };
   } catch (error) {
-    console.error('SendGrid error:', error);
-    
-    // Extract useful information from the error
-    const errorInfo = error.response ? {
-      status: error.response.status,
-      body: error.response.body
-    } : error.message || 'Unknown error';
-    
-    return { 
-      success: false, 
-      error: `Failed to send email: ${JSON.stringify(errorInfo)}` 
+    console.error('Nodemailer error:', error.message);
+    return {
+      success: false,
+      message: `Failed to send email: ${error.message}`,
+      provider: null,
+      emailId: null
     };
   }
 }
 
 /**
- * Set the default sender email address
- * @param {string} email - Sender email address
+ * Send a test email
+ * 
+ * @param {string} to - Recipient email
+ * @returns {Promise<Object>} Test result
  */
-export function setDefaultSender(email) {
-  if (email && typeof email === 'string') {
-    defaultSender = email;
-    return true;
-  }
-  return false;
+export async function sendTestEmail(to) {
+  return sendEmail({
+    to,
+    subject: 'Test Email from Insight Engine',
+    text: 'This is a test email from the Insight Engine system.',
+    html: '<h1>Test Email</h1><p>This is a test email from the Insight Engine system.</p>'
+  });
 }
-
-/**
- * Check if the mailer service is configured
- * @returns {boolean} True if the service is configured
- */
-export function isConfigured() {
-  return initialized;
-}
-
-// Initialize on module load if API key is available
-initialize();

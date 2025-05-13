@@ -1,268 +1,239 @@
 /**
- * Insight Engine Stability Test
+ * Test script for the Enhanced Insight Engine with Stability Features
  * 
- * This script tests the enhanced insight engine with quality scoring,
- * business impact assessment, and version tracking across multiple vendors.
+ * This script tests the full insight generation pipeline with quality scoring,
+ * business impact assessment, visualization recommendations, and distribution
+ * to role-specific stakeholders.
  * 
- * Usage: node test-insight-engine-stability.js [vendor]
- * Example: node test-insight-engine-stability.js VinSolutions
+ * Set USE_SAMPLE_DATA=true to use sample data for testing without real API calls.
+ * Set environment variables for email testing:
+ * - SENDGRID_API_KEY - For SendGrid email delivery
+ * - TEST_EMAIL_ADDRESS - For email delivery testing (recipient)
  */
 
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { v4 as uuidv4 } from 'uuid';
+import { generateEnhancedInsights } from './src/services/enhancedInsightGenerator.js';
+import { 
+  createDistributionConfig, 
+  distributeInsights,
+  DISTRIBUTION_CHANNEL,
+  DELIVERY_FREQUENCY
+} from './src/services/insightDistributionService.js';
 
-// Use sample data for testing
-process.env.USE_SAMPLE_DATA = 'true';
-
-// Create directories for the test
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/**
- * Sample vendor data for testing
- */
-const sampleVendorData = {
-  VinSolutions: {
-    records: [
-      { Date: '2025-05-13', Customer: 'Customer A', Vehicle: 'Honda Accord', Status: 'New Lead', Price: 32500, DaysOnLot: 15, LeadSource: 'Website', SalesPerson: 'Rep 1' },
-      { Date: '2025-05-13', Customer: 'Customer B', Vehicle: 'Toyota Camry', Status: 'Test Drive', Price: 29800, DaysOnLot: 22, LeadSource: 'Phone', SalesPerson: 'Rep 2' },
-      { Date: '2025-05-13', Customer: 'Customer C', Vehicle: 'Ford F-150', Status: 'Negotiation', Price: 45600, DaysOnLot: 8, LeadSource: 'Walk-in', SalesPerson: 'Rep 3' },
-      { Date: '2025-05-13', Customer: 'Customer D', Vehicle: 'Chevrolet Tahoe', Status: 'Purchased', Price: 52300, DaysOnLot: 30, LeadSource: 'Referral', SalesPerson: 'Rep 1' },
-      { Date: '2025-05-13', Customer: 'Customer E', Vehicle: 'Nissan Altima', Status: 'New Lead', Price: 26400, DaysOnLot: 12, LeadSource: 'Website', SalesPerson: 'Rep 4' }
-    ]
+// Sample data for testing
+const SAMPLE_DATA = [
+  {
+    "id": "S12345",
+    "make": "Toyota",
+    "model": "RAV4",
+    "year": 2023,
+    "trim": "XLE",
+    "sale_date": "2024-05-01",
+    "price": 32950,
+    "cost": 29200,
+    "gross_profit": 3750,
+    "days_in_inventory": 14,
+    "sales_rep": "John Smith",
+    "finance_products": 2,
+    "body_style": "SUV"
   },
-  VAUTO: {
-    records: [
-      { 'Report Date': '2025-05-13', 'Stock#': 'A123', 'VIN': '1HGCM82633A123456', 'Make': 'Honda', 'Model': 'Accord', 'Price': 32500, 'Cost': 29500, 'Age': 15, 'Category': 'Sedan', 'Source': 'Auction' },
-      { 'Report Date': '2025-05-13', 'Stock#': 'B234', 'VIN': '2T1BU4EE2AC123456', 'Make': 'Toyota', 'Model': 'Camry', 'Price': 29800, 'Cost': 27000, 'Age': 22, 'Category': 'Sedan', 'Source': 'Trade-in' },
-      { 'Report Date': '2025-05-13', 'Stock#': 'C345', 'VIN': '1FTEX1EM5EF123456', 'Make': 'Ford', 'Model': 'F-150', 'Price': 45600, 'Cost': 41200, 'Age': 8, 'Category': 'Truck', 'Source': 'Dealer Transfer' },
-      { 'Report Date': '2025-05-13', 'Stock#': 'D456', 'VIN': '3GNFK16Z23G123456', 'Make': 'Chevrolet', 'Model': 'Tahoe', 'Price': 52300, 'Cost': 47800, 'Age': 30, 'Category': 'SUV', 'Source': 'Auction' },
-      { 'Report Date': '2025-05-13', 'Stock#': 'E567', 'VIN': '1N4AL3AP8DN123456', 'Make': 'Nissan', 'Model': 'Altima', 'Price': 26400, 'Cost': 23500, 'Age': 12, 'Category': 'Sedan', 'Source': 'Trade-in' }
-    ]
+  {
+    "id": "S12346",
+    "make": "Honda",
+    "model": "Accord",
+    "year": 2022,
+    "trim": "Sport",
+    "sale_date": "2024-05-02",
+    "price": 28500,
+    "cost": 25800,
+    "gross_profit": 2700,
+    "days_in_inventory": 21,
+    "sales_rep": "Mary Johnson",
+    "finance_products": 1,
+    "body_style": "Sedan"
   },
-  DealerTrack: {
-    records: [
-      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT123', 'Customer Name': 'Customer A', 'Vehicle': 'Honda Accord', 'Amount': 32500, 'Term': 60, 'Rate': 3.9, 'Product': 'Finance', 'Type': 'New' },
-      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT234', 'Customer Name': 'Customer B', 'Vehicle': 'Toyota Camry', 'Amount': 29800, 'Term': 72, 'Rate': 4.2, 'Product': 'Lease', 'Type': 'New' },
-      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT345', 'Customer Name': 'Customer C', 'Vehicle': 'Ford F-150', 'Amount': 45600, 'Term': 60, 'Rate': 3.5, 'Product': 'Finance', 'Type': 'Used' },
-      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT456', 'Customer Name': 'Customer D', 'Vehicle': 'Chevrolet Tahoe', 'Amount': 52300, 'Term': 48, 'Rate': 2.9, 'Product': 'Finance', 'Type': 'New' },
-      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT567', 'Customer Name': 'Customer E', 'Vehicle': 'Nissan Altima', 'Amount': 26400, 'Term': 72, 'Rate': 4.5, 'Product': 'Lease', 'Type': 'New' }
-    ]
+  {
+    "id": "S12347",
+    "make": "Volvo",
+    "model": "XC90",
+    "year": 2023,
+    "trim": "Momentum",
+    "sale_date": "2024-05-03",
+    "price": 56950,
+    "cost": 51200,
+    "gross_profit": 5750,
+    "days_in_inventory": 8,
+    "sales_rep": "John Smith",
+    "finance_products": 3,
+    "body_style": "SUV"
+  },
+  {
+    "id": "S12348",
+    "make": "BMW",
+    "model": "X5",
+    "year": 2024,
+    "trim": "xDrive40i",
+    "sale_date": "2024-05-04",
+    "price": 65490,
+    "cost": 59200,
+    "gross_profit": 6290,
+    "days_in_inventory": 12,
+    "sales_rep": "John Smith",
+    "finance_products": 2,
+    "body_style": "SUV"
+  },
+  {
+    "id": "S12349",
+    "make": "Ford",
+    "model": "Mustang",
+    "year": 2023,
+    "trim": "GT",
+    "sale_date": "2024-05-05",
+    "price": 48750,
+    "cost": 44250,
+    "gross_profit": 4500,
+    "days_in_inventory": 18,
+    "sales_rep": "Sarah Davis",
+    "finance_products": 1,
+    "body_style": "Coupe"
+  },
+  {
+    "id": "S12350",
+    "make": "Honda",
+    "model": "Civic",
+    "year": 2024,
+    "trim": "EX",
+    "sale_date": "2024-05-06",
+    "price": 26150,
+    "cost": 24200,
+    "gross_profit": 1950,
+    "days_in_inventory": 24,
+    "sales_rep": "Mary Johnson",
+    "finance_products": 0,
+    "body_style": "Sedan"
+  },
+  {
+    "id": "S12351",
+    "make": "Tesla",
+    "model": "Model Y",
+    "year": 2024,
+    "trim": "Long Range",
+    "sale_date": "2024-05-07",
+    "price": 54990,
+    "cost": 50200,
+    "gross_profit": 4790,
+    "days_in_inventory": 5,
+    "sales_rep": "John Smith",
+    "finance_products": 2,
+    "body_style": "SUV"
+  },
+  {
+    "id": "S12352",
+    "make": "Toyota",
+    "model": "Camry",
+    "year": 2023,
+    "trim": "XSE",
+    "sale_date": "2024-05-08",
+    "price": 29950,
+    "cost": 27400,
+    "gross_profit": 2550,
+    "days_in_inventory": 28,
+    "sales_rep": "Sarah Davis",
+    "finance_products": 1,
+    "body_style": "Sedan"
   }
-};
+];
 
 /**
- * Test the enhanced insight engine across different vendors
+ * Run a test of the enhanced insight engine with stability features
  */
 async function testInsightEngineStability() {
   try {
-    console.log('\n=== INSIGHT ENGINE STABILITY TEST ===\n');
+    console.log('Testing Enhanced Insight Engine with Stability Features...');
     
-    // Dynamically import the required modules
-    const { generateEnhancedInsights, PROMPT_VERSION } = await import('./src/services/enhancedInsightGenerator.js');
-    const insightDistribution = await import('./src/services/insightDistributionService.js');
+    // Step 1: Generate enhanced insights with quality evaluation
+    const platform = 'VinSolutions';
+    const data = SAMPLE_DATA;
     
-    console.log(`Using prompt version: ${PROMPT_VERSION}\n`);
+    console.log(`Generating insights for ${platform} with ${data.length} records...`);
+    const enhancedInsights = await generateEnhancedInsights(data, platform, { verbose: true });
     
-    // Create required directories
-    const downloadsDir = path.join(__dirname, 'downloads');
-    const resultsDir = path.join(__dirname, 'results');
+    console.log('\nInsight Generation Results:');
+    console.log('- Primary insights prompt:', enhancedInsights.metadata.promptName);
+    console.log('- Prompt version:', enhancedInsights.metadata.promptVersion);
+    console.log('- Quality score:', enhancedInsights.quality.overall_score);
+    console.log('- Quality dimensions:', JSON.stringify(enhancedInsights.quality.quality_dimensions, null, 2));
+    console.log('- Business impact revenue potential:', enhancedInsights.business_impact.revenue_impact.potential_gain);
     
-    if (!fs.existsSync(downloadsDir)) {
-      fs.mkdirSync(downloadsDir, { recursive: true });
-    }
+    // Step 2: Create distribution configurations for different roles
+    console.log('\nCreating distribution configurations for different roles...');
     
-    if (!fs.existsSync(resultsDir)) {
-      fs.mkdirSync(resultsDir, { recursive: true });
-    }
+    const distributionConfigs = [];
     
-    // Get vendor from command line arguments, or test all
-    const requestedVendor = process.argv[2];
-    const vendors = requestedVendor ? [requestedVendor] : Object.keys(sampleVendorData);
+    // Test email address for distribution testing
+    const testEmail = process.env.TEST_EMAIL_ADDRESS || 'test@example.com';
     
-    console.log(`Testing on vendors: ${vendors.join(', ')}`);
+    // Executive role configuration
+    const executiveConfig = createDistributionConfig(
+      testEmail,
+      'EXECUTIVE',
+      'John Executive',
+      [platform],
+      [DISTRIBUTION_CHANNEL.EMAIL, DISTRIBUTION_CHANNEL.FILE],
+      DELIVERY_FREQUENCY.IMMEDIATE
+    );
+    distributionConfigs.push(executiveConfig);
     
-    const generatedInsights = [];
+    // Sales Manager role configuration
+    const salesManagerConfig = createDistributionConfig(
+      testEmail,
+      'SALES_MANAGER',
+      'Mary Manager',
+      [platform],
+      [DISTRIBUTION_CHANNEL.FILE],
+      DELIVERY_FREQUENCY.IMMEDIATE
+    );
+    distributionConfigs.push(salesManagerConfig);
     
-    // Test each vendor
-    for (const vendor of vendors) {
-      console.log(`\n--- Testing ${vendor} ---`);
+    // Marketing role configuration
+    const marketingConfig = createDistributionConfig(
+      testEmail,
+      'MARKETING',
+      'Dave Marketing',
+      [platform],
+      [DISTRIBUTION_CHANNEL.FILE],
+      DELIVERY_FREQUENCY.IMMEDIATE
+    );
+    distributionConfigs.push(marketingConfig);
+    
+    console.log(`Created ${distributionConfigs.length} distribution configurations`);
+    
+    // Step 3: Distribute insights to different roles
+    console.log('\nDistributing insights to stakeholders...');
+    
+    for (const config of distributionConfigs) {
+      console.log(`\nDistributing to ${config.role} (${config.name})...`);
+      const result = await distributeInsights(enhancedInsights, config);
       
-      if (!sampleVendorData[vendor]) {
-        console.error(`Unknown vendor: ${vendor}`);
-        continue;
-      }
-      
-      // Create a sample CSV file for this vendor
-      const reportFile = await createSampleReportFile(vendor);
-      console.log(`Created sample report file: ${reportFile}`);
-      
-      try {
-        // Generate enhanced insights
-        console.log('Generating enhanced insights with quality scoring...');
-        const options = {
-          platform: vendor,
-          includeBusinessImpact: true,
-          includeQualityScoring: true,
-          includeTrendAnalysis: false,
-          promptVersion: PROMPT_VERSION,
-          userId: 'test',
-          saveToDisk: true
-        };
+      if (result.success) {
+        console.log(`✓ Successfully distributed insights to ${config.role}`);
         
-        const insights = await generateEnhancedInsights(reportFile, options);
-        
-        // Log quality scores
-        if (insights.qualityScores) {
-          console.log('\nQuality Scores:');
-          console.log(`Overall: ${insights.qualityScores.overall.toFixed(2)}`);
+        for (const channelResult of result.distribution.channelResults) {
+          console.log(`  - ${channelResult.channel}: ${channelResult.success ? 'Success' : 'Failed'} - ${channelResult.message}`);
           
-          if (insights.qualityScores.dimensions) {
-            for (const [dimension, score] of Object.entries(insights.qualityScores.dimensions)) {
-              console.log(`${dimension}: ${score.toFixed(2)}`);
-            }
+          if (channelResult.channel === DISTRIBUTION_CHANNEL.EMAIL && channelResult.success && channelResult.previewUrl) {
+            console.log(`    Preview URL: ${channelResult.previewUrl}`);
           }
         }
-        
-        // Log business impact
-        if (insights.businessImpact && insights.businessImpact.overallImpact) {
-          console.log('\nBusiness Impact:');
-          console.log(`Overall: ${insights.businessImpact.overallImpact.impactLevel} (${insights.businessImpact.overallImpact.score.toFixed(1)}/10)`);
-          
-          if (insights.businessImpact.revenueImpact) {
-            console.log(`Revenue Impact: $${insights.businessImpact.revenueImpact.total.toLocaleString()} (${insights.businessImpact.revenueImpact.confidence} confidence)`);
-          }
-          
-          if (insights.businessImpact.costSavings) {
-            console.log(`Cost Savings: $${insights.businessImpact.costSavings.total.toLocaleString()} (${insights.businessImpact.costSavings.confidence} confidence)`);
-          }
-        }
-        
-        // Extract opportunities
-        if (insights.opportunities && Array.isArray(insights.opportunities)) {
-          console.log('\nKey Opportunities:');
-          for (let i = 0; i < Math.min(2, insights.opportunities.length); i++) {
-            const opportunity = insights.opportunities[i];
-            console.log(`${i+1}. ${opportunity.title}`);
-            console.log(`   ${opportunity.description}`);
-            if (opportunity.actionSteps && Array.isArray(opportunity.actionSteps)) {
-              console.log('   Action Steps:');
-              for (const step of opportunity.actionSteps.slice(0, 2)) {
-                console.log(`   - ${step}`);
-              }
-              if (opportunity.actionSteps.length > 2) {
-                console.log(`   - Plus ${opportunity.actionSteps.length - 2} more steps...`);
-              }
-            }
-          }
-          
-          if (insights.opportunities.length > 2) {
-            console.log(`   Plus ${insights.opportunities.length - 2} more opportunities...`);
-          }
-        }
-        
-        generatedInsights.push({
-          vendor,
-          insightId: insights.metadata?.insightId,
-          qualityScore: insights.qualityScores?.overall || 0,
-          businessImpact: insights.businessImpact?.overallImpact?.score || 0
-        });
-        
-        // Test distribution
-        if (insights.metadata?.insightId) {
-          console.log('\nTesting insight distribution...');
-          
-          const distributionResult = await insightDistribution.distributeInsights(
-            insights.metadata.insightId,
-            {
-              specificRoles: ['executive', 'sales'],
-              sendEmails: false
-            }
-          );
-          
-          console.log(`Would distribute to ${distributionResult.distributionsCreated} recipients`);
-        }
-      } catch (error) {
-        console.error(`Error testing ${vendor}:`, error);
+      } else {
+        console.error(`✗ Failed to distribute insights to ${config.role}: ${result.message}`);
       }
     }
     
-    // Show summary
-    console.log('\n=== TEST SUMMARY ===');
-    
-    if (generatedInsights.length > 0) {
-      console.log('\nGenerated Insights:');
-      for (const item of generatedInsights) {
-        console.log(`${item.vendor}: Quality=${item.qualityScore.toFixed(2)}, Impact=${item.businessImpact.toFixed(1)}/10`);
-      }
-      
-      console.log('\nTest completed successfully!');
-    } else {
-      console.log('No insights were generated during the test.');
-    }
+    console.log('\nTest completed successfully!');
   } catch (error) {
-    console.error('Error in stability test:', error);
-  }
-}
-
-/**
- * Create a sample report file for a vendor
- */
-async function createSampleReportFile(vendor) {
-  try {
-    // Create downloads directory if it doesn't exist
-    const downloadsDir = path.join(__dirname, 'downloads');
-    if (!fs.existsSync(downloadsDir)) {
-      fs.mkdirSync(downloadsDir, { recursive: true });
-    }
-    
-    // Generate a unique ID for this report
-    const reportId = uuidv4();
-    
-    // Create CSV file
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `${vendor}_sample_report_${timestamp}.csv`;
-    const filePath = path.join(downloadsDir, fileName);
-    
-    // Get sample data for this vendor
-    const data = sampleVendorData[vendor];
-    
-    if (!data || !data.records || data.records.length === 0) {
-      throw new Error(`No sample data available for vendor: ${vendor}`);
-    }
-    
-    // Extract headers from first record
-    const headers = Object.keys(data.records[0]);
-    
-    // Create CSV content
-    let csvContent = headers.join(',') + '\n';
-    
-    // Add rows
-    for (const record of data.records) {
-      const row = headers.map(header => {
-        const value = record[header];
-        
-        // Format value based on type
-        if (typeof value === 'string') {
-          // Quote strings and escape any embedded quotes
-          return `"${value.replace(/"/g, '""')}"`;
-        } else {
-          return value;
-        }
-      }).join(',');
-      
-      csvContent += row + '\n';
-    }
-    
-    // Write to file
-    fs.writeFileSync(filePath, csvContent);
-    
-    return filePath;
-  } catch (error) {
-    console.error('Error creating sample report file:', error);
-    throw error;
+    console.error('Error testing insight engine stability:', error);
   }
 }
 
