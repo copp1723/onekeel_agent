@@ -1,3 +1,4 @@
+
 /**
  * Workflow Email Service
  * Handles sending email notifications for workflow completions
@@ -151,6 +152,43 @@ export async function sendWorkflowCompletionEmail(workflowId, recipientOverride)
       message: 'Error sending workflow notification',
       error: error.message
     };
+  }
+}
+
+/**
+ * Send a workflow summary email
+ * @param {object} workflow - The workflow data
+ * @param {string|string[]} recipients - Recipient email addresses
+ * @returns {Promise<boolean>} Success status
+ */
+export async function sendWorkflowSummaryEmail(workflow, recipients) {
+  try {
+    // Format recipients as array
+    const recipientsList = Array.isArray(recipients) ? recipients : [recipients];
+    
+    if (!workflow || recipientsList.length === 0) {
+      console.error('Invalid parameters for sendWorkflowSummaryEmail');
+      return false;
+    }
+    
+    const subject = `Workflow Summary: ${workflow.id}`;
+    const plainText = generateWorkflowSummaryText(workflow);
+    const htmlContent = generateWorkflowSummaryHtml(workflow);
+    
+    // Send to each recipient
+    for (const recipient of recipientsList) {
+      await sendEmail({
+        to: recipient,
+        subject,
+        text: plainText,
+        html: htmlContent
+      });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to send workflow summary email:', error);
+    return false;
   }
 }
 

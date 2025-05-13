@@ -1,0 +1,16 @@
+Date,Customer,Vehicle,Status,Price,LeadSource,SalesPerson,DaysOnLot
+2025-05-13,Customer A,Toyota Camry SE,New Lead,$28500,Website,Rep 1,15
+2025-05-13,Customer B,Honda Accord LX,Test Drive,$31200,Phone,Rep 2,22
+2025-05-13,Customer C,Ford F-150 XLT,Negotiation,$42750,Walk-in,Rep 3,8
+2025-05-13,Customer D,Chevrolet Tahoe LT,Purchased,$55300,Referral,Rep 1,30
+2025-05-13,Customer E,Nissan Altima S,New Lead,$26400,Website,Rep 4,12
+2025-05-13,Customer F,Hyundai Sonata,Test Drive,$25800,Website,Rep 2,20
+2025-05-13,Customer G,Kia Sorento,Negotiation,$33900,Phone,Rep 5,25
+2025-05-13,Customer H,Ford Escape,Purchased,$29700,Walk-in,Rep 1,18
+2025-05-13,Customer I,Mazda CX-5,New Lead,$31500,Website,Rep 3,5
+2025-05-13,Customer J,Subaru Outback,Test Drive,$34900,Referral,Rep 4,15
+2025-05-13,Customer K,Honda CR-V,Negotiation,$32800,Website,Rep 2,10
+2025-05-13,Customer L,Toyota RAV4,Purchased,$35600,Phone,Rep 5,28
+2025-05-13,Customer M,Chevrolet Equinox,New Lead,$27300,Walk-in,Rep 3,14
+2025-05-13,Customer N,Jeep Cherokee,Test Drive,$36400,Website,Rep 1,22
+2025-05-13,Customer O,Volkswagen Tiguan,Negotiation,$33700,Referral,Rep 4,19

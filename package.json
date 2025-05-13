@@ -59,6 +59,7 @@
     "pg": "^8.15.6",
     "pg-connection-string": "^2.9.0",
     "playwright": "^1.52.0",
+    "playwright-chromium": "^1.52.0",
     "playwright-core": "^1.52.0",
     "postcss": "^8.5.3",
     "postgres": "^3.4.5",

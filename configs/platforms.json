@@ -1,5 +1,14 @@
 {
   "VinSolutions": {
+    "baseUrl": "https://crm.vinsolutions.com/login",
+    "hasOTP": true,
+    "selectors": {
+      "username": "#username",
+      "password": "#password",
+      "loginButton": "button[type='submit']",
+      "otpInput": "input[name='otp']",
+      "otpSubmit": "button:has-text('Verify')"
+    },
     "loginSteps": [
       { "action": "goto", "args": ["https://crm.vinsolutions.com/login"] },
       { "action": "fill", "selector": "#username", "value": "{{VIN_SOLUTIONS_USERNAME}}" },
@@ -25,6 +34,13 @@
     ]
   },
   "VAUTO": {
+    "baseUrl": "https://login.vauto.com",
+    "hasOTP": false,
+    "selectors": {
+      "username": "input[name='username']",
+      "password": "input[name='password']",
+      "loginButton": "button#loginButton"
+    },
     "loginSteps": [
       { "action": "goto", "args": ["https://login.vauto.com"] },
       { "action": "fill", "selector": "input[name='username']", "value": "{{VAUTO_USERNAME}}" },
