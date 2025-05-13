@@ -323,4 +323,74 @@ export async function deleteSchedule(scheduleId) {
         throw error;
     }
 }
+function shouldRunNow(cronExpression, lastRunAt) {
+    if (!lastRunAt) {
+        return true; // If it has never run, run it now
+    }
+    const intervalMs = parseIntervalFromCron(cronExpression);
+    const nextRunTime = lastRunAt.getTime() + intervalMs;
+    const now = Date.now();
+    return now >= nextRunTime;
+}
+async function updateScheduleLastRun(scheduleId) {
+    try {
+        await db
+            .update(schedules)
+            .set({
+            lastRunAt: new Date(),
+            updatedAt: new Date()
+        })
+            .where(eq(schedules.id, scheduleId));
+    }
+    catch (error) {
+        console.error(`Error updating lastRunAt for schedule ${scheduleId}:`, error);
+        throw error;
+    }
+}
+export async function listSchedules(enabledOnly = false) {
+    try {
+        let query = db.select().from(schedules).orderBy(schedules.createdAt);
+        if (enabledOnly) {
+            query = query.where(eq(schedules.enabled, true));
+        }
+        const allSchedules = await query;
+        return allSchedules;
+    }
+    catch (error) {
+        console.error('Error listing schedules:', error);
+        throw error;
+    }
+}
+export async function executeScheduledWorkflows() {
+    try {
+        // Fetch all enabled schedules
+        const schedules = await listSchedules(true);
+        let executed = 0;
+        let errors = 0;
+        for (const schedule of schedules) {
+            try {
+                // Check if it's time to run based on cron schedule
+                if (shouldRunNow(schedule.cron, schedule.lastRunAt)) {
+                    console.log(`Executing scheduled workflow: ${schedule.id}`);
+                    // Execute the associated workflow if workflowId exists
+                    if (schedule.workflowId) {
+                        await executeWorkflowById(schedule.workflowId);
+                        executed++;
+                    }
+                    // Update the lastRunAt timestamp
+                    await updateScheduleLastRun(schedule.id);
+                }
+            }
+            catch (error) {
+                console.error(`Error executing scheduled workflow ${schedule.id}:`, error);
+                errors++;
+            }
+        }
+        return { success: true, executed, errors };
+    }
+    catch (error) {
+        console.error('Error executing scheduled workflows:', error);
+        return { success: false, executed: 0, errors: 1 };
+    }
+}
 //# sourceMappingURL=simpleScheduler.js.map

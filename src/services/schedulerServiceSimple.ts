@@ -209,12 +209,12 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
  */
 async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
   try {
-    if (!schedule.workflowId) {
+    if (!schedule.workflowId!) {
       console.error('Cannot execute schedule without workflowId:', schedule);
       return;
     }
     
-    console.log(`Executing scheduled workflow ${schedule.workflowId}`);
+    console.log(`Executing scheduled workflow ${schedule.workflowId!}`);
     
     // Update lastRunAt time
     await db
@@ -226,10 +226,10 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
       .where(eq(schedules.id, schedule.id));
     
     // Execute the workflow
-    await executeWorkflowById(schedule.workflowId);
+    await executeWorkflowById(schedule.workflowId!);
     
   } catch (error) {
-    console.error(`Error executing scheduled workflow ${schedule.workflowId}:`, error);
+    console.error(`Error executing scheduled workflow ${schedule.workflowId!}:`, error);
   }
 }
 

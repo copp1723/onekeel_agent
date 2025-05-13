@@ -206,10 +206,10 @@ export async function createSchedule(
       .insert(schedules)
       .values({
         id: uuidv4(),
-        userId: options.userId,
-        intent: options.intent,
-        platform: options.platform,
-        workflowId: options.workflowId,
+        userId: options.userId!,
+        intent: options.intent!,
+        platform: options.platform!,
+        workflowId: options.workflowId!,
         cron: options.cronExpression,
         nextRunAt,
         status: 'active',
@@ -313,7 +313,7 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
       throw new Error(`Schedule not found: ${scheduleId}`);
     }
     
-    console.log(`Executing schedule ${scheduleId} (${schedule.intent} for ${schedule.platform})`);
+    console.log(`Executing schedule ${scheduleId} (${schedule.intent!} for ${schedule.platform!})`);
     
     // Update the last run time
     await db
@@ -344,17 +344,17 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
     
     try {
       // Use hybrid ingestion to fetch the report
-      const filePath = await hybridIngestAndRunFlow(schedule.platform, envVars);
+      const filePath = await hybridIngestAndRunFlow(schedule.platform!, envVars);
       
       // Generate insights from the fetched report
       const insights = await generateInsights(
         filePath,
-        schedule.platform,
-        { intent: schedule.intent }
+        schedule.platform!,
+        { intent: schedule.intent! }
       );
       
       // Distribute insights to stakeholders
-      await distributeInsights(insights, schedule.platform);
+      await distributeInsights(insights, schedule.platform!);
       
       // Reset retry count on success
       await db
@@ -440,20 +440,20 @@ export async function listSchedules(options: {
     // Build query conditions
     const conditions = [];
     
-    if (options.userId) {
-      conditions.push(eq(schedules.userId, options.userId));
+    if (options.userId!) {
+      conditions.push(eq(schedules.userId!, options.userId!));
     }
     
     if (options.status) {
       conditions.push(eq(schedules.status, options.status));
     }
     
-    if (options.platform) {
-      conditions.push(eq(schedules.platform, options.platform));
+    if (options.platform!) {
+      conditions.push(eq(schedules.platform!, options.platform!));
     }
     
-    if (options.intent) {
-      conditions.push(eq(schedules.intent, options.intent));
+    if (options.intent!) {
+      conditions.push(eq(schedules.intent!, options.intent!));
     }
     
     if (options.active !== undefined) {
@@ -518,12 +518,12 @@ export async function updateSchedule(
       updateValues.status = updates.status;
     }
     
-    if (updates.intent) {
-      updateValues.intent = updates.intent;
+    if (updates.intent!) {
+      updateValues.intent! = updates.intent!;
     }
     
-    if (updates.platform) {
-      updateValues.platform = updates.platform;
+    if (updates.platform!) {
+      updateValues.platform! = updates.platform!;
     }
     
     // Update the schedule

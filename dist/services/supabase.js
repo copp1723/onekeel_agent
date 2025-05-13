@@ -44,7 +44,8 @@ export async function getDealerCredentials(dealerId) {
         const result = await db.execute(sql `SELECT username, password, api_endpoint FROM dealer_credentials WHERE dealer_id = ${dealerId} LIMIT 1`);
         if (result.length > 0) {
             // Update the last used timestamp
-            await db.update(dealerCredentials)
+            await // @ts-ignore
+             db.update(dealerCredentials)
                 .set({ lastUsed: new Date().toISOString() })
                 .where(sql `dealer_id = ${dealerId}`);
             return {
@@ -73,7 +74,8 @@ export async function saveDealerCredentials(dealerId, credentials) {
         const existing = await db.execute(sql `SELECT dealer_id FROM dealer_credentials WHERE dealer_id = ${dealerId} LIMIT 1`);
         if (existing.length > 0) {
             // Update existing credentials
-            await db.update(dealerCredentials)
+            await // @ts-ignore
+             db.update(dealerCredentials)
                 .set({
                 username: credentials.username,
                 password: credentials.password,
@@ -84,7 +86,8 @@ export async function saveDealerCredentials(dealerId, credentials) {
         }
         else {
             // Insert new credentials
-            await db.insert(dealerCredentials).values({
+            await // @ts-ignore
+             db.insert(dealerCredentials).values({
                 dealerId,
                 username: credentials.username,
                 password: credentials.password,

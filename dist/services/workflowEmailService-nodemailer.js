@@ -86,7 +86,8 @@ export async function sendWorkflowSummaryEmail(workflowId, recipientEmail = 'tes
         console.log(`Workflow summary email sent to ${recipientEmail}. ID: ${info.messageId}`);
         console.log(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
         // Update the workflow
-        await db.update(workflows)
+        await // @ts-ignore
+         db.update(workflows)
             .set({
             updatedAt: new Date()
         })

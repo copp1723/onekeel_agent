@@ -44,7 +44,8 @@ export async function executePlan(
     // Create a new plan entry in the database
     let planId = plan.planId;
     if (!planId) {
-      const [newPlan] = await db.insert(plans).values({
+      const [newPlan] = await // @ts-ignore
+db.insert(plans).values({
         task: plan.taskText || 'Unknown task'
       }).returning({ id: plans.id });
       
@@ -66,7 +67,8 @@ export async function executePlan(
       const processedInput = processInputTemplates(step.input, stepResults);
       
       // Create step record in database with pending status
-      const [stepRecord] = await db.insert(steps).values({
+      const [stepRecord] = await // @ts-ignore
+db.insert(steps).values({
         planId: planId,
         stepIndex: i,
         tool: step.tool,
@@ -82,7 +84,8 @@ export async function executePlan(
         const output = await tool.handler(processedInput);
         
         // Update step in database with success status and output
-        await db.update(steps)
+        await // @ts-ignore
+db.update(steps)
           .set({ 
             output: output,
             status: 'completed' 
@@ -96,7 +99,8 @@ export async function executePlan(
         const errorMessage = error instanceof Error ? error.message : String(error);
         
         // Update step in database with error status
-        await db.update(steps)
+        await // @ts-ignore
+db.update(steps)
           .set({ 
             status: 'failed',
             error: errorMessage

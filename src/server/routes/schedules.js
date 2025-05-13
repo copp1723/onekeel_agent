@@ -16,238 +16,228 @@ import {
 const router = express.Router();
 
 // Middleware to validate schedule ID
-const validateScheduleId = async (req, res, next) => {
+const validateScheduleId = (req, res, next) => {
   const { id } = req.params;
   
-  if (!id) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Schedule ID is required' 
-    });
+  if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return res.status(400).json({ error: 'Invalid schedule ID format' });
   }
   
-  const schedule = await getSchedule(id);
-  
-  if (!schedule) {
-    return res.status(404).json({ 
-      success: false, 
-      message: 'Schedule not found' 
-    });
-  }
-  
-  req.schedule = schedule;
   next();
 };
-
-// Get all schedules with filtering
-router.get('/', async (req, res) => {
-  try {
-    const { 
-      userId = null,
-      status,
-      platform,
-      intent,
-      limit = 20,
-      offset = 0
-    } = req.query;
-    
-    // Basic auth check - should use proper auth middleware in production
-    if (!userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Unauthorized' 
-      });
-    }
-    
-    const options = {
-      userId,
-      status,
-      platform,
-      intent,
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10)
-    };
-    
-    const schedules = await listSchedules(options);
-    
-    return res.json({
-      success: true,
-      count: schedules.length,
-      data: schedules
-    });
-  } catch (error) {
-    console.error('Error listing schedules:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to list schedules',
-      error: error.message
-    });
-  }
-});
 
 // Create a new schedule
 router.post('/', async (req, res) => {
   try {
+    // Validate request body
     const { intent, platform, cronExpression, workflowId } = req.body;
-    const userId = req.body.userId || 'test-user';
     
-    // Validate required fields
     if (!intent || !platform || !cronExpression) {
       return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: intent, platform, and cronExpression are required'
+        error: 'Invalid request data',
+        details: 'Intent, platform, and cronExpression are required'
       });
     }
     
+    // Create the schedule
     const schedule = await createSchedule({
-      userId,
+      userId: req.user?.claims?.sub || 'anonymous',
       intent,
       platform,
       cronExpression,
       workflowId
     });
     
-    return res.json({
-      success: true,
-      message: 'Schedule created successfully',
-      data: schedule
-    });
+    res.status(201).json(schedule);
   } catch (error) {
     console.error('Error creating schedule:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to create schedule',
-      error: error.message
+    res.status(500).json({
+      error: 'Failed to create schedule',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
 
-// Get a schedule by ID
-router.get('/:id', validateScheduleId, async (req, res, next) => {
+// Get all schedules for the authenticated user
+router.get('/', async (req, res) => {
   try {
-    return res.json({
-      success: true,
-      data: req.schedule
+    // Extract query parameters
+    const status = req.query.status;
+    const platform = req.query.platform;
+    const intent = req.query.intent;
+    
+    // List schedules with filtering
+    const schedulesList = await listSchedules({
+      userId: req.user?.claims?.sub || 'anonymous',
+      status,
+      platform,
+      intent
     });
+    
+    res.json(schedulesList);
   } catch (error) {
-    console.error('Error retrieving schedule:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve schedule',
-      error: error.message
+    console.error('Error listing schedules:', error);
+    res.status(500).json({
+      error: 'Failed to list schedules',
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// Get a specific schedule by ID
+router.get('/:id', validateScheduleId, async (req, res) => {
+  try {
+    const schedule = await getSchedule(req.params.id);
+    
+    if (!schedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+    
+    // Check if the schedule belongs to the authenticated user
+    if (req.user?.claims?.sub && schedule.userId !== req.user.claims.sub) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    res.json(schedule);
+  } catch (error) {
+    console.error(`Error getting schedule ${req.params.id}:`, error);
+    res.status(500).json({
+      error: 'Failed to get schedule',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
 
 // Update a schedule
-router.put('/:id', validateScheduleId, async (req, res, next) => {
+router.put('/:id', validateScheduleId, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { intent, platform, cronExpression, status } = req.body;
+    // Get the schedule to check ownership
+    const existingSchedule = await getSchedule(req.params.id);
     
-    // Validate at least one field is provided
-    if (!intent && !platform && !cronExpression && !status) {
+    if (!existingSchedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+    
+    // Check if the schedule belongs to the authenticated user
+    if (req.user?.claims?.sub && existingSchedule.userId !== req.user.claims.sub) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Validate request body
+    const { cronExpression, status, intent, platform } = req.body;
+    
+    if (!cronExpression && !status && !intent && !platform) {
       return res.status(400).json({
-        success: false,
-        message: 'No update fields provided'
+        error: 'Invalid request data',
+        details: 'At least one field to update must be provided'
       });
     }
     
-    const updateData = {};
-    if (intent) updateData.intent = intent;
-    if (platform) updateData.platform = platform;
-    if (cronExpression) updateData.cronExpression = cronExpression;
-    if (status) updateData.status = status;
+    // Update the schedule
+    const updatedSchedule = await updateSchedule(
+      req.params.id,
+      { cronExpression, status, intent, platform }
+    );
     
-    const updatedSchedule = await updateSchedule(id, updateData);
-    
-    return res.json({
-      success: true,
-      message: 'Schedule updated successfully',
-      data: updatedSchedule
-    });
+    res.json(updatedSchedule);
   } catch (error) {
-    console.error('Error updating schedule:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to update schedule',
-      error: error.message
+    console.error(`Error updating schedule ${req.params.id}:`, error);
+    res.status(500).json({
+      error: 'Failed to update schedule',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
 
 // Delete a schedule
-router.delete('/:id', validateScheduleId, async (req, res, next) => {
+router.delete('/:id', validateScheduleId, async (req, res) => {
   try {
-    const { id } = req.params;
+    // Get the schedule to check ownership
+    const existingSchedule = await getSchedule(req.params.id);
     
-    const result = await deleteSchedule(id);
+    if (!existingSchedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
     
-    return res.json({
-      success: true,
-      message: result 
-        ? 'Schedule deleted successfully' 
-        : 'Schedule not found or already deleted',
-      data: { deleted: result }
-    });
+    // Check if the schedule belongs to the authenticated user
+    if (req.user?.claims?.sub && existingSchedule.userId !== req.user.claims.sub) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Delete the schedule
+    const result = await deleteSchedule(req.params.id);
+    
+    if (result) {
+      res.status(204).end();
+    } else {
+      res.status(500).json({ error: 'Failed to delete schedule' });
+    }
   } catch (error) {
-    console.error('Error deleting schedule:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to delete schedule',
-      error: error.message
+    console.error(`Error deleting schedule ${req.params.id}:`, error);
+    res.status(500).json({
+      error: 'Failed to delete schedule',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
 
 // Retry a failed schedule
-router.post('/:id/retry', validateScheduleId, async (req, res, next) => {
+router.post('/:id/retry', validateScheduleId, async (req, res) => {
   try {
-    const { id } = req.params;
+    // Get the schedule to check ownership
+    const existingSchedule = await getSchedule(req.params.id);
     
-    // Only retry failed schedules
-    if (req.schedule.status !== 'failed') {
-      return res.status(400).json({
-        success: false,
-        message: 'Only failed schedules can be retried'
-      });
+    if (!existingSchedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
     }
     
-    const retriedSchedule = await retrySchedule(id);
+    // Check if the schedule belongs to the authenticated user
+    if (req.user?.claims?.sub && existingSchedule.userId !== req.user.claims.sub) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     
-    return res.json({
-      success: true,
-      message: 'Schedule retry initiated successfully',
-      data: retriedSchedule
-    });
+    // Only allow retrying failed schedules
+    if (existingSchedule.status !== 'failed') {
+      return res.status(400).json({ error: 'Only failed schedules can be retried' });
+    }
+    
+    // Retry the schedule
+    const updatedSchedule = await retrySchedule(req.params.id);
+    
+    res.json(updatedSchedule);
   } catch (error) {
-    console.error('Error retrying schedule:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retry schedule',
-      error: error.message
+    console.error(`Error retrying schedule ${req.params.id}:`, error);
+    res.status(500).json({
+      error: 'Failed to retry schedule',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
 
-// Get logs for a schedule
-router.get('/:id/logs', validateScheduleId, async (req, res, next) => {
+// Get execution logs for a schedule
+router.get('/:id/logs', validateScheduleId, async (req, res) => {
   try {
-    const { id } = req.params;
+    // Get the schedule to check ownership
+    const existingSchedule = await getSchedule(req.params.id);
     
-    const logs = await getScheduleLogs(id);
+    if (!existingSchedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
     
-    return res.json({
-      success: true,
-      count: logs.length,
-      data: logs
-    });
+    // Check if the schedule belongs to the authenticated user
+    if (req.user?.claims?.sub && existingSchedule.userId !== req.user.claims.sub) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Get logs for the schedule
+    const logs = await getScheduleLogs(req.params.id);
+    
+    res.json(logs);
   } catch (error) {
-    console.error('Error retrieving schedule logs:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve schedule logs',
-      error: error.message
+    console.error(`Error getting logs for schedule ${req.params.id}:`, error);
+    res.status(500).json({
+      error: 'Failed to get schedule logs',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });

@@ -1,6 +1,15 @@
 import { EnvVars } from '../types.js';
 declare const config: {
     VinSolutions: {
+        baseUrl: string;
+        hasOTP: boolean;
+        selectors: {
+            username: string;
+            password: string;
+            loginButton: string;
+            otpInput: string;
+            otpSubmit: string;
+        };
         loginSteps: ({
             action: string;
             args: string[];
@@ -34,6 +43,13 @@ declare const config: {
         }[];
     };
     VAUTO: {
+        baseUrl: string;
+        hasOTP: boolean;
+        selectors: {
+            username: string;
+            password: string;
+            loginButton: string;
+        };
         loginSteps: ({
             action: string;
             args: string[];

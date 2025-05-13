@@ -82,8 +82,8 @@ router.get('/', isAuthenticated, async (req: any, res) => {
   try {
     // Extract query parameters
     const status = req.query.status as string;
-    const platform = req.query.platform as string;
-    const intent = req.query.intent as string;
+    const platform = req.query.platform! as string;
+    const intent = req.query.intent! as string;
     
     // List schedules with filtering
     const schedulesList = await listSchedules({
@@ -113,7 +113,7 @@ router.get('/:id', isAuthenticated, validateScheduleId, async (req: any, res) =>
     }
     
     // Check if the schedule belongs to the authenticated user
-    if (schedule.userId !== req.user.claims.sub) {
+    if (schedule.userId! !== req.user.claims.sub) {
       return res.status(403).json({ error: 'Access denied' });
     }
     
@@ -138,7 +138,7 @@ router.put('/:id', isAuthenticated, validateScheduleId, async (req: any, res) =>
     }
     
     // Check if the schedule belongs to the authenticated user
-    if (existingSchedule.userId !== req.user.claims.sub) {
+    if (existingSchedule.userId! !== req.user.claims.sub) {
       return res.status(403).json({ error: 'Access denied' });
     }
     
@@ -179,7 +179,7 @@ router.delete('/:id', isAuthenticated, validateScheduleId, async (req: any, res)
     }
     
     // Check if the schedule belongs to the authenticated user
-    if (existingSchedule.userId !== req.user.claims.sub) {
+    if (existingSchedule.userId! !== req.user.claims.sub) {
       return res.status(403).json({ error: 'Access denied' });
     }
     
@@ -211,7 +211,7 @@ router.post('/:id/retry', isAuthenticated, validateScheduleId, async (req: any, 
     }
     
     // Check if the schedule belongs to the authenticated user
-    if (existingSchedule.userId !== req.user.claims.sub) {
+    if (existingSchedule.userId! !== req.user.claims.sub) {
       return res.status(403).json({ error: 'Access denied' });
     }
     
@@ -244,7 +244,7 @@ router.get('/:id/logs', isAuthenticated, validateScheduleId, async (req: any, re
     }
     
     // Check if the schedule belongs to the authenticated user
-    if (existingSchedule.userId !== req.user.claims.sub) {
+    if (existingSchedule.userId! !== req.user.claims.sub) {
       return res.status(403).json({ error: 'Access denied' });
     }
     

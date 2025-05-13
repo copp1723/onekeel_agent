@@ -1,6 +1,6 @@
-# AI Agent Backend using Eko
+# AgentFlow - AI Agent Backend using Eko
 
-A flexible AI agent backend using Fellou Eko that executes various tasks including web crawling, flight status checking, and dealer interactions. The agent accepts natural language input and returns structured data as JSON.
+A flexible AI agent backend using Fellou Eko that executes various tasks including web crawling, flight status checking, and dealer interactions. The agent accepts natural language input and returns structured data as JSON. It's specifically designed for automotive dealerships to analyze CRM reports, generate insights, and distribute them via email to different stakeholders.
 
 ## Features
 
@@ -18,6 +18,13 @@ A flexible AI agent backend using Fellou Eko that executes various tasks includi
 - ✅ REST API endpoint for task submission and tracking
 - ✅ Task logging and status tracking
 - ✅ Multi-step task execution (extract-then-summarize)
+
+### Automotive Dealership Features
+- ✅ CRM report ingestion (VinSolutions, VAUTO, DealerTrack)
+- ✅ AI-powered insight generation
+- ✅ Role-based insight distribution
+- ✅ Scheduled report processing
+- ✅ Email notifications
 
 ## Prerequisites
 
@@ -45,7 +52,7 @@ npm install
 
    - Copy `.env.example` to `.env`
    - Update with your actual API keys and Supabase connection string
-   
+
    **Important API Key Information:**
    - `EKO_API_KEY`: Required for the AI agent to function. This should be a valid OpenAI API key that can access models like `gpt-4o-mini`.
    - `DATABASE_URL`: Required for storing and retrieving credentials.
@@ -160,7 +167,7 @@ With the Phase 2 extensions, the agent supports multiple tools and task types:
    This will automatically:
    - Extract clean content from the URL
    - Summarize the extracted content using property path access
-   
+
    The multi-step execution engine supports:
    - Sequential execution of multiple tools
    - Passing outputs between steps with template variables
@@ -291,6 +298,85 @@ To add more tools or capabilities:
 1. Create a new tool in `src/tools/`
 2. Update `src/index.ts` to register the tool with Eko
 3. Update your natural language task to utilize the new tool
+
+## Deployment Instructions
+
+### Local Deployment
+
+1. Ensure all dependencies are installed:
+   ```bash
+   npm install
+   ```
+
+2. Build the application:
+   ```bash
+   npm run build
+   ```
+
+3. Start the server:
+   ```bash
+   npm start
+   ```
+
+4. For the frontend (in a separate terminal):
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+### Git Repository Setup
+
+1. Initialize Git repository (if not already done):
+   ```bash
+   ./fresh-git-push.sh
+   ```
+
+2. Or use the standard Git commands:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/yourusername/agentflow.git
+   git push -u origin main
+   ```
+
+### Production Deployment
+
+1. Set up environment variables on your production server
+2. Clone the repository on your production server
+3. Install dependencies: `npm install`
+4. Build the application: `npm run build`
+5. Use a process manager like PM2 to run the application:
+   ```bash
+   npm install -g pm2
+   pm2 start dist/index.js --name "agentflow"
+   ```
+
+### Database Setup
+
+1. Create a Supabase account and project
+2. Set up the required tables using the SQL scripts in the repository
+3. Update the .env file with your Supabase credentials
+
+### Troubleshooting Deployment
+
+If you encounter issues during deployment:
+
+1. Check the TypeScript compilation errors:
+   ```bash
+   npx tsc --noEmit
+   ```
+
+2. Verify database connection:
+   ```bash
+   node dist/scripts/setup-db.js
+   ```
+
+3. Check the logs for any runtime errors:
+   ```bash
+   tail -f logs/insight_runs.log
+   ```
 
 ## License
 

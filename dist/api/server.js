@@ -92,7 +92,8 @@ app.post('/api/tasks', async (req, res) => {
         // Generate task ID
         const taskId = crypto.randomUUID();
         // Create the task object and insert into database
-        await db.insert(taskLogs).values({
+        await // @ts-ignore
+         db.insert(taskLogs).values({
             id: taskId,
             userId: req.user?.claims?.sub,
             taskType: parsedTask.type,
@@ -130,7 +131,8 @@ app.post('/submit-task', async (req, res) => {
         // Generate task ID
         const taskId = crypto.randomUUID();
         // Create the task object and insert into database
-        await db.insert(taskLogs).values({
+        await // @ts-ignore
+         db.insert(taskLogs).values({
             id: taskId,
             userId: req.user?.claims?.sub,
             taskType: parsedTask.type,

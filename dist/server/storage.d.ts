@@ -2,14 +2,14 @@ import { users, credentials, taskLogs } from '../shared/schema.js';
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type Credential = typeof credentials.$inferSelect;
-export type UpsertCredential = Omit<typeof credentials.$inferInsert, 'passwordEncrypted'> & {
+export type UpsertCredential = Omit<typeof credentials.$inferInsert, 'encryptedData'> & {
     password: string;
 };
 export type TaskLog = typeof taskLogs.$inferSelect;
 export interface IStorage {
     getUser(id: string): Promise<User | undefined>;
     upsertUser(user: UpsertUser): Promise<User>;
-    getCredential(userId: string, site: string): Promise<{
+    getCredential(userId: string, platform: string): Promise<{
         username: string;
         password: string;
     } | null>;
@@ -25,7 +25,7 @@ export declare class DatabaseStorage implements IStorage {
     constructor();
     getUser(id: string): Promise<User | undefined>;
     upsertUser(userData: UpsertUser): Promise<User>;
-    getCredential(userId: string, site: string): Promise<{
+    getCredential(userId: string, platform: string): Promise<{
         username: string;
         password: string;
     } | null>;

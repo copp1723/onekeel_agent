@@ -55,7 +55,7 @@ export function generateWorkflowSummaryHtml(data: TemplateData): string {
             <div style="margin-bottom: 24px;">
               <div style="display: flex; margin-bottom: 12px;">
                 <strong style="width: 120px;">Workflow ID:</strong>
-                <span>${data.workflowId}</span>
+                <span>${data.workflowId!}</span>
               </div>
               <div style="display: flex; margin-bottom: 12px;">
                 <strong style="width: 120px;">Status:</strong>
@@ -89,7 +89,7 @@ export function generateWorkflowSummaryHtml(data: TemplateData): string {
     `;
   } catch (error) {
     console.error('Error generating email template:', error);
-    return generateErrorTemplate(data.workflowId);
+    return generateErrorTemplate(data.workflowId!);
   }
 }
 

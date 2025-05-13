@@ -69,8 +69,8 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(credentials)
       .where(and(
-        eq(credentials.userId, userId),
-        eq(credentials.platform, platform)
+        eq(credentials.userId!, userId),
+        eq(credentials.platform!, platform)
       ));
     
     if (!credential) {
@@ -101,7 +101,7 @@ export class DatabaseStorage implements IStorage {
       .insert(credentials)
       .values(dataToInsert)
       .onConflictDoUpdate({
-        target: [credentials.userId, credentials.platform],
+        target: [credentials.userId!, credentials.platform!],
         set: {
           label: dataToInsert.label,
           encryptedData: dataToInsert.encryptedData,
@@ -119,7 +119,7 @@ export class DatabaseStorage implements IStorage {
         .delete(credentials)
         .where(and(
           eq(credentials.id, credentialId),
-          eq(credentials.userId, userId)
+          eq(credentials.userId!, userId)
         ))
         .returning({ id: credentials.id });
       
@@ -135,7 +135,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(credentials)
-      .where(eq(credentials.userId, userId));
+      .where(eq(credentials.userId!, userId));
   }
   
   // Task log operations
@@ -162,7 +162,7 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(taskLogs)
-        .where(eq(taskLogs.userId, userId))
+        .where(eq(taskLogs.userId!, userId))
         .orderBy(taskLogs.createdAt);
     }
     

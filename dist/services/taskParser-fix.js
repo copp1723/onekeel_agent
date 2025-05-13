@@ -1,4 +1,5 @@
 import { TaskType } from '../types.js';
+import * as uuid from 'uuid';
 /**
  * Simple parser function that directly handles VinSolutions CRM report requests
  * without complex logic or LLM calls
@@ -61,6 +62,7 @@ export function parseTaskDirect(taskText) {
         const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
         console.log(`Dealer ID extracted: ${dealerId}`);
         return {
+            id: uuid.v4(), // Use uuid.v4() instead of uuidv4()
             type: TaskType.FetchCRMReport,
             parameters: {
                 site: 'vinsolutions',
@@ -80,6 +82,7 @@ export function parseTaskDirect(taskText) {
             const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
             console.log(`Dealer ID extracted: ${dealerId}`);
             return {
+                id: uuid.v4(), // Use uuid.v4() instead of uuidv4()
                 type: TaskType.FetchCRMReport,
                 parameters: {
                     site: 'vinsolutions',
@@ -95,6 +98,7 @@ export function parseTaskDirect(taskText) {
             const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
             console.log(`Dealer ID extracted: ${dealerId}`);
             return {
+                id: uuid.v4(), // Use uuid.v4() instead of uuidv4()
                 type: TaskType.FetchCRMReport,
                 parameters: {
                     site: 'vinsolutions', // Default
@@ -107,6 +111,7 @@ export function parseTaskDirect(taskText) {
     // Default: unknown task type
     console.log('⚠️ No pattern matched, treating as unknown task type');
     return {
+        id: uuid.v4(), // Use uuid.v4() instead of uuidv4()
         type: TaskType.Unknown,
         parameters: {},
         original: taskText

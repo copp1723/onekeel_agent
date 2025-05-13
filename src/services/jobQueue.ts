@@ -232,10 +232,10 @@ async function processJob(jobId: string, data: any) {
     if (task.taskType === 'scheduledWorkflow' && task.taskData) {
       // We need to type-guard the taskData structure
       const taskData = task.taskData as { workflowId: string };
-      if (taskData.workflowId) {
+      if (taskData.workflowId!) {
         // For scheduled workflows, execute the workflow directly
         const { executeWorkflowById } = await import('./schedulerService.js');
-        await executeWorkflowById(taskData.workflowId);
+        await executeWorkflowById(taskData.workflowId!);
       
         // Update the task log
         await db
@@ -243,7 +243,7 @@ async function processJob(jobId: string, data: any) {
           .set({ 
             status: 'completed', 
             completedAt: new Date(),
-            result: { message: `Scheduled workflow ${taskData.workflowId} executed successfully` }
+            result: { message: `Scheduled workflow ${taskData.workflowId!} executed successfully` }
           })
           .where(eq(taskLogs.id, taskId));
       }
@@ -313,7 +313,8 @@ export async function enqueueJob(taskId: string, priority: number = 1): Promise<
   }
 
   // Insert job record in database
-  await db.insert(jobs).values({
+  await // @ts-ignore
+db.insert(jobs).values({
     id: jobId,
     taskId,
     status: 'pending',

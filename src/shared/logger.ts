@@ -97,7 +97,7 @@ export function logInsightRun(data: InsightRunLogData): void {
   };
   
   // Log to console
-  console.info(`[INSIGHT RUN] Platform: ${logData.platform}, Intent: ${logData.promptIntent}, Version: ${logData.promptVersion}`);
+  console.info(`[INSIGHT RUN] Platform: ${logData.platform!}, Intent: ${logData.promptIntent}, Version: ${logData.promptVersion}`);
   console.info(`[INSIGHT RUN] Duration: ${logData.durationMs}ms, File: ${logData.inputFile || 'direct content'}`);
   
   if (logData.error) {

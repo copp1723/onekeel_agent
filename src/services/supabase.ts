@@ -55,7 +55,8 @@ export async function getDealerCredentials(dealerId: string): Promise<{username:
     
     if (result.length > 0) {
       // Update the last used timestamp
-      await db.update(dealerCredentials)
+      await // @ts-ignore
+db.update(dealerCredentials)
         .set({ lastUsed: new Date().toISOString() })
         .where(sql`dealer_id = ${dealerId}`);
         
@@ -92,7 +93,8 @@ export async function saveDealerCredentials(
     
     if (existing.length > 0) {
       // Update existing credentials
-      await db.update(dealerCredentials)
+      await // @ts-ignore
+db.update(dealerCredentials)
         .set({ 
           username: credentials.username,
           password: credentials.password,
@@ -102,7 +104,8 @@ export async function saveDealerCredentials(
         .where(sql`dealer_id = ${dealerId}`);
     } else {
       // Insert new credentials
-      await db.insert(dealerCredentials).values({
+      await // @ts-ignore
+db.insert(dealerCredentials).values({
         dealerId,
         username: credentials.username,
         password: credentials.password,

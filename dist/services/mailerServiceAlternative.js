@@ -6,7 +6,9 @@
 import sgMail from '@sendgrid/mail';
 // @ts-ignore - Add declaration for nodemailer
 import nodemailer from 'nodemailer';
+import { emailLogs } from '../shared/schema.js';
 import { db } from '../shared/db.js';
+import { eq } from 'drizzle-orm';
 // Track if SendGrid is initialized
 let isMailerInitialized = false;
 let sendGridApiKey = null;
@@ -78,7 +80,7 @@ export async function sendEmail(to, subject, text, html, from = 'workflow-system
             // Extract message ID from response (if available)
             const messageId = response && response[0] && response[0].messageId || undefined;
             // Log success
-            await updateEmailLogSuccess(emailLogId, messageId);
+            await updateemailLogsSuccess(emailLogId, messageId);
             return {
                 success: true,
                 messageId,
@@ -106,7 +108,7 @@ export async function sendEmail(to, subject, text, html, from = 'workflow-system
                         console.log('Nodemailer fallback message sent:', info.messageId);
                         console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
                         // Log success with fallback
-                        await updateEmailLogSuccess(emailLogId, info.messageId, 'nodemailer-fallback');
+                        await updateemailLogsSuccess(emailLogId, info.messageId, 'nodemailer-fallback');
                         return {
                             success: true,
                             messageId: info.messageId,
@@ -115,7 +117,7 @@ export async function sendEmail(to, subject, text, html, from = 'workflow-system
                     catch (nodeMailerError) {
                         console.error('Nodemailer fallback error:', nodeMailerError);
                         // Log both failures
-                        await updateEmailLogFailure(emailLogId, `SendGrid: ${sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message}, ` +
+                        await updateemailLogsFailure(emailLogId, `SendGrid: ${sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message}, ` +
                             `Nodemailer: ${nodeMailerError.message}`);
                         return {
                             success: false,
@@ -125,7 +127,7 @@ export async function sendEmail(to, subject, text, html, from = 'workflow-system
                 }
             }
             // Log the SendGrid failure
-            await updateEmailLogFailure(emailLogId, sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message);
+            await updateemailLogsFailure(emailLogId, sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message);
             return {
                 success: false,
                 error: sendGridError,
@@ -147,9 +149,9 @@ async function logEmailAttempt(to, subject) {
     try {
         const recipients = Array.isArray(to) ? to.join(', ') : to;
         const [emailLog] = await db
-            .insert(EmailLog)
+            .insert(emailLogs)
             .values({
-            recipients,
+            recipientEmail: recipients,
             subject,
             status: 'sending',
             createdAt: new Date(),
@@ -167,20 +169,18 @@ async function logEmailAttempt(to, subject) {
 /**
  * Update email log with success status
  */
-async function updateEmailLogSuccess(id, messageId, provider = 'sendgrid') {
+async function updateemailLogsSuccess(id, messageId, provider = 'sendgrid') {
     try {
         if (id === 'logging-failed')
             return;
         await db
-            .update(EmailLog)
+            .update(emailLogs)
             .set({
             status: 'sent',
-            messageId,
-            provider,
             sentAt: new Date(),
             updatedAt: new Date(),
         })
-            .where(eq(EmailLog.id, id));
+            .where(eq(emailLogs.id, id));
     }
     catch (error) {
         console.error('Failed to update email log with success:', error);
@@ -189,23 +189,21 @@ async function updateEmailLogSuccess(id, messageId, provider = 'sendgrid') {
 /**
  * Update email log with failure status
  */
-async function updateEmailLogFailure(id, errorMessage) {
+async function updateemailLogsFailure(id, errorMessage) {
     try {
         if (id === 'logging-failed')
             return;
         await db
-            .update(EmailLog)
+            .update(emailLogs)
             .set({
             status: 'failed',
             errorMessage,
             updatedAt: new Date(),
         })
-            .where(eq(EmailLog.id, id));
+            .where(eq(emailLogs.id, id));
     }
     catch (error) {
         console.error('Failed to update email log with failure:', error);
     }
 }
-// Import missing dependencies
-import { eq } from 'drizzle-orm';
 //# sourceMappingURL=mailerServiceAlternative.js.map

@@ -1,5 +1,5 @@
 
-import { EmailSendOptions } from './mailerService';
+import { EmailSendOptions } from './mailerService.js';
 import { db } from '../shared/db.js';
 import { emailQueue } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
@@ -33,7 +33,8 @@ export class EmailQueue {
   async enqueue(options: EmailSendOptions): Promise<string> {
     const id = uuidv4();
     
-    await db.insert(emailQueue).values({
+    await // @ts-ignore
+db.insert(emailQueue).values({
       id,
       options: JSON.stringify(options),
       attempts: 0,

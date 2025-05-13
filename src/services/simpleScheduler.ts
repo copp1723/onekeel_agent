@@ -169,7 +169,7 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
       try {
         void executeScheduledWorkflow(schedule);
       } catch (error) {
-        console.error(`Error executing scheduled workflow ${schedule.workflowId}:`, error);
+        console.error(`Error executing scheduled workflow ${schedule.workflowId!}:`, error);
       }
     }, intervalMs);
 
@@ -205,7 +205,7 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
  */
 async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
   try {
-    console.log(`Executing scheduled workflow ${schedule.workflowId}`);
+    console.log(`Executing scheduled workflow ${schedule.workflowId!}`);
 
     // Update the lastRunAt timestamp
     await db
@@ -222,8 +222,8 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
       .values({
         id: uuidv4(),
         taskType: 'scheduledWorkflow',
-        taskText: `Scheduled execution of workflow ${schedule.workflowId}`,
-        taskData: { scheduleId: schedule.id, workflowId: schedule.workflowId },
+        taskText: `Scheduled execution of workflow ${schedule.workflowId!}`,
+        taskData: { scheduleId: schedule.id, workflowId: schedule.workflowId! },
         status: 'pending',
         createdAt: new Date(),
         userId: null // Allow null for system-generated tasks
@@ -231,11 +231,11 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
       .returning();
 
     // Run the workflow directly or enqueue it
-    await executeWorkflowById(schedule.workflowId);
+    await executeWorkflowById(schedule.workflowId!);
 
-    console.log(`Scheduled workflow ${schedule.workflowId} executed successfully`);
+    console.log(`Scheduled workflow ${schedule.workflowId!} executed successfully`);
   } catch (error) {
-    console.error(`Error executing scheduled workflow ${schedule.workflowId}:`, error);
+    console.error(`Error executing scheduled workflow ${schedule.workflowId!}:`, error);
     throw error;
   }
 }
@@ -425,8 +425,8 @@ export async function executeScheduledWorkflows(): Promise<{ success: boolean; e
           console.log(`Executing scheduled workflow: ${schedule.id}`);
 
           // Execute the associated workflow if workflowId exists
-          if (schedule.workflowId) {
-            await executeWorkflowById(schedule.workflowId);
+          if (schedule.workflowId!) {
+            await executeWorkflowById(schedule.workflowId!);
             executed++;
           }
 

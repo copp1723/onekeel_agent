@@ -13,11 +13,11 @@ router.get('/', isAuthenticated, async (req, res) => {
     try {
         const { status, limit } = req.query;
         const jobs = await listJobs(status, limit ? parseInt(limit) : 100);
-        return res.json({ jobs });
+        res.json({ jobs });
     }
     catch (error) {
         console.error('Error listing jobs:', error);
-        return res.status(500).json({
+        res.status(500).json({
             error: 'Failed to list jobs',
             message: error instanceof Error ? error.message : 'Unknown error'
         });
@@ -29,22 +29,23 @@ router.get('/:id', isAuthenticated, async (req, res) => {
         const { id } = req.params;
         const job = await getJobById(id);
         if (!job) {
-            return res.status(404).json({ error: 'Job not found' });
+            res.status(404).json({ error: 'Job not found' });
+            return;
         }
         // Get associated task information
         const taskData = await db
             .select()
             .from(taskLogs)
-            .where(eq(taskLogs.id, job.taskId));
+            .where(eq(taskLogs.id, job.taskId || ''));
         const task = taskData.length > 0 ? taskData[0] : null;
-        return res.json({
+        res.json({
             job,
             task
         });
     }
     catch (error) {
         console.error(`Error getting job ${req.params.id}:`, error);
-        return res.status(500).json({
+        res.status(500).json({
             error: 'Failed to get job details',
             message: error instanceof Error ? error.message : 'Unknown error'
         });
@@ -56,16 +57,17 @@ router.post('/:id/retry', isAuthenticated, async (req, res) => {
         const { id } = req.params;
         const success = await retryJob(id);
         if (!success) {
-            return res.status(400).json({ error: 'Failed to retry job' });
+            res.status(400).json({ error: 'Failed to retry job' });
+            return;
         }
-        return res.json({
+        res.json({
             message: 'Job retry initiated',
             jobId: id
         });
     }
     catch (error) {
         console.error(`Error retrying job ${req.params.id}:`, error);
-        return res.status(500).json({
+        res.status(500).json({
             error: 'Failed to retry job',
             message: error instanceof Error ? error.message : 'Unknown error'
         });
@@ -82,17 +84,18 @@ router.post('/enqueue/:taskId', isAuthenticated, async (req, res) => {
             .from(taskLogs)
             .where(eq(taskLogs.id, taskId));
         if (taskData.length === 0) {
-            return res.status(404).json({ error: 'Task not found' });
+            res.status(404).json({ error: 'Task not found' });
+            return;
         }
         const jobId = await enqueueJob(taskId, priority || 1);
-        return res.json({
+        res.json({
             message: 'Job enqueued successfully',
             jobId
         });
     }
     catch (error) {
         console.error(`Error enqueuing job for task ${req.params.taskId}:`, error);
-        return res.status(500).json({
+        res.status(500).json({
             error: 'Failed to enqueue job',
             message: error instanceof Error ? error.message : 'Unknown error'
         });

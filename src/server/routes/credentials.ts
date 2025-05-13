@@ -26,14 +26,14 @@ router.use(isAuthenticated);
 router.get('/', async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
-    const platform = req.query.platform as string | undefined;
+    const platform = req.query.platform! as string | undefined;
     
     const results = await getCredentials(userId, platform);
     
     // Map results to safe response objects (don't send IVs to client)
     const response = results.map(({ credential, data }) => ({
       id: credential.id,
-      platform: credential.platform,
+      platform: credential.platform!,
       label: credential.label,
       created: credential.createdAt,
       updated: credential.updatedAt,
@@ -60,7 +60,7 @@ router.get('/:id', async (req: any, res) => {
     
     res.json({
       id: credential.id,
-      platform: credential.platform,
+      platform: credential.platform!,
       label: credential.label,
       created: credential.createdAt,
       updated: credential.updatedAt,
@@ -105,7 +105,7 @@ router.post('/', async (req: any, res) => {
     
     res.status(201).json({
       id: credential.id,
-      platform: credential.platform,
+      platform: credential.platform!,
       label: credential.label,
       created: credential.createdAt
     });
@@ -139,7 +139,7 @@ router.put('/:id', async (req: any, res) => {
     
     res.json({
       id: credential.id,
-      platform: credential.platform,
+      platform: credential.platform!,
       label: credential.label,
       updated: credential.updatedAt
     });

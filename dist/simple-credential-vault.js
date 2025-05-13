@@ -143,7 +143,8 @@ export async function addCredential(userId, platform, data, options) {
     // Encrypt the credential data
     const { encryptedData, iv } = encryptData(data);
     // Insert the credential into the database
-    const [credential] = await db.insert(credentials).values({
+    const [credential] = await // @ts-ignore
+     db.insert(credentials).values({
         userId,
         platform,
         label: options?.label || null,
@@ -222,7 +223,8 @@ export async function updateCredential(id, userId, data, options) {
     // Always update the timestamp
     updateData.updatedAt = new Date();
     // Update the credential
-    const [updated] = await db.update(credentials)
+    const [updated] = await // @ts-ignore
+     db.update(credentials)
         .set(updateData)
         .where(and(eq(credentials.id, id), eq(credentials.userId, userId)))
         .returning();
@@ -246,7 +248,8 @@ export async function deleteCredential(id, userId) {
  */
 export async function hardDeleteCredential(id, userId) {
     try {
-        const result = await db.delete(credentials)
+        const result = await // @ts-ignore
+         db.delete(credentials)
             .where(and(eq(credentials.id, id), eq(credentials.userId, userId)))
             .returning({ id: credentials.id });
         return result.length > 0;

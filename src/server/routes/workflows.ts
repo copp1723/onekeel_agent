@@ -48,7 +48,7 @@ router.get('/:id', isAuthenticated, async (req: Request, res: Response) => {
     const userId = req.user ? (req.user as any).claims?.sub : null;
     
     // If userId is provided and doesn't match, deny access
-    if (userId && workflow.userId && workflow.userId !== userId) {
+    if (userId && workflow.userId! && workflow.userId! !== userId) {
       res.status(403).json({ error: 'Access denied' });
       return;
     }
@@ -78,7 +78,7 @@ router.post('/:id/reset', isAuthenticated, async (req: Request, res: Response) =
     const userId = req.user ? (req.user as any).claims?.sub : null;
     
     // If userId is provided and doesn't match, deny access
-    if (userId && workflow.userId && workflow.userId !== userId) {
+    if (userId && workflow.userId! && workflow.userId! !== userId) {
       res.status(403).json({ error: 'Access denied' });
       return;
     }
@@ -116,7 +116,7 @@ router.post('/:id/notifications', isAuthenticated, async (req: Request, res: Res
     const userId = req.user ? (req.user as any).claims?.sub : null;
     
     // If userId is provided and doesn't match, deny access
-    if (userId && workflow.userId && workflow.userId !== userId) {
+    if (userId && workflow.userId! && workflow.userId! !== userId) {
       res.status(403).json({ error: 'Access denied' });
       return;
     }

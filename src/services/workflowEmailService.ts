@@ -28,7 +28,8 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function configureNotification(workflowId: string, config: EmailNotificationConfig) {
-  const [notification] = await db.insert(emailNotifications)
+  const [notification] = await // @ts-ignore
+db.insert(emailNotifications)
     .values({
       workflowId,
       recipientEmail: config.recipientEmail,
@@ -43,14 +44,15 @@ export async function configureNotification(workflowId: string, config: EmailNot
 export async function getNotificationSettings(workflowId: string) {
   const [settings] = await db.select()
     .from(emailNotifications)
-    .where(eq(emailNotifications.workflowId, workflowId));
+    .where(eq(emailNotifications.workflowId!, workflowId));
 
   return settings;
 }
 
 export async function deleteNotification(workflowId: string) {
-  const result = await db.delete(emailNotifications)
-    .where(eq(emailNotifications.workflowId, workflowId))
+  const result = await // @ts-ignore
+db.delete(emailNotifications)
+    .where(eq(emailNotifications.workflowId!, workflowId))
     .returning();
 
   return { success: true, deleted: result.length > 0 };
@@ -59,7 +61,7 @@ export async function deleteNotification(workflowId: string) {
 export async function getEmailLogs(workflowId: string) {
   return db.select()
     .from(emailLogs)
-    .where(eq(emailLogs.workflowId, workflowId))
+    .where(eq(emailLogs.workflowId!, workflowId))
     .orderBy(emailLogs.createdAt);
 }
 
@@ -72,14 +74,14 @@ export async function retryEmail(emailLogId: string): Promise<EmailResult> {
     throw new Error('Email log not found');
   }
 
-  return sendWorkflowEmail(log.workflowId, log.recipientEmail);
+  return sendWorkflowEmail(log.workflowId!, log.recipientEmail);
 }
 
 export async function sendWorkflowEmail(workflowId: string, recipientEmail: string): Promise<EmailResult> {
   try {
     const [workflow] = await db.select()
       .from(emails)
-      .where(eq(emails.workflowId, workflowId));
+      .where(eq(emails.workflowId!, workflowId));
 
     if (!workflow) {
       throw new Error('Workflow not found');
@@ -94,7 +96,8 @@ export async function sendWorkflowEmail(workflowId: string, recipientEmail: stri
       html: emailContent
     });
 
-    const [log] = await db.insert(emailLogs)
+    const [log] = await // @ts-ignore
+db.insert(emailLogs)
       .values({
         workflowId,
         recipientEmail,

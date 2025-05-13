@@ -16,8 +16,4 @@ interface TemplateData {
  * Generate a workflow summary email (HTML)
  */
 export declare function generateWorkflowSummaryHtml(data: TemplateData): string;
-/**
- * Generate a workflow summary email (plain text)
- */
-export declare function generateWorkflowSummaryText(data: TemplateData): string;
 export {};

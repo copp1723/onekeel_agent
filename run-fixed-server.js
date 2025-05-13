@@ -14,8 +14,8 @@ import {
   sendWorkflowCompletionEmail, 
   processWorkflowStatusNotifications 
 } from './dist/services/fixed-workflowEmailService.js';
-import { db } from './dist/shared/db.js';
-import { workflows } from './dist/shared/schema.js';
+import { db } from './src/shared/db.js';
+import { workflows } from './src/shared/schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import emailRoutes from './dist/server/routes/fixed-emails.js';
 import schedulesRouter from './src/server/routes/schedules.js';

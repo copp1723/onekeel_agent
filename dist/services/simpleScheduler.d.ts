@@ -30,10 +30,6 @@ export declare function executeWorkflowById(workflowId: string): Promise<void>;
  */
 export declare function getSchedule(scheduleId: string): Promise<Schedule | undefined>;
 /**
- * List all schedules
- */
-export declare function listSchedules(): Promise<Schedule[]>;
-/**
  * Update a schedule
  */
 export declare function updateSchedule(scheduleId: string, updates: {
@@ -44,3 +40,8 @@ export declare function updateSchedule(scheduleId: string, updates: {
  * Delete a schedule
  */
 export declare function deleteSchedule(scheduleId: string): Promise<boolean>;
+export declare function executeScheduledWorkflows(): Promise<{
+    success: boolean;
+    executed: number;
+    errors: number;
+}>;

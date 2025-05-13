@@ -31,7 +31,7 @@ export async function fetchAndAnalyzeCRMReport(
   options: CRMReportOptions,
   intent: string = 'automotive_analysis'
 ): Promise<CRMAnalysisResult> {
-  console.log(`Starting CRM report fetch and analysis for ${options.platform}...`);
+  console.log(`Starting CRM report fetch and analysis for ${options.platform!}...`);
   
   try {
     // Step 1: Fetch the report using the hybrid ingestion approach

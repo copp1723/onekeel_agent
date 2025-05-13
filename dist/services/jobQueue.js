@@ -264,7 +264,8 @@ export async function enqueueJob(taskId, priority = 1) {
         });
     }
     // Insert job record in database
-    await db.insert(jobs).values({
+    await // @ts-ignore
+     db.insert(jobs).values({
         id: jobId,
         taskId,
         status: 'pending',

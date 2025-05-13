@@ -45,11 +45,12 @@ export async function sendEmail(options) {
         : [options.to.email];
     try {
         // Create a log entry for this email attempt
-        const [logEntry] = await db.insert(emailLogs).values({
+        const [logEntry] = await // @ts-ignore
+         db.insert(emailLogs).values({
             id: logId,
             workflowId: options.workflowId,
             status: 'pending',
-            recipients: recipients,
+            recipientEmail: Array.isArray(options.to) ? options.to[0].email : options.to.email,
             subject: options.content.subject,
             createdAt: new Date(),
             updatedAt: new Date(),

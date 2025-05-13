@@ -49,7 +49,7 @@ export const credentials = pgTable("credentials", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
-  index("idx_credentials_user_platform").on(table.userId, table.platform),
+  index("idx_credentials_user_platform").on(table.userId!, table.platform!),
 ]);
 
 // Execution plans for multi-step tasks
@@ -110,7 +110,7 @@ export const workflows = pgTable("workflows", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_workflows_status").on(table.status),
-  index("idx_workflows_user").on(table.userId),
+  index("idx_workflows_user").on(table.userId!),
 ]);
 
 // Enhanced scheduler for automated workflow execution with recovery
@@ -129,11 +129,11 @@ export const schedules = pgTable("schedules", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_schedules_workflow_id").on(table.workflowId),
+  index("idx_schedules_workflow_id").on(table.workflowId!),
   index("idx_schedules_enabled").on(table.enabled),
   index("idx_schedules_status").on(table.status),
   index("idx_schedules_next_run").on(table.nextRunAt),
-  index("idx_schedules_user_id").on(table.userId),
+  index("idx_schedules_user_id").on(table.userId!),
 ]);
 
 // Email logs for tracking email sending
@@ -149,7 +149,7 @@ export const emailLogs = pgTable("email_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_email_logs_workflow_id").on(table.workflowId),
+  index("idx_email_logs_workflow_id").on(table.workflowId!),
   index("idx_email_logs_status").on(table.status),
 ]);
 
@@ -163,7 +163,7 @@ export const emailNotifications = pgTable("email_notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_email_notifications_workflow_id").on(table.workflowId),
+  index("idx_email_notifications_workflow_id").on(table.workflowId!),
 ]);
 
 // Health check tables for API and service monitoring

@@ -36,13 +36,15 @@ async function insertApiKey() {
     if (existingKeys.length > 0) {
       // Update the existing key
       console.log('Updating existing Firecrawl API key...');
-      await db.update(apiKeys)
+      await // @ts-ignore
+db.update(apiKeys)
         .set({ keyValue: firecrawlApiKey })
         .where(sql`key_name = 'firecrawl'`);
     } else {
       // Insert a new key
       console.log('Inserting new Firecrawl API key...');
-      await db.insert(apiKeys).values({
+      await // @ts-ignore
+db.insert(apiKeys).values({
         id: crypto.randomUUID(),
         keyName: 'firecrawl',
         keyValue: firecrawlApiKey

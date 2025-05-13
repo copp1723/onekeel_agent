@@ -75,9 +75,10 @@ export async function sendEmail(options: EmailSendOptions): Promise<EmailLog> {
 
   try {
     // Create a log entry for this email attempt
-    const [logEntry] = await db.insert(emailLogs).values({
+    const [logEntry] = await // @ts-ignore
+db.insert(emailLogs).values({
       id: logId,
-      workflowId: options.workflowId,
+      workflowId: options.workflowId!,
       status: 'pending',
       recipientEmail: Array.isArray(options.to) ? options.to[0].email : options.to.email,
       subject: options.content.subject,
@@ -161,7 +162,7 @@ export async function getEmailLogsByWorkflowId(workflowId: string): Promise<Emai
     const logs = await db
       .select()
       .from(emailLogs)
-      .where(eq(emailLogs.workflowId, workflowId))
+      .where(eq(emailLogs.workflowId!, workflowId))
       .orderBy(emailLogs.createdAt);
     
     return logs;

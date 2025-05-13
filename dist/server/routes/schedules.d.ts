@@ -1,5 +1,2 @@
-/**
- * API routes for managing workflow schedules
- */
-import { Express } from 'express';
-export declare function registerScheduleRoutes(app: Express): void;
+declare const router: import("express-serve-static-core").Router;
+export default router;

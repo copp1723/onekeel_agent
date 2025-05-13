@@ -29,38 +29,38 @@ export class DatabaseStorage {
         return user;
     }
     // Credential operations
-    async getCredential(userId, site) {
+    async getCredential(userId, platform) {
         const [credential] = await db
             .select()
             .from(credentials)
-            .where(and(eq(credentials.userId, userId), eq(credentials.site, site)));
+            .where(and(eq(credentials.userId, userId), eq(credentials.platform, platform)));
         if (!credential) {
             return null;
         }
         // Decrypt the password
-        const decryptedPassword = this.decryptPassword(credential.passwordEncrypted);
+        const decryptedPassword = this.decryptPassword(credential.encryptedData);
         return {
-            username: credential.username,
+            username: credential.label || '',
             password: decryptedPassword
         };
     }
     async saveCredential(credentialData) {
         // Encrypt the password before storing
-        const passwordEncrypted = this.encryptPassword(credentialData.password);
+        const encryptedData = this.encryptPassword(credentialData.password);
         // Remove the plain text password and add the encrypted one
         const { password, ...rest } = credentialData;
         const dataToInsert = {
             ...rest,
-            passwordEncrypted
+            encryptedData
         };
         const [credential] = await db
             .insert(credentials)
             .values(dataToInsert)
             .onConflictDoUpdate({
-            target: [credentials.userId, credentials.site],
+            target: [credentials.userId, credentials.platform],
             set: {
-                username: dataToInsert.username,
-                passwordEncrypted: dataToInsert.passwordEncrypted,
+                label: dataToInsert.label,
+                encryptedData: dataToInsert.encryptedData,
             },
         })
             .returning();
