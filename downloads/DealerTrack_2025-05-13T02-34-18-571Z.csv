@@ -1,0 +1,6 @@
+Transaction Date,Deal #,Customer Name,Vehicle,Amount,Term,Rate,Product,Type
+"2025-05-13","DT123","Customer A","Honda Accord",32500,60,3.9,"Finance","New"
+"2025-05-13","DT234","Customer B","Toyota Camry",29800,72,4.2,"Lease","New"
+"2025-05-13","DT345","Customer C","Ford F-150",45600,60,3.5,"Finance","Used"
+"2025-05-13","DT456","Customer D","Chevrolet Tahoe",52300,48,2.9,"Finance","New"
+"2025-05-13","DT567","Customer E","Nissan Altima",26400,72,4.5,"Lease","New"

@@ -1,404 +1,270 @@
 /**
- * Test script for the Insight Engine Stability & Quality Upgrade
+ * Insight Engine Stability Test
  * 
- * This script tests and demonstrates the enhanced features:
- * 1. Prompt version tracking
- * 2. Insight run metadata logging
- * 3. Output snapshotting to structured directories
- * 4. Optional insight quality scoring
+ * This script tests the enhanced insight engine with quality scoring,
+ * business impact assessment, and version tracking across multiple vendors.
  * 
- * To test:
- * 1. Ensure OPENAI_API_KEY is set in your environment
- * 2. Provide a sample CRM CSV file path as argument
- * 
- * Usage: node test-insight-engine-stability.js <csv-file-path>
- * Example: node test-insight-engine-stability.js ./downloads/VinSolutions_report.csv
+ * Usage: node test-insight-engine-stability.js [vendor]
+ * Example: node test-insight-engine-stability.js VinSolutions
  */
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 
-// Set sample data flag for testing
+// Use sample data for testing
 process.env.USE_SAMPLE_DATA = 'true';
 
-// Define constants
-const PROMPT_VERSION = "1.0.0";
-const RESULTS_DIR = './results';
-const PLATFORM = 'VinSolutions';
-const QUALITY_THRESHOLD = 0.7;
+// Create directories for the test
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
- * Main test function
+ * Sample vendor data for testing
+ */
+const sampleVendorData = {
+  VinSolutions: {
+    records: [
+      { Date: '2025-05-13', Customer: 'Customer A', Vehicle: 'Honda Accord', Status: 'New Lead', Price: 32500, DaysOnLot: 15, LeadSource: 'Website', SalesPerson: 'Rep 1' },
+      { Date: '2025-05-13', Customer: 'Customer B', Vehicle: 'Toyota Camry', Status: 'Test Drive', Price: 29800, DaysOnLot: 22, LeadSource: 'Phone', SalesPerson: 'Rep 2' },
+      { Date: '2025-05-13', Customer: 'Customer C', Vehicle: 'Ford F-150', Status: 'Negotiation', Price: 45600, DaysOnLot: 8, LeadSource: 'Walk-in', SalesPerson: 'Rep 3' },
+      { Date: '2025-05-13', Customer: 'Customer D', Vehicle: 'Chevrolet Tahoe', Status: 'Purchased', Price: 52300, DaysOnLot: 30, LeadSource: 'Referral', SalesPerson: 'Rep 1' },
+      { Date: '2025-05-13', Customer: 'Customer E', Vehicle: 'Nissan Altima', Status: 'New Lead', Price: 26400, DaysOnLot: 12, LeadSource: 'Website', SalesPerson: 'Rep 4' }
+    ]
+  },
+  VAUTO: {
+    records: [
+      { 'Report Date': '2025-05-13', 'Stock#': 'A123', 'VIN': '1HGCM82633A123456', 'Make': 'Honda', 'Model': 'Accord', 'Price': 32500, 'Cost': 29500, 'Age': 15, 'Category': 'Sedan', 'Source': 'Auction' },
+      { 'Report Date': '2025-05-13', 'Stock#': 'B234', 'VIN': '2T1BU4EE2AC123456', 'Make': 'Toyota', 'Model': 'Camry', 'Price': 29800, 'Cost': 27000, 'Age': 22, 'Category': 'Sedan', 'Source': 'Trade-in' },
+      { 'Report Date': '2025-05-13', 'Stock#': 'C345', 'VIN': '1FTEX1EM5EF123456', 'Make': 'Ford', 'Model': 'F-150', 'Price': 45600, 'Cost': 41200, 'Age': 8, 'Category': 'Truck', 'Source': 'Dealer Transfer' },
+      { 'Report Date': '2025-05-13', 'Stock#': 'D456', 'VIN': '3GNFK16Z23G123456', 'Make': 'Chevrolet', 'Model': 'Tahoe', 'Price': 52300, 'Cost': 47800, 'Age': 30, 'Category': 'SUV', 'Source': 'Auction' },
+      { 'Report Date': '2025-05-13', 'Stock#': 'E567', 'VIN': '1N4AL3AP8DN123456', 'Make': 'Nissan', 'Model': 'Altima', 'Price': 26400, 'Cost': 23500, 'Age': 12, 'Category': 'Sedan', 'Source': 'Trade-in' }
+    ]
+  },
+  DealerTrack: {
+    records: [
+      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT123', 'Customer Name': 'Customer A', 'Vehicle': 'Honda Accord', 'Amount': 32500, 'Term': 60, 'Rate': 3.9, 'Product': 'Finance', 'Type': 'New' },
+      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT234', 'Customer Name': 'Customer B', 'Vehicle': 'Toyota Camry', 'Amount': 29800, 'Term': 72, 'Rate': 4.2, 'Product': 'Lease', 'Type': 'New' },
+      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT345', 'Customer Name': 'Customer C', 'Vehicle': 'Ford F-150', 'Amount': 45600, 'Term': 60, 'Rate': 3.5, 'Product': 'Finance', 'Type': 'Used' },
+      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT456', 'Customer Name': 'Customer D', 'Vehicle': 'Chevrolet Tahoe', 'Amount': 52300, 'Term': 48, 'Rate': 2.9, 'Product': 'Finance', 'Type': 'New' },
+      { 'Transaction Date': '2025-05-13', 'Deal #': 'DT567', 'Customer Name': 'Customer E', 'Vehicle': 'Nissan Altima', 'Amount': 26400, 'Term': 72, 'Rate': 4.5, 'Product': 'Lease', 'Type': 'New' }
+    ]
+  }
+};
+
+/**
+ * Test the enhanced insight engine across different vendors
  */
 async function testInsightEngineStability() {
-  console.log('\n=== INSIGHT ENGINE STABILITY TEST ===\n');
-  
   try {
-    // Get CSV file path from command line or use a default
-    let csvFilePath = process.argv[2];
+    console.log('\n=== INSIGHT ENGINE STABILITY TEST ===\n');
     
-    if (!csvFilePath || !fs.existsSync(csvFilePath)) {
-      console.log('No valid CSV file provided, creating a sample file...');
-      csvFilePath = await createSampleCsvFile();
+    // Dynamically import the required modules
+    const { generateEnhancedInsights, PROMPT_VERSION } = await import('./src/services/enhancedInsightGenerator.js');
+    const insightDistribution = await import('./src/services/insightDistributionService.js');
+    
+    console.log(`Using prompt version: ${PROMPT_VERSION}\n`);
+    
+    // Create required directories
+    const downloadsDir = path.join(__dirname, 'downloads');
+    const resultsDir = path.join(__dirname, 'results');
+    
+    if (!fs.existsSync(downloadsDir)) {
+      fs.mkdirSync(downloadsDir, { recursive: true });
     }
     
-    console.log(`Using CSV file: ${csvFilePath}`);
+    if (!fs.existsSync(resultsDir)) {
+      fs.mkdirSync(resultsDir, { recursive: true });
+    }
     
-    // Read and parse the CSV data
-    console.log('\n--- Step 1: Parsing CSV Data ---');
-    const startTime = Date.now();
-    const records = parseCSVData(csvFilePath);
-    const parseTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`✓ Parsed ${records.length} records in ${parseTime}s`);
+    // Get vendor from command line arguments, or test all
+    const requestedVendor = process.argv[2];
+    const vendors = requestedVendor ? [requestedVendor] : Object.keys(sampleVendorData);
     
-    // Generate insights with version tracking and metadata
-    console.log('\n--- Step 2: Generating Insights ---');
-    const insightsStart = Date.now();
-    const insights = await generateInsightsWithVersioning(records, PLATFORM);
-    const insightsTime = ((Date.now() - insightsStart) / 1000).toFixed(2);
-    console.log(`✓ Insights generated in ${insightsTime}s`);
+    console.log(`Testing on vendors: ${vendors.join(', ')}`);
     
-    // Save insights with metadata
-    console.log('\n--- Step 3: Saving Results with Metadata ---');
-    const resultsPath = saveInsightsWithMetadata(insights, PLATFORM);
-    console.log(`✓ Results saved to ${resultsPath}`);
+    const generatedInsights = [];
     
-    // Perform quality scoring
-    console.log('\n--- Step 4: Quality Scoring ---');
-    const qualityScore = scoreInsightQuality(insights);
-    console.log(`✓ Quality score: ${qualityScore.overall.toFixed(2)} (Threshold: ${QUALITY_THRESHOLD})`);
+    // Test each vendor
+    for (const vendor of vendors) {
+      console.log(`\n--- Testing ${vendor} ---`);
+      
+      if (!sampleVendorData[vendor]) {
+        console.error(`Unknown vendor: ${vendor}`);
+        continue;
+      }
+      
+      // Create a sample CSV file for this vendor
+      const reportFile = await createSampleReportFile(vendor);
+      console.log(`Created sample report file: ${reportFile}`);
+      
+      try {
+        // Generate enhanced insights
+        console.log('Generating enhanced insights with quality scoring...');
+        const options = {
+          platform: vendor,
+          includeBusinessImpact: true,
+          includeQualityScoring: true,
+          includeTrendAnalysis: false,
+          promptVersion: PROMPT_VERSION,
+          userId: 'test',
+          saveToDisk: true
+        };
+        
+        const insights = await generateEnhancedInsights(reportFile, options);
+        
+        // Log quality scores
+        if (insights.qualityScores) {
+          console.log('\nQuality Scores:');
+          console.log(`Overall: ${insights.qualityScores.overall.toFixed(2)}`);
+          
+          if (insights.qualityScores.dimensions) {
+            for (const [dimension, score] of Object.entries(insights.qualityScores.dimensions)) {
+              console.log(`${dimension}: ${score.toFixed(2)}`);
+            }
+          }
+        }
+        
+        // Log business impact
+        if (insights.businessImpact && insights.businessImpact.overallImpact) {
+          console.log('\nBusiness Impact:');
+          console.log(`Overall: ${insights.businessImpact.overallImpact.impactLevel} (${insights.businessImpact.overallImpact.score.toFixed(1)}/10)`);
+          
+          if (insights.businessImpact.revenueImpact) {
+            console.log(`Revenue Impact: $${insights.businessImpact.revenueImpact.total.toLocaleString()} (${insights.businessImpact.revenueImpact.confidence} confidence)`);
+          }
+          
+          if (insights.businessImpact.costSavings) {
+            console.log(`Cost Savings: $${insights.businessImpact.costSavings.total.toLocaleString()} (${insights.businessImpact.costSavings.confidence} confidence)`);
+          }
+        }
+        
+        // Extract opportunities
+        if (insights.opportunities && Array.isArray(insights.opportunities)) {
+          console.log('\nKey Opportunities:');
+          for (let i = 0; i < Math.min(2, insights.opportunities.length); i++) {
+            const opportunity = insights.opportunities[i];
+            console.log(`${i+1}. ${opportunity.title}`);
+            console.log(`   ${opportunity.description}`);
+            if (opportunity.actionSteps && Array.isArray(opportunity.actionSteps)) {
+              console.log('   Action Steps:');
+              for (const step of opportunity.actionSteps.slice(0, 2)) {
+                console.log(`   - ${step}`);
+              }
+              if (opportunity.actionSteps.length > 2) {
+                console.log(`   - Plus ${opportunity.actionSteps.length - 2} more steps...`);
+              }
+            }
+          }
+          
+          if (insights.opportunities.length > 2) {
+            console.log(`   Plus ${insights.opportunities.length - 2} more opportunities...`);
+          }
+        }
+        
+        generatedInsights.push({
+          vendor,
+          insightId: insights.metadata?.insightId,
+          qualityScore: insights.qualityScores?.overall || 0,
+          businessImpact: insights.businessImpact?.overallImpact?.score || 0
+        });
+        
+        // Test distribution
+        if (insights.metadata?.insightId) {
+          console.log('\nTesting insight distribution...');
+          
+          const distributionResult = await insightDistribution.distributeInsights(
+            insights.metadata.insightId,
+            {
+              specificRoles: ['executive', 'sales'],
+              sendEmails: false
+            }
+          );
+          
+          console.log(`Would distribute to ${distributionResult.distributionsCreated} recipients`);
+        }
+      } catch (error) {
+        console.error(`Error testing ${vendor}:`, error);
+      }
+    }
     
-    if (qualityScore.overall < QUALITY_THRESHOLD) {
-      console.warn(`⚠️ Quality score below threshold (${QUALITY_THRESHOLD})`);
+    // Show summary
+    console.log('\n=== TEST SUMMARY ===');
+    
+    if (generatedInsights.length > 0) {
+      console.log('\nGenerated Insights:');
+      for (const item of generatedInsights) {
+        console.log(`${item.vendor}: Quality=${item.qualityScore.toFixed(2)}, Impact=${item.businessImpact.toFixed(1)}/10`);
+      }
+      
+      console.log('\nTest completed successfully!');
     } else {
-      console.log(`✓ Quality score above threshold (${QUALITY_THRESHOLD})`);
+      console.log('No insights were generated during the test.');
     }
-    
-    // Display quality breakdown
-    console.log('\nQuality breakdown:');
-    Object.entries(qualityScore.dimensions).forEach(([dimension, score]) => {
-      console.log(`  ${dimension}: ${score.toFixed(2)}`);
-    });
-    
-    // Display a summary of the insights
-    console.log('\n=== INSIGHTS SUMMARY ===');
-    console.log(insights.summary);
-    console.log('\nTop opportunities:');
-    insights.opportunities.forEach((opportunity, index) => {
-      console.log(`  ${index + 1}. ${opportunity}`);
-    });
-    
-    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`\n=== TEST COMPLETED SUCCESSFULLY IN ${totalTime}s ===`);
-    
   } catch (error) {
-    console.error('\n❌ TEST ERROR:');
-    console.error(error);
-    process.exit(1);
+    console.error('Error in stability test:', error);
   }
 }
 
 /**
- * Parse CSV data from file
+ * Create a sample report file for a vendor
  */
-function parseCSVData(filePath) {
-  const csvData = fs.readFileSync(filePath, 'utf8');
-  const lines = csvData.split('\n');
-  const headers = lines[0].split(',');
-  
-  const records = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    
-    const values = lines[i].split(',');
-    const record = {};
-    
-    for (let j = 0; j < headers.length; j++) {
-      record[headers[j]] = values[j];
+async function createSampleReportFile(vendor) {
+  try {
+    // Create downloads directory if it doesn't exist
+    const downloadsDir = path.join(__dirname, 'downloads');
+    if (!fs.existsSync(downloadsDir)) {
+      fs.mkdirSync(downloadsDir, { recursive: true });
     }
     
-    records.push(record);
-  }
-  
-  return records;
-}
-
-/**
- * Generate insights with version tracking
- */
-async function generateInsightsWithVersioning(data, platform) {
-  console.log(`Generating insights for ${platform} with prompt version ${PROMPT_VERSION}`);
-  
-  // Log metadata about this insight run
-  const runMetadata = {
-    timestamp: new Date().toISOString(),
-    platform,
-    promptVersion: PROMPT_VERSION,
-    recordCount: data.length,
-    dataSummary: {
-      dateRange: extractDateRange(data),
-      sourceCount: countSourceDistribution(data),
-      vehicleCount: countVehicleDistribution(data)
+    // Generate a unique ID for this report
+    const reportId = uuidv4();
+    
+    // Create CSV file
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `${vendor}_sample_report_${timestamp}.csv`;
+    const filePath = path.join(downloadsDir, fileName);
+    
+    // Get sample data for this vendor
+    const data = sampleVendorData[vendor];
+    
+    if (!data || !data.records || data.records.length === 0) {
+      throw new Error(`No sample data available for vendor: ${vendor}`);
     }
-  };
-  
-  console.log(`Run metadata: ${JSON.stringify(runMetadata, null, 2)}`);
-  
-  // In a real implementation, this would call the OpenAI API with the automotive analysis prompt
-  // For testing, we'll return simulated insights
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-  
-  // The insights object with added metadata
-  return {
-    summary: "Strong performance with SUVs and trucks, increasing customer interest from website leads.",
-    leadSources: {
-      topSource: "Website",
-      performance: "Website leads are up 15% and converting at a higher rate than last month."
-    },
-    inventoryHealth: {
-      fastestMoving: "Ford F-150",
-      slowestMoving: "Chevrolet Tahoe",
-      daysOnLotAverage: 18,
-      recommendation: "Consider adjusting pricing on Tahoe models to improve turn rate."
-    },
-    salesPerformance: {
-      topPerformer: "Rep 1",
-      improvement: "Rep 3 showing significant improvement in lead conversion (+22%)."
-    },
-    opportunities: [
-      "Increase SUV inventory based on current demand trends",
-      "Follow up on Honda negotiations which have high close probability",
-      "Schedule targeted training for reps handling website leads"
-    ],
-    metadata: runMetadata
-  };
-}
-
-/**
- * Extract date range from data
- */
-function extractDateRange(data) {
-  if (!data || data.length === 0 || !data[0].Date) {
-    return { min: null, max: null };
-  }
-  
-  let minDate = data[0].Date;
-  let maxDate = data[0].Date;
-  
-  data.forEach(record => {
-    if (record.Date < minDate) minDate = record.Date;
-    if (record.Date > maxDate) maxDate = record.Date;
-  });
-  
-  return { min: minDate, max: maxDate };
-}
-
-/**
- * Count source distribution
- */
-function countSourceDistribution(data) {
-  const sources = {};
-  
-  data.forEach(record => {
-    if (record.LeadSource) {
-      sources[record.LeadSource] = (sources[record.LeadSource] || 0) + 1;
+    
+    // Extract headers from first record
+    const headers = Object.keys(data.records[0]);
+    
+    // Create CSV content
+    let csvContent = headers.join(',') + '\n';
+    
+    // Add rows
+    for (const record of data.records) {
+      const row = headers.map(header => {
+        const value = record[header];
+        
+        // Format value based on type
+        if (typeof value === 'string') {
+          // Quote strings and escape any embedded quotes
+          return `"${value.replace(/"/g, '""')}"`;
+        } else {
+          return value;
+        }
+      }).join(',');
+      
+      csvContent += row + '\n';
     }
-  });
-  
-  return sources;
-}
-
-/**
- * Count vehicle distribution
- */
-function countVehicleDistribution(data) {
-  const vehicles = {};
-  
-  data.forEach(record => {
-    if (record.Vehicle) {
-      vehicles[record.Vehicle] = (vehicles[record.Vehicle] || 0) + 1;
-    }
-  });
-  
-  return vehicles;
-}
-
-/**
- * Save insights with metadata to structured directory
- */
-function saveInsightsWithMetadata(insights, platform) {
-  // Create structured directory path
-  const date = new Date().toISOString().split('T')[0];
-  const platformDir = path.join(RESULTS_DIR, platform);
-  const dateDir = path.join(platformDir, date);
-  
-  // Create directories if they don't exist
-  if (!fs.existsSync(RESULTS_DIR)) {
-    fs.mkdirSync(RESULTS_DIR, { recursive: true });
+    
+    // Write to file
+    fs.writeFileSync(filePath, csvContent);
+    
+    return filePath;
+  } catch (error) {
+    console.error('Error creating sample report file:', error);
+    throw error;
   }
-  if (!fs.existsSync(platformDir)) {
-    fs.mkdirSync(platformDir, { recursive: true });
-  }
-  if (!fs.existsSync(dateDir)) {
-    fs.mkdirSync(dateDir, { recursive: true });
-  }
-  
-  // Generate a unique filename with timestamp and version
-  const timestamp = new Date().toISOString().replace(/:/g, '-');
-  const filename = `insights_v${PROMPT_VERSION}_${timestamp}.json`;
-  const filePath = path.join(dateDir, filename);
-  
-  // Add quality score to the insights
-  insights.qualityScore = scoreInsightQuality(insights);
-  
-  // Save the insights as JSON
-  fs.writeFileSync(filePath, JSON.stringify(insights, null, 2), 'utf8');
-  
-  return filePath;
-}
-
-/**
- * Score the quality of the insights
- */
-function scoreInsightQuality(insights) {
-  // Define scoring dimensions
-  const dimensions = {
-    completeness: scoreCompleteness(insights),
-    relevance: scoreRelevance(insights),
-    specificity: scoreSpecificity(insights),
-    coherence: scoreCoherence(insights),
-    innovation: scoreInnovation(insights)
-  };
-  
-  // Calculate overall score (weighted average)
-  const weights = {
-    completeness: 0.25,
-    relevance: 0.25,
-    specificity: 0.2,
-    coherence: 0.15,
-    innovation: 0.15
-  };
-  
-  let overallScore = 0;
-  Object.entries(dimensions).forEach(([dimension, score]) => {
-    overallScore += score * weights[dimension];
-  });
-  
-  return {
-    overall: overallScore,
-    dimensions
-  };
-}
-
-/**
- * Score the completeness of insights
- */
-function scoreCompleteness(insights) {
-  let score = 0;
-  
-  // Check for required sections
-  if (insights.summary) score += 0.2;
-  if (insights.leadSources) score += 0.2;
-  if (insights.inventoryHealth) score += 0.2;
-  if (insights.salesPerformance) score += 0.2;
-  if (insights.opportunities && insights.opportunities.length > 0) score += 0.2;
-  
-  return score;
-}
-
-/**
- * Score the relevance of insights
- */
-function scoreRelevance(insights) {
-  // In a real implementation, this would analyze whether the insights
-  // are relevant to the provided data and platform
-  return 0.85; // Simulated score
-}
-
-/**
- * Score the specificity of insights
- */
-function scoreSpecificity(insights) {
-  // Check for specific, concrete information rather than generalities
-  let score = 0;
-  
-  // Check specificity in inventory health
-  if (insights.inventoryHealth) {
-    if (insights.inventoryHealth.fastestMoving) score += 0.1;
-    if (insights.inventoryHealth.slowestMoving) score += 0.1;
-    if (typeof insights.inventoryHealth.daysOnLotAverage === 'number') score += 0.1;
-    if (insights.inventoryHealth.recommendation 
-        && insights.inventoryHealth.recommendation.length > 20) score += 0.1;
-  }
-  
-  // Check specificity in sales performance
-  if (insights.salesPerformance) {
-    if (insights.salesPerformance.topPerformer) score += 0.1;
-    if (insights.salesPerformance.improvement 
-        && insights.salesPerformance.improvement.includes('%')) score += 0.1;
-  }
-  
-  // Check specificity in lead sources
-  if (insights.leadSources && insights.leadSources.topSource) score += 0.1;
-  
-  // Check specificity in opportunities
-  if (insights.opportunities) {
-    const specificOpportunities = insights.opportunities.filter(
-      opp => opp.length > 15 && /[0-9%$]/.test(opp)
-    );
-    score += Math.min(0.3, specificOpportunities.length * 0.1);
-  }
-  
-  return score;
-}
-
-/**
- * Score the coherence of insights
- */
-function scoreCoherence(insights) {
-  // In a real implementation, this would check for logical consistency
-  // between different parts of the insights
-  return 0.9; // Simulated score
-}
-
-/**
- * Score the innovation of insights
- */
-function scoreInnovation(insights) {
-  // In a real implementation, this would look for novel or unexpected insights
-  return 0.75; // Simulated score
-}
-
-/**
- * Create a sample CSV file for testing
- */
-async function createSampleCsvFile() {
-  const downloadDir = './downloads';
-  if (!fs.existsSync(downloadDir)) {
-    fs.mkdirSync(downloadDir, { recursive: true });
-  }
-  
-  const fileName = `${PLATFORM}_sample_report_${Date.now()}.csv`;
-  const filePath = path.join(downloadDir, fileName);
-  
-  const sampleData = `Date,Customer,Vehicle,Status,Price,LeadSource,SalesPerson,DaysOnLot
-2025-05-13,Customer A,Toyota Camry SE,New Lead,$28500,Website,Rep 1,15
-2025-05-13,Customer B,Honda Accord LX,Test Drive,$31200,Phone,Rep 2,22
-2025-05-13,Customer C,Ford F-150 XLT,Negotiation,$42750,Walk-in,Rep 3,8
-2025-05-13,Customer D,Chevrolet Tahoe LT,Purchased,$55300,Referral,Rep 1,30
-2025-05-13,Customer E,Nissan Altima S,New Lead,$26400,Website,Rep 4,12
-2025-05-13,Customer F,Hyundai Sonata,Test Drive,$25800,Website,Rep 2,20
-2025-05-13,Customer G,Kia Sorento,Negotiation,$33900,Phone,Rep 5,25
-2025-05-13,Customer H,Ford Escape,Purchased,$29700,Walk-in,Rep 1,18
-2025-05-13,Customer I,Mazda CX-5,New Lead,$31500,Website,Rep 3,5
-2025-05-13,Customer J,Subaru Outback,Test Drive,$34900,Referral,Rep 4,15`;
-  
-  fs.writeFileSync(filePath, sampleData);
-  console.log(`Created sample CSV file at ${filePath}`);
-  
-  return filePath;
 }
 
 // Run the test
-testInsightEngineStability().catch(console.error);
+testInsightEngineStability();
