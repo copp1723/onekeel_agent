@@ -1,0 +1,243 @@
+{
+  "distribution_config": {
+    "email": "josh@projectxlabs.ai",
+    "role": "EXECUTIVE",
+    "name": "John Executive",
+    "platforms": [
+      "VinSolutions"
+    ],
+    "channels": [
+      "EMAIL",
+      "FILE"
+    ],
+    "frequency": "IMMEDIATE",
+    "lastDistributed": null,
+    "active": true
+  },
+  "timestamp": "2025-05-13T15:47:48.035Z",
+  "insights": {
+    "insights": {
+      "summary": "The dealership has shown strong performance in SUV sales, with John Smith being the top sales representative. There is room for improvement in selling finance products, particularly with Mary Johnson's sales. Inventory turnover is generally good, but some models, especially sedans, have longer days in inventory.",
+      "value_insights": [
+        "SUVs are the most sold body style, contributing to higher gross profits.",
+        "John Smith is the top-performing sales representative, responsible for the highest gross profits and the most finance products sold.",
+        "Sedans tend to have longer days in inventory compared to SUVs.",
+        "Finance products are underutilized, especially in sales by Mary Johnson."
+      ],
+      "actionable_flags": [
+        "Increase focus on selling finance products, particularly in sales by Mary Johnson.",
+        "Consider promotional strategies to reduce days in inventory for sedans.",
+        "Leverage John Smith's successful sales strategies across the team."
+      ],
+      "key_metrics": {
+        "total_sales": 343730,
+        "average_price": 42966.25,
+        "average_gross_profit": 4035,
+        "average_days_in_inventory": 16.25,
+        "total_gross_profit": 32280,
+        "total_finance_products_sold": 12
+      },
+      "risk_areas": [
+        {
+          "risk": "High days in inventory for sedans could lead to increased holding costs.",
+          "mitigation": "Implement targeted promotions or discounts to accelerate sedan sales."
+        },
+        {
+          "risk": "Underperformance in selling finance products could reduce overall profitability.",
+          "mitigation": "Provide additional training and incentives for sales reps to improve finance product sales."
+        }
+      ],
+      "confidence": "high"
+    },
+    "quality": {
+      "quality_dimensions": {
+        "completeness": 8,
+        "relevance": 9,
+        "specificity": 8,
+        "coherence": 9,
+        "innovation": 7
+      },
+      "strengths": [
+        "The insights provide a clear summary of the dealership's performance, highlighting key areas such as SUV sales and finance product sales.",
+        "The identification of John Smith as a top performer is well-supported by the data, showing a strong link between insights and underlying data.",
+        "Actionable flags are practical and directly address the identified issues, such as improving finance product sales and reducing sedan inventory days."
+      ],
+      "improvement_areas": [
+        "The insights could benefit from more detailed analysis of why sedans have longer days in inventory, potentially exploring market trends or customer preferences.",
+        "While the insights mention finance products are underutilized, they could provide more specific strategies or examples of successful finance product sales techniques.",
+        "Innovation could be enhanced by suggesting novel approaches or technologies to improve sales performance or inventory management."
+      ],
+      "verification_steps": [
+        "Review sales data to confirm the accuracy of the top-performing sales representative and the number of finance products sold.",
+        "Analyze inventory data to verify the average days in inventory for different body styles, particularly sedans.",
+        "Conduct interviews or surveys with sales representatives to understand challenges in selling finance products and gather insights on potential improvements."
+      ],
+      "overall_score": 82
+    },
+    "business_impact": {
+      "revenue_impact": {
+        "potential_gain": 25000,
+        "confidence_level": "medium",
+        "timeframe": "6-12 months",
+        "implementation_complexity": "medium"
+      },
+      "cost_savings": {
+        "potential_reduction": 10000,
+        "confidence_level": "high",
+        "timeframe": "3-6 months",
+        "implementation_complexity": "low"
+      },
+      "customer_impact": {
+        "effects_on_satisfaction": "Improved satisfaction through better financing options and promotional offers.",
+        "effects_on_retention": "Increased retention due to enhanced customer service and tailored promotions.",
+        "effects_on_acquisition": "Potential increase in new customers attracted by promotional strategies and competitive financing."
+      },
+      "operational_efficiency": {
+        "impact_areas": [
+          "Inventory management",
+          "Sales training",
+          "Promotional strategies"
+        ],
+        "potential_improvement_level": "moderate"
+      },
+      "implementation_priorities": [
+        {
+          "recommendation": "Increase focus on selling finance products, particularly in sales by Mary Johnson.",
+          "impact": "high",
+          "effort": "medium",
+          "priority_ranking": 1
+        },
+        {
+          "recommendation": "Consider promotional strategies to reduce days in inventory for sedans.",
+          "impact": "medium",
+          "effort": "low",
+          "priority_ranking": 2
+        },
+        {
+          "recommendation": "Leverage John Smith's successful sales strategies across the team.",
+          "impact": "medium",
+          "effort": "medium",
+          "priority_ranking": 3
+        }
+      ],
+      "risk_assessment": {
+        "implementation_risks": [
+          "Resistance to change in sales approach by some representatives.",
+          "Potential short-term profit margin reduction due to promotional discounts.",
+          "Training costs and time required for finance product sales improvement."
+        ],
+        "confidence_score": "high"
+      }
+    },
+    "visualizations": {
+      "primary_visualizations": [
+        {
+          "title": "SUV Sales Performance",
+          "type": "Bar Chart",
+          "description": "Visualize the total sales and gross profit contribution of SUVs compared to other body styles.",
+          "data_fields": [
+            "body_style",
+            "total_sales",
+            "total_gross_profit"
+          ]
+        },
+        {
+          "title": "Top Sales Representative Performance",
+          "type": "Horizontal Bar Chart",
+          "description": "Highlight John Smith's performance in terms of gross profit and finance products sold compared to other sales representatives.",
+          "data_fields": [
+            "sales_rep",
+            "total_gross_profit",
+            "total_finance_products_sold"
+          ]
+        },
+        {
+          "title": "Days in Inventory by Body Style",
+          "type": "Box Plot",
+          "description": "Show the distribution of days in inventory across different body styles, emphasizing the longer inventory duration for sedans.",
+          "data_fields": [
+            "body_style",
+            "days_in_inventory"
+          ]
+        }
+      ],
+      "secondary_visualizations": [
+        {
+          "title": "Finance Product Sales by Representative",
+          "type": "Stacked Bar Chart",
+          "description": "Compare the number of finance products sold by each sales representative, with a focus on Mary Johnson's performance.",
+          "data_fields": [
+            "sales_rep",
+            "finance_products"
+          ]
+        },
+        {
+          "title": "Sedan Inventory Turnover",
+          "type": "Line Chart",
+          "description": "Track the trend of days in inventory for sedans over time to identify patterns and potential improvement areas.",
+          "data_fields": [
+            "sale_date",
+            "days_in_inventory",
+            "body_style"
+          ]
+        }
+      ],
+      "executive_dashboard": {
+        "layout": "Grid",
+        "sections": [
+          {
+            "title": "Sales Overview",
+            "visualizations": [
+              "SUV Sales Performance",
+              "Top Sales Representative Performance"
+            ]
+          },
+          {
+            "title": "Inventory Insights",
+            "visualizations": [
+              "Days in Inventory by Body Style",
+              "Sedan Inventory Turnover"
+            ]
+          },
+          {
+            "title": "Finance Product Analysis",
+            "visualizations": [
+              "Finance Product Sales by Representative"
+            ]
+          }
+        ]
+      },
+      "data_preparation_notes": [
+        "Aggregate sales data by body style to calculate total sales and gross profit for each category.",
+        "Summarize sales representative data to determine total gross profit and finance products sold.",
+        "Prepare a dataset for days in inventory by body style to facilitate box plot visualization.",
+        "Ensure all data is cleaned and formatted consistently, with missing values addressed appropriately."
+      ]
+    },
+    "metadata": {
+      "platform": "VinSolutions",
+      "timestamp": "2025-05-13T15:47:15.944Z",
+      "promptName": "automotive-analyst",
+      "promptVersion": "v2.0.0",
+      "executionTime": 8137,
+      "tokenUsage": 1552,
+      "dataSummary": {
+        "platform": "VinSolutions",
+        "timestamp": "2025-05-13T15:47:15.944Z",
+        "recordCount": 8,
+        "dataFields": [
+          "id",
+          "make",
+          "model",
+          "year",
+          "trim",
+          "sale_date",
+          "price",
+          "cost",
+          "gross_profit",
+          "days_in_inventory"
+        ]
+      }
+    }
+  }
+}
