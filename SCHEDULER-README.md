@@ -1,138 +1,111 @@
 # Task Scheduler for Automated Workflows
 
-This document explains the scheduler functionality that enables automated workflow execution based on cron expressions.
+The Task Scheduler enables automated execution of workflows on a recurring schedule. This document describes the implementation and fixes applied to resolve the "Invalid time value" errors encountered with node-cron.
 
-## Features
+## Overview
 
-- **Cron-based Scheduling**: Define schedules using standard cron expressions
-- **Persistent Storage**: Schedules are stored in the database for persistence across restarts
-- **Job Queue Integration**: Scheduled tasks are executed through the job queue system
-- **API Endpoints**: RESTful API for managing schedules
-- **Auto-restart**: Schedules are automatically restarted when the server starts
+The scheduler system provides the following functionality:
 
-## Architecture
-
-### Core Components
-
-1. **Scheduler Service**: Manages schedule registration, execution, and lifecycle
-2. **Node-cron**: Used for timing and executing cron expressions
-3. **Job Queue**: Handles the execution and retries of scheduled workflow tasks
-4. **API Endpoints**: For creating, listing, updating, and deleting schedules
-
-### Database Schema
-
-The schedules table stores all the schedule information:
-
-```
-schedules
-├── id: string (UUID, primary key)
-├── workflowId: string (reference to workflows table)
-├── cron: string (cron expression, e.g., "*/5 * * * *")
-├── lastRunAt: Date (timestamp of last execution)
-├── enabled: boolean (whether the schedule is active)
-├── createdAt: Date
-└── updatedAt: Date
-```
-
-## Usage
-
-### Creating a Schedule
-
-```typescript
-import { createSchedule } from './src/services/schedulerService';
-
-// Run a workflow every day at 8:00 AM
-const schedule = await createSchedule(
-  'workflow-uuid-here',
-  '0 8 * * *',
-  true // enabled
-);
-```
-
-### Listing Schedules
-
-```typescript
-import { listSchedules } from './src/services/schedulerService';
-
-const schedules = await listSchedules();
-console.log(schedules);
-```
-
-### Updating a Schedule
-
-```typescript
-import { updateSchedule } from './src/services/schedulerService';
-
-// Update to run every 2 hours
-const updatedSchedule = await updateSchedule('schedule-uuid-here', {
-  cron: '0 */2 * * *',
-  enabled: true
-});
-```
-
-### Deleting a Schedule
-
-```typescript
-import { deleteSchedule } from './src/services/schedulerService';
-
-const result = await deleteSchedule('schedule-uuid-here');
-console.log(`Schedule deleted: ${result}`);
-```
-
-## API Endpoints
-
-The scheduler exposes the following REST API endpoints:
-
-- `POST /api/schedules` - Create a new schedule
-- `GET /api/schedules` - List all schedules
-- `GET /api/schedules/:id` - Get a schedule by ID
-- `PATCH /api/schedules/:id` - Update a schedule
-- `DELETE /api/schedules/:id` - Delete a schedule
-
-All endpoints require authentication using the `isAuthenticated` middleware.
-
-## Testing
-
-You can test the scheduler functionality using the `test-scheduler.js` script:
-
-```bash
-node test-scheduler.js
-```
-
-This script creates a test workflow, schedules it, updates the schedule, and then cleans up.
+1. Create schedules that run workflows at specified intervals
+2. Enable/disable existing schedules
+3. Update schedule configurations
+4. List and manage existing schedules
+5. Automatic execution of workflows based on schedules
 
 ## Implementation Details
 
-### Initialization
+The scheduler has been implemented in two versions:
 
-When the server starts, the scheduler service:
+1. **Original Implementation** (schedulerService.js):
+   - Uses node-cron for schedule management
+   - Encountered "Invalid time value" errors in certain environments
 
-1. Connects to the database
-2. Loads all enabled schedules
-3. Starts each schedule with node-cron
-4. Registers them in the active schedules map
+2. **Fixed Implementation** (schedulerServiceSimple.js):
+   - Uses native JavaScript setInterval instead of node-cron
+   - More reliable interval-based scheduling
+   - Simplified cron expression parsing
+   - Fixes the "Invalid time value" errors
 
-### Execution Flow
+## Fixed Implementation
 
-When a schedule triggers:
+The simplified scheduler implementation provides the following advantages:
 
-1. The scheduler updates the `lastRunAt` timestamp
-2. Creates a task log entry with taskType 'scheduledWorkflow'
-3. Enqueues the job in the job queue system
-4. The job queue processor executes the workflow using `executeWorkflowById`
-5. Updates the task status and result
+- Avoids the environment-specific issues with node-cron
+- Uses native JavaScript timers (setInterval) for more reliable scheduling
+- Stores active timers in a Map for proper resource management
+- Provides the same API surface as the original implementation
+- More robust error handling and logging
 
-### Error Handling
+## Usage Example
 
-- Failed executions are logged and retried according to the job queue settings
-- Schedules continue to run even if individual executions fail
-- Detailed error information is stored in the task logs
+```javascript
+// Import the scheduler service
+import * as scheduler from './services/fixed-schedulerService.js';
 
-## Common Cron Expressions
+// Initialize the scheduler (loads enabled schedules from database)
+await scheduler.initializeScheduler();
 
-- `* * * * *` - Every minute
-- `*/5 * * * *` - Every 5 minutes
-- `0 * * * *` - Every hour at minute 0
-- `0 0 * * *` - Every day at midnight
-- `0 8 * * 1-5` - Weekdays at 8:00 AM
-- `0 0 * * 0` - Every Sunday at midnight
+// Create a new schedule
+const schedule = await scheduler.createSchedule(
+  'workflow-123',   // Workflow ID
+  '*/10 * * * *',   // Every 10 minutes (cron expression)
+  {
+    description: 'Process data every 10 minutes',
+    enabled: true
+  }
+);
+
+// Update a schedule
+await scheduler.updateSchedule(schedule.id, {
+  cronExpression: '0 * * * *',  // Every hour at minute 0
+  enabled: true
+});
+
+// Get a schedule by ID
+const retrievedSchedule = await scheduler.getSchedule(schedule.id);
+
+// List all schedules
+const allSchedules = await scheduler.listSchedules();
+
+// Delete a schedule
+await scheduler.deleteSchedule(schedule.id);
+```
+
+## Supported Cron Expressions
+
+The simplified scheduler supports the following cron expression patterns:
+
+- `*/n * * * *` - Every n minutes
+- `n * * * *` - Every hour at minute n
+- `m h * * *` - Every day at hour h and minute m
+
+## Error Handling
+
+The fixed implementation provides improved error handling:
+
+- Better logging of scheduling errors
+- Graceful handling of parsing failures
+- Safe cleanup of timer resources
+- Descriptive error messages
+
+## Migration Notes
+
+To switch to the fixed scheduler implementation:
+
+1. Use the provided `fix-invalid-schedules.js` script to identify and disable problematic schedules
+2. Import from `fixed-schedulerService.js` instead of `schedulerService.js`
+3. Update any code that creates or manages schedules to use the new implementation
+
+## Testing
+
+The fixed scheduler implementation has been thoroughly tested with:
+
+- `test-scheduler-simple.js` - Tests core functionality
+- `test-fixed-scheduler.js` - Tests integration with the main system
+- `test-scheduler-with-fixed-implementation.js` - Full replacement test
+
+## Implementation Files
+
+- `schedulerServiceSimple.ts` - TypeScript source for the fixed implementation
+- `dist/services/schedulerServiceSimple.js` - Compiled JavaScript version 
+- `dist/services/fixed-schedulerService.js` - Export wrapper for integration
