@@ -58,8 +58,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node dist/index.js"
-waitForPort = 5000
+args = "node test-insight-engine-stability.js"
 
 [[workflows.workflow]]
 name = "Multi-Step Demo"
