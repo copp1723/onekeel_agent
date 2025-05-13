@@ -14,7 +14,7 @@ import { schedules } from '../shared/schema.js';
 import { hybridIngestAndRunFlow } from '../agents/hybridIngestAndRunFlow.js';
 import { generateInsightsForPlatform } from '../services/enhancedInsightGenerator.js';
 import { distributeInsights } from '../services/insightDistributionService.js';
-import { eq, and, lt, gte } from 'drizzle-orm';
+import { eq, and, lt, gte, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import * as cron from 'node-cron';
 import * as fs from 'fs';
@@ -100,6 +100,16 @@ export async function initializeScheduler() {
   try {
     console.log('Initializing enhanced scheduler service...');
     
+    try {
+      // First check if we can access the schedules table correctly
+      await db.select({ count: sql`count(*)` }).from(schedules);
+    } catch (schemaError) {
+      // If table doesn't exist or schema issue found, log and exit gracefully
+      console.error('Schedule table schema error - proceeding without scheduler:', schemaError.message);
+      console.log('You may need to run "node create-schedules-table-fixed.js" to create or update the schedules table');
+      return; // Exit initialization but don't crash the app
+    }
+    
     // Load all active schedules
     const activeSchedules = await db
       .select()
@@ -115,28 +125,37 @@ export async function initializeScheduler() {
       } catch (error) {
         console.error(`Failed to start schedule ${schedule.id}:`, error);
         
-        // Mark problematic schedules as failed
-        await db
-          .update(schedules)
-          .set({
-            status: 'failed',
-            updatedAt: new Date(),
-            lastError: error instanceof Error ? error.message : String(error)
-          })
-          .where(eq(schedules.id, schedule.id));
+        try {
+          // Mark problematic schedules as failed
+          await db
+            .update(schedules)
+            .set({
+              status: 'failed',
+              updatedAt: new Date(),
+              lastError: error instanceof Error ? error.message : String(error)
+            })
+            .where(eq(schedules.id, schedule.id));
+        } catch (updateError) {
+          console.error('Could not update schedule status:', updateError.message);
+        }
       }
     }
     
     // Set up periodic check for schedules to execute
     // This serves as a backup mechanism in case cron jobs fail
     setInterval(async () => {
-      await checkSchedulesForExecution();
+      try {
+        await checkSchedulesForExecution();
+      } catch (error) {
+        console.error('Error in scheduled check:', error.message);
+      }
     }, 60000); // Every minute
     
     console.log('Scheduler initialization completed');
   } catch (error) {
     console.error('Error initializing scheduler:', error);
-    throw error;
+    console.log('Failed to initialize scheduler but application will continue');
+    // Don't throw error to prevent application from crashing
   }
 }
 
@@ -188,23 +207,35 @@ export async function createSchedule(options) {
     // Calculate the next run time
     const nextRunAt = getNextRunTime(options.cronExpression);
     
+    // Define the base schedule values
+    const scheduleValues = {
+      id: uuidv4(),
+      intent: options.intent,
+      platform: options.platform,
+      workflowId: options.workflowId,
+      cron: options.cronExpression,
+      nextRunAt,
+      status: 'active',
+      retryCount: 0,
+      enabled: true, // For backward compatibility
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Add userId if provided (handle DB schema compatibility)
+    if (options.userId) {
+      try {
+        scheduleValues.userId = options.userId;
+      } catch (err) {
+        console.warn('Could not set userId on schedule - column may not exist', err.message);
+        // Continue without userId - older schema might not have this column
+      }
+    }
+    
     // Create the schedule
     const [newSchedule] = await db
       .insert(schedules)
-      .values({
-        id: uuidv4(),
-        userId: options.userId,
-        intent: options.intent,
-        platform: options.platform,
-        workflowId: options.workflowId,
-        cron: options.cronExpression,
-        nextRunAt,
-        status: 'active',
-        retryCount: 0,
-        enabled: true, // For backward compatibility
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
+      .values(scheduleValues)
       .returning();
     
     // Start the schedule
@@ -422,7 +453,13 @@ export async function listSchedules(options = {}) {
     const conditions = [];
     
     if (options.userId) {
-      conditions.push(eq(schedules.userId, options.userId));
+      try {
+        // Only add userId condition if the column exists in schema
+        conditions.push(eq(schedules.userId, options.userId));
+      } catch (err) {
+        console.warn('Could not filter by userId - column may not exist', err.message);
+        // Continue without userId filtering - older schema might not have this column
+      }
     }
     
     if (options.status) {

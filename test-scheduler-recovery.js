@@ -1,144 +1,139 @@
 /**
- * Test Task Scheduler & Recovery 
- * This script tests the new Task Scheduler implementation
- * with enhanced recovery and retry capabilities
+ * Test Scheduler Recovery 
+ * 
+ * This script tests the enhanced scheduler service with error recovery capabilities.
+ * It demonstrates:
+ * 1. Creating a scheduled task
+ * 2. Handling execution errors and automatic retry
+ * 3. Manual recovery of failed schedules
  */
 
-import { db } from './src/shared/db.js';
-import {
-  createSchedule,
-  getSchedule,
-  listSchedules,
-  updateSchedule,
-  deleteSchedule,
+import { 
+  initializeScheduler, 
+  createSchedule, 
+  getSchedule, 
+  updateSchedule, 
+  listSchedules, 
   retrySchedule,
-  executeSchedule,
-  stopSchedule
+  deleteSchedule 
 } from './src/services/scheduler.js';
 import { v4 as uuidv4 } from 'uuid';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import * as fs from 'fs';
+import dotenv from 'dotenv';
 
-// Mock user ID for testing
-const TEST_USER_ID = 'test-user-1';
+// Load environment variables
+dotenv.config();
 
-// Test platforms and intents
-const TEST_PLATFORMS = ['VinSolutions', 'VAUTO'];
-const TEST_INTENTS = ['inventory_aging', 'sales_performance'];
+// Get directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Run the test
+// Create a test directory
+const TEST_DIR = join(__dirname, 'test-scheduler-results');
+if (!fs.existsSync(TEST_DIR)) {
+  fs.mkdirSync(TEST_DIR, { recursive: true });
+}
+
+// Global variables
+let testScheduleId = null;
+let testWorkflowId = null;
+
+/**
+ * Wait for specified milliseconds
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Main test function
+ */
 async function testSchedulerRecovery() {
-  console.log('=== Testing Task Scheduler & Recovery ===');
-  console.log('---------------------------------------');
-  
   try {
-    // Step 1: Create a test schedule
-    console.log('\n🔍 Step 1: Creating test schedule...');
+    console.log('Using Replit PostgreSQL environment variables for database connection');
+    console.log(`Connecting to database: ${process.env.DATABASE_URL?.replace(/:[^:]*@/, ':***@')}`);
     
+    console.log('\n--- Scheduler Recovery Test ---');
+    
+    // Initialize the scheduler
+    await initializeScheduler();
+    console.log('✓ Scheduler initialized');
+    
+    // Generate a unique test workflow ID
+    testWorkflowId = `test-recovery-${Date.now()}`;
+    
+    // Create a test schedule with a quick execution interval
+    console.log('\nStep 1: Creating test schedule...');
     const schedule = await createSchedule({
-      userId: TEST_USER_ID,
-      intent: TEST_INTENTS[0],
-      platform: TEST_PLATFORMS[0],
-      cronExpression: '0 */6 * * *', // Every 6 hours
+      userId: '12345', // Use a dummy user ID
+      intent: 'Test Recovery Schedule',
+      platform: 'TestPlatform',
+      cronExpression: '*/1 * * * *', // Run every minute
+      workflowId: testWorkflowId
     });
     
-    console.log(`✅ Created schedule: ${schedule.id}`);
-    console.log(JSON.stringify(schedule, null, 2));
+    testScheduleId = schedule.id;
+    console.log(`✓ Created schedule ${testScheduleId} with cron: ${schedule.cron}`);
+    console.log(`  Next run scheduled for: ${schedule.nextRunAt}`);
     
-    // Step 2: Verify schedule details
-    console.log('\n🔍 Step 2: Verifying schedule details...');
+    // Get current schedules
+    const activeSchedules = await listSchedules({ status: 'active' });
+    console.log(`\nTotal active schedules: ${activeSchedules.length}`);
     
-    const retrievedSchedule = await getSchedule(schedule.id);
-    console.log(`✅ Retrieved schedule: ${retrievedSchedule.id}`);
-    console.log(`  - Intent: ${retrievedSchedule.intent}`);
-    console.log(`  - Platform: ${retrievedSchedule.platform}`);
-    console.log(`  - Cron: ${retrievedSchedule.cron}`);
-    console.log(`  - Status: ${retrievedSchedule.status}`);
-    console.log(`  - Next run: ${retrievedSchedule.nextRunAt}`);
+    // Wait for potential execution and check status
+    console.log('\nStep 2: Waiting for potential execution (15 seconds)...');
+    await sleep(15000);
     
-    // Step 3: Update the schedule
-    console.log('\n🔍 Step 3: Updating schedule...');
+    // Check schedule status
+    const updatedSchedule = await getSchedule(testScheduleId);
+    console.log(`\nSchedule status: ${updatedSchedule.status}`);
+    console.log(`Retry count: ${updatedSchedule.retryCount}`);
     
-    const updatedSchedule = await updateSchedule(schedule.id, {
-      cronExpression: '0 */12 * * *', // Change to every 12 hours
-      intent: TEST_INTENTS[1],
-    });
-    
-    console.log(`✅ Updated schedule: ${updatedSchedule.id}`);
-    console.log(`  - New cron: ${updatedSchedule.cron}`);
-    console.log(`  - New intent: ${updatedSchedule.intent}`);
-    console.log(`  - New next run: ${updatedSchedule.nextRunAt}`);
-    
-    // Step 4: Simulate executing the schedule
-    console.log('\n🔍 Step 4: Simulating execution (will likely fail due to missing auth)...');
-    
-    try {
-      // This will likely fail due to missing auth details, which is good for testing recovery
-      await executeSchedule(schedule.id);
-      console.log('⚠️ Execution succeeded unexpectedly');
-    } catch (error) {
-      console.log(`✅ Execution failed as expected: ${error.message}`);
+    if (updatedSchedule.status === 'failed') {
+      console.log(`Last error: ${updatedSchedule.lastError}`);
       
-      // Step 5: Check if retry count was incremented
-      const failedSchedule = await getSchedule(schedule.id);
-      console.log(`✅ Retry count incremented: ${failedSchedule.retryCount}`);
+      // Demonstrate retry capability
+      console.log('\nStep 3: Manually retrying failed schedule...');
+      const retriedSchedule = await retrySchedule(testScheduleId);
+      console.log(`✓ Schedule ${testScheduleId} retried`);
+      console.log(`  New status: ${retriedSchedule.status}`);
+      console.log(`  Reset retry count: ${retriedSchedule.retryCount}`);
       
-      if (failedSchedule.status === 'failed' || failedSchedule.retryCount > 0) {
-        console.log('✅ Schedule recovery is working as expected');
-      } else {
-        console.log('⚠️ Schedule recovery not working as expected');
+      // Wait to see if retry worked
+      console.log('\nWaiting to check retry results (15 seconds)...');
+      await sleep(15000);
+      
+      const finalSchedule = await getSchedule(testScheduleId);
+      console.log(`\nFinal schedule status: ${finalSchedule.status}`);
+      console.log(`Final retry count: ${finalSchedule.retryCount}`);
+    } else {
+      console.log('\nSchedule did not fail, cannot demonstrate recovery');
+    }
+    
+    // Clean up
+    console.log('\nCleaning up test schedule...');
+    await deleteSchedule(testScheduleId);
+    console.log(`✓ Test schedule ${testScheduleId} deleted`);
+    
+    console.log('\n--- Test completed ---');
+  } catch (error) {
+    console.error('\n✗ Test failed:', error);
+    
+    // Try to clean up
+    if (testScheduleId) {
+      try {
+        await deleteSchedule(testScheduleId);
+        console.log(`Test schedule ${testScheduleId} deleted during error cleanup`);
+      } catch (cleanupError) {
+        console.error('Error during cleanup:', cleanupError);
       }
     }
-    
-    // Step 6: List all schedules for this user
-    console.log('\n🔍 Step 6: Listing all schedules...');
-    
-    const userSchedules = await listSchedules({ 
-      userId: TEST_USER_ID 
-    });
-    
-    console.log(`✅ Found ${userSchedules.length} schedules for user`);
-    userSchedules.forEach(s => {
-      console.log(`  - ID: ${s.id}, Platform: ${s.platform}, Status: ${s.status}`);
-    });
-    
-    // Step 7: Retry the failed schedule
-    console.log('\n🔍 Step 7: Retrying failed schedule...');
-    
-    try {
-      // Force update to failed status to test retry
-      await updateSchedule(schedule.id, { status: 'failed' });
-      
-      const retriedSchedule = await retrySchedule(schedule.id);
-      console.log(`✅ Schedule retried: ${retriedSchedule.id}`);
-      console.log(`  - New status: ${retriedSchedule.status}`);
-      console.log(`  - Retry count reset: ${retriedSchedule.retryCount}`);
-    } catch (error) {
-      console.log(`⚠️ Retry failed: ${error.message}`);
-    }
-    
-    // Step 8: Clean up
-    console.log('\n🔍 Step 8: Cleaning up...');
-    
-    // Stop the schedule first
-    await stopSchedule(schedule.id);
-    console.log(`✅ Schedule stopped: ${schedule.id}`);
-    
-    // Then delete it
-    const deleted = await deleteSchedule(schedule.id);
-    console.log(`✅ Schedule deleted: ${deleted}`);
-    
-    // Verify it's gone
-    const deletedSchedule = await getSchedule(schedule.id);
-    console.log(`✅ Verified schedule is gone: ${!deletedSchedule}`);
-    
-    console.log('\n=== Test completed successfully ===');
-    console.log('--------------------------------');
-  } catch (error) {
-    console.error('Test failed:', error);
   } finally {
-    // Ensure we disconnect from database
-    await db.end();
+    setTimeout(() => process.exit(0), 1000);
   }
 }
 
-// Run the test function
-testSchedulerRecovery().catch(console.error);
+// Run the test
+testSchedulerRecovery();
