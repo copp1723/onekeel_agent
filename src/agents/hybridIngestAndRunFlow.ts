@@ -1,14 +1,14 @@
 /**
- * Hybrid Ingestion and Flow Execution
- * 
- * This module provides a unified entrypoint for CRM report ingestion:
- * 1. First attempts to fetch reports from scheduled emails
- * 2. Falls back to browser automation if email ingestion fails
- * 
+ * Email-Only Ingestion and Flow Execution
+ *
+ * This module provides a unified entrypoint for CRM report ingestion via email:
+ * - Attempts to fetch reports from scheduled emails
+ * - Provides detailed error handling and diagnostics
+ * - No browser automation fallback
+ *
  * This orchestrator logs diagnostic information and provides a clean interface
  * for the rest of the application.
  */
-import { runFlow } from './runFlow.js';
 import { ingestScheduledReport, ReportNotFoundError, tryFetchReportFromEmail } from './ingestScheduledReport.js';
 import { CRMPlatform, EnvVars } from '../types.js';
 import * as path from 'path';
@@ -33,24 +33,25 @@ export const consoleLogger: Logger = {
 };
 
 /**
- * Orchestrates the hybrid ingestion process
- * First attempts email-based ingestion, then falls back to browser automation
- * 
+ * Orchestrates the email-only ingestion process
+ * Attempts email-based ingestion with enhanced error handling
+ *
  * @param platform - The CRM platform (e.g., 'VinSolutions', 'VAUTO')
- * @param envVars - Environment variables needed for automation
+ * @param envVars - Environment variables needed for configuration
  * @param logger - Optional logger for diagnostic information
  * @returns Path to the downloaded file
+ * @throws Error with detailed message when email ingestion fails
  */
-export async function hybridIngestAndRunFlow(
+export async function emailIngestAndRunFlow(
   platform: string,
   envVars: EnvVars,
   logger: Logger = consoleLogger
 ): Promise<string> {
   const startTime = Date.now();
-  let ingestionPath = 'email';
-  
-  logger.info(`Starting hybrid ingestion for ${platform}`);
-  
+  const ingestionPath = 'email';
+
+  logger.info(`Starting email-only ingestion for ${platform}`);
+
   // Create downloads directory if it doesn't exist
   const downloadDir = envVars.DOWNLOAD_DIR || './downloads';
   if (!fs.existsSync(downloadDir)) {
@@ -64,64 +65,65 @@ export async function hybridIngestAndRunFlow(
       'vauto': 'VAUTO'
     };
     const normalizedPlatform = platformMap[platform.toLowerCase()] || platform;
-    
-    // STEP 1: First try email-based ingestion
+
+    // Attempt email-based ingestion
     logger.info(`Attempting email ingestion for ${normalizedPlatform}...`);
     let filePath: string | null = null;
-    
+
     try {
+      // Check if email configuration is available
+      const isEmailConfigured = !!(
+        process.env.EMAIL_USER &&
+        process.env.EMAIL_PASS &&
+        process.env.EMAIL_HOST
+      );
+
+      if (!isEmailConfigured) {
+        throw new Error('Email configuration is missing. Please set EMAIL_USER, EMAIL_PASS, and EMAIL_HOST environment variables.');
+      }
+
       filePath = await tryFetchReportFromEmail(normalizedPlatform as CRMPlatform);
-      
+
       if (filePath) {
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-        logger.info(`✅ Successfully fetched report via EMAIL in ${duration}s`, { 
-          path: filePath, 
-          platform: normalizedPlatform, 
-          ingestionPath 
+        logger.info(`✅ Successfully fetched report via EMAIL in ${duration}s`, {
+          path: filePath,
+          platform: normalizedPlatform,
+          ingestionPath
         });
         return filePath;
+      } else {
+        // If tryFetchReportFromEmail returns null but doesn't throw, we still need to throw an error
+        throw new ReportNotFoundError(`No report found in email for ${normalizedPlatform}`);
       }
-      
-      logger.warn(`No report found in email for ${normalizedPlatform}, falling back to browser automation`);
     } catch (error) {
       if (error instanceof ReportNotFoundError) {
-        logger.warn(`No report found in email: ${error.message}`);
+        logger.error(`No report found in email: ${error.message}`);
+        throw new Error(`Email ingestion failed: No report found for ${normalizedPlatform}. Please check that scheduled reports are being sent to the configured email account.`);
+      } else if (error instanceof Error && error.message.includes('Missing required email configuration')) {
+        logger.error(`Email configuration error: ${error.message}`);
+        throw new Error(`Email ingestion failed: Missing required email configuration. Please set EMAIL_USER, EMAIL_PASS, and EMAIL_HOST environment variables.`);
+      } else if (error instanceof Error && error.message.includes('Authentication failed')) {
+        logger.error(`Email authentication error: ${error.message}`);
+        throw new Error(`Email ingestion failed: Authentication failed. Please check your email credentials.`);
+      } else if (error instanceof Error && error.message.includes('connect')) {
+        logger.error(`Email connection error: ${error.message}`);
+        throw new Error(`Email ingestion failed: Could not connect to email server. Please check your network connection and email server settings.`);
       } else {
-        logger.error(`Error during email ingestion:`, error);
-        // Only propagate non-"ReportNotFound" errors if they appear fatal
-        if (error instanceof Error && 
-            !error.message.includes('No report') && 
-            !error.message.includes('Missing required email configuration')) {
-          throw error;
-        }
+        logger.error(`Unexpected error during email ingestion:`, error);
+        throw new Error(`Email ingestion failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
-    // STEP 2: Fall back to browser automation
-    ingestionPath = 'browser';
-    logger.info(`Starting browser automation for ${normalizedPlatform}...`);
-    
-    // Run the browser automation flow
-    filePath = await runFlow(normalizedPlatform as CRMPlatform, envVars);
-    
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    logger.info(`✅ Successfully fetched report via BROWSER in ${duration}s`, { 
-      path: filePath, 
-      platform: normalizedPlatform, 
-      ingestionPath 
-    });
-    
-    return filePath;
-    
   } catch (error) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     logger.error(`❌ Failed to fetch report after ${duration}s (path: ${ingestionPath})`, error);
-    
+
     // Propagate the error with additional context
     if (error instanceof Error) {
-      throw new Error(`Hybrid ingestion failed (${ingestionPath}): ${error.message}`);
+      throw new Error(`Email ingestion failed: ${error.message}`);
     } else {
-      throw new Error(`Hybrid ingestion failed (${ingestionPath}): ${String(error)}`);
+      throw new Error(`Email ingestion failed: ${String(error)}`);
     }
   }
 }

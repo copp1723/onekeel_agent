@@ -1,15 +1,17 @@
-# Hybrid Ingestion for CRM Reports
+# [DEPRECATED] Hybrid Ingestion for CRM Reports
 
-This document explains the hybrid approach for ingesting CRM reports from various platforms like VinSolutions and VAUTO, with both email-based and browser-based automation strategies.
+**NOTE: This document describes a deprecated implementation that has been replaced by the email-only ingestion approach. It is kept for historical reference only. Please refer to EMAIL-INGESTION-README.md for the current implementation.**
 
-## Overview
+This document explains the hybrid approach that was previously used for ingesting CRM reports from various platforms like VinSolutions and VAUTO, with both email-based and browser-based automation strategies.
 
-The hybrid ingestion approach provides two methods for retrieving CRM reports:
+## Overview (Historical)
+
+The hybrid ingestion approach provided two methods for retrieving CRM reports:
 
 1. **Email Ingestion**: Attempt to find and download reports from configured email accounts
 2. **Browser Automation Fallback**: If email ingestion fails, fall back to browser automation to log in and download reports directly
 
-This dual approach provides reliability and flexibility - if one method fails, the system automatically tries the other.
+This dual approach provided reliability and flexibility - if one method failed, the system automatically tried the other.
 
 ## Setup and Configuration
 
@@ -42,7 +44,7 @@ Platform-specific settings are stored in `configs/platforms.json`. This file def
 
 - Login steps and selectors
 - OTP handling requirements
-- Navigation paths 
+- Navigation paths
 - Download selectors
 
 Each platform has a structured configuration that enables the browser automation to work across different CRM systems.

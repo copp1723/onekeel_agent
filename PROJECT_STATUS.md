@@ -61,10 +61,11 @@ The AgentFlow project is currently in a pre-deployment state with several issues
 |---------|--------|-------|
 | Core Backend | Partially Complete | Some TypeScript errors fixed, others remain |
 | Frontend | Incomplete | Needs testing after backend is fixed |
-| Database Integration | Partially Complete | Added query optimization and caching |
+| Database Integration | Complete | Added query optimization, caching, and report/insight schemas |
 | Email Services | Complete | Email queue system and template system implemented |
 | Task Scheduling | Partially Complete | Fixed type errors in scheduler services |
-| AI Integration | Incomplete | Depends on API keys |
+| AI Integration | Complete | Implemented insight generation with OpenAI integration |
+| Data Flow Pipeline | Complete | Implemented attachment parsing, storage, and insight generation |
 | Error Handling | Complete | Implemented comprehensive error handling system |
 | Testing | Partially Complete | Created integration tests for key workflows |
 | Rate Limiting | Complete | Implemented rate limiting for API endpoints |
@@ -76,14 +77,68 @@ The AgentFlow project is currently in a pre-deployment state with several issues
 2. Apply the error handling patterns to other parts of the codebase
 3. Implement the error handling middleware in the Express application
 4. Add more unit tests for other service layer components
-5. Test the database connection
-6. Run the application locally to verify functionality
-7. Deploy the application to production
-8. Monitor rate limiting effectiveness in production
-9. Expand CI pipeline to include automated deployment
+5. Enhance the attachment parsers with more sophisticated PDF extraction
+6. Add support for more file formats (e.g., JSON, XML)
+7. Implement more advanced deduplication logic based on content hashing
+8. Create a dashboard for monitoring the data flow pipeline
+9. Test the database connection
+10. Run the application locally to verify functionality
+11. Deploy the application to production
+12. Monitor rate limiting effectiveness in production
+13. Expand CI pipeline to include automated deployment
 
 ## Recent Updates
 
+- 2025-05-20: Implemented complete data flow integration pipeline with attachment parsers, results persistence, and insight generation
+- 2025-05-20: Created attachment parser modules for CSV, XLSX, and PDF parsing with Zod validation
+- 2025-05-20: Implemented results persistence with structured directory organization and database schema
+- 2025-05-20: Refactored insight generator to work with in-memory data objects and store metadata
+- 2025-05-20: Updated orchestration flow to include parsing, persistence, and insight generation
+- 2025-05-20: Created comprehensive unit tests for all new components
+- 2025-05-20: Updated README.md with new features and components
+- 2025-05-20: Updated package.json with Zod dependency and test script
+- 2025-05-20: Updated PROJECT_STATUS.md with completed ticket information
+- 2025-05-19: Removed browser automation dependencies from package.json
+- 2025-05-19: Updated install-dependencies.sh to remove browser automation dependencies
+- 2025-05-19: Removed browser-specific configuration files (frontend/playwright.config.ts)
+- 2025-05-19: Updated PLAYWRIGHT-CONFIG-README.md to indicate deprecation
+- 2025-05-19: Updated HYBRID-INGESTION-README.md to indicate deprecation
+- 2025-05-19: Enhanced EMAIL-INGESTION-README.md with additional information
+- 2025-05-19: Updated requirements.txt to remove browser automation dependencies
+- 2025-05-18: Refactored hybrid ingestion to email-only approach (removed browser automation fallback)
+- 2025-05-18: Updated API and service layer to work with email-only ingestion approach
+- 2025-05-17: Created email template system with HTML and plain text support
+- 2025-05-17: Implemented standard email templates (notification, alert, report)
+- 2025-05-17: Created email template service for sending templated emails
+- 2025-05-17: Created documentation for email template system
+- 2025-05-17: Implemented database optimization service with caching
+- 2025-05-17: Created optimized query patterns for common database operations
+- 2025-05-17: Added script to optimize database with indexes
+- 2025-05-17: Created performance testing script for database queries
+- 2025-05-17: Created documentation for database optimization
+- 2025-05-17: Updated README.md with email template and database optimization information
+- 2025-05-16: Implemented rate limiting middleware for API protection
+- 2025-05-16: Created documentation for rate limiting configuration
+- 2025-05-16: Applied rate limiting to API endpoints
+- 2025-05-16: Created unit tests for rate limiting functionality
+- 2025-05-16: Set up GitHub Actions CI pipeline
+- 2025-05-16: Created documentation for CI process
+- 2025-05-16: Updated README.md with rate limiting and CI information
+- 2025-05-16: Updated requirements.txt with new dependencies
+- 2025-05-15: Fixed service layer type errors in emailQueue.ts, healthService.ts, scheduler.ts, and schedulerServiceSimple.ts
+- 2025-05-15: Enhanced email queue system with exponential backoff and retry functionality
+- 2025-05-15: Created integration tests for task parsing, workflow execution, and email notifications
+- 2025-05-15: Implemented proper error handling with custom error types and consistent patterns
+- 2025-05-15: Updated README.md with new features and components
+- 2025-05-15: Updated package.json with Vitest testing framework
+- 2025-05-14: Fixed the workflowEmailService.js file
+- 2025-05-14: Fixed the taskParser.js export issue
+- 2025-05-14: Fixed the emailOTP.js module and runFlow.ts integration
+- 2025-05-14: Fixed schema.ts missing exports (emails, apiKeys, emailQueue, dealerCredentials)
+- 2025-05-14: Enhanced emailOTP.ts with improved error handling and timeout support
+- 2025-05-14: Fixed TypeScript errors in runFlow.ts
+- 2025-05-14: Created comprehensive developer onboarding guide (DEVELOPER_GUIDE.md)
+- 2025-05-14: Set up Jest testing framework with initial tests for core modules
 - 2025-05-13: Created project status document
 - 2025-05-13: Updated .env file with comprehensive environment variables
 - 2025-05-13: Created install-dependencies.sh script to fix missing dependencies
@@ -95,38 +150,6 @@ The AgentFlow project is currently in a pre-deployment state with several issues
 - 2025-05-13: Fixed getOTPFromEmail function in emailOTP.js
 - 2025-05-13: Fixed routes/index.ts to use the correct import from schedules.js
 - 2025-05-13: Created missing taskParser.js file
-- 2025-05-14: Fixed the workflowEmailService.js file
-- 2025-05-14: Fixed the taskParser.js export issue
-- 2025-05-14: Fixed the emailOTP.js module and runFlow.ts integration
-- 2025-05-14: Fixed schema.ts missing exports (emails, apiKeys, emailQueue, dealerCredentials)
-- 2025-05-14: Enhanced emailOTP.ts with improved error handling and timeout support
-- 2025-05-14: Fixed TypeScript errors in runFlow.ts
-- 2025-05-14: Created comprehensive developer onboarding guide (DEVELOPER_GUIDE.md)
-- 2025-05-14: Set up Jest testing framework with initial tests for core modules
-- 2025-05-15: Fixed service layer type errors in emailQueue.ts, healthService.ts, scheduler.ts, and schedulerServiceSimple.ts
-- 2025-05-15: Enhanced email queue system with exponential backoff and retry functionality
-- 2025-05-15: Created integration tests for task parsing, workflow execution, and email notifications
-- 2025-05-15: Implemented proper error handling with custom error types and consistent patterns
-- 2025-05-15: Updated README.md with new features and components
-- 2025-05-15: Updated package.json with Vitest testing framework
-- 2025-05-16: Implemented rate limiting middleware for API protection
-- 2025-05-16: Created documentation for rate limiting configuration
-- 2025-05-16: Applied rate limiting to API endpoints
-- 2025-05-16: Created unit tests for rate limiting functionality
-- 2025-05-16: Set up GitHub Actions CI pipeline
-- 2025-05-16: Created documentation for CI process
-- 2025-05-16: Updated README.md with rate limiting and CI information
-- 2025-05-16: Updated requirements.txt with new dependencies
-- 2025-05-17: Created email template system with HTML and plain text support
-- 2025-05-17: Implemented standard email templates (notification, alert, report)
-- 2025-05-17: Created email template service for sending templated emails
-- 2025-05-17: Created documentation for email template system
-- 2025-05-17: Implemented database optimization service with caching
-- 2025-05-17: Created optimized query patterns for common database operations
-- 2025-05-17: Added script to optimize database with indexes
-- 2025-05-17: Created performance testing script for database queries
-- 2025-05-17: Created documentation for database optimization
-- 2025-05-17: Updated README.md with email template and database optimization information
 
 ## Fixed Issues
 
@@ -318,3 +341,66 @@ The AgentFlow project is currently in a pre-deployment state with several issues
   - Detailed guide on database optimization techniques
   - Examples of using optimized query patterns
   - Best practices for database performance
+
+## Completed Tickets (2025-05-20)
+
+### Ticket 1: Complete Data Flow Integration Pipeline
+- ✅ Created attachment parser modules for CSV, XLSX, and PDF parsing
+  - Implemented `src/services/attachmentParsers.ts` with functions for all file types
+  - Added Zod validation for parsed data
+  - Created unified `parseByExtension()` function for automatic file type detection
+- ✅ Implemented results persistence
+  - Created directory structure for storing results: ./results/<Vendor>/<YYYY-MM-DD>-<reportId>.json
+  - Implemented database schema for reports table with required columns
+  - Added deduplication logic to avoid reprocessing identical reports
+- ✅ Refactored insight generator
+  - Updated `generateInsights()` to accept JS data objects instead of reading from disk
+  - Created database schema for insights table with foreign key to reports
+  - Added storage of LLM responses with metadata (modelVersion, promptTemplate, etc.)
+- ✅ Updated orchestration flow
+  - Modified `emailIngestAndRunFlow.ts` to include parsing, persistence, and insight generation
+  - Implemented end-to-end flow: download → parse → store → analyze → record
+  - Added comprehensive error handling and logging
+- ✅ Created unit tests for all components
+  - Added tests for attachment parsers, results persistence, and insight generator
+  - Created test script for the complete data flow
+  - Updated documentation and package.json
+
+### Ticket 1: Refactor Ingestion Orchestration for Email-Only Approach
+- ✅ Refactored `hybridIngestAndRunFlow.js` to `emailIngestAndRunFlow.js`
+  - Removed browser automation fallback logic
+  - Renamed function to reflect email-only approach
+  - Updated JSDoc comments to reflect email-only approach
+- ✅ Refactored `hybridIngestAndRunFlow.ts` to `emailIngestAndRunFlow.ts`
+  - Removed browser automation fallback logic
+  - Renamed function to reflect email-only approach
+  - Updated TypeScript typing and documentation
+- ✅ Enhanced error handling for email ingestion failures
+  - Added specific error messages for different failure scenarios
+  - Improved error logging with detailed context
+  - Added checks for email configuration
+- ✅ Updated logging to reflect email-only approach
+  - Changed log messages to reflect email-only approach
+  - Added more detailed error logging
+- ✅ Ensured graceful failure with actionable error messages
+  - Added specific error messages for different failure scenarios
+  - Provided clear instructions for resolving common issues
+
+### Ticket 2: Update API and Service Layer for Email-Only Ingestion
+- ✅ Updated `src/agents/fetchCRMReport.ts` to remove browser automation references
+  - Updated required environment variables to only include email-related ones
+  - Removed browser-specific environment variable requirements
+- ✅ Created `src/agents/emailIngestForCRM.js` to replace `hybridIngestForCRM.js`
+  - Removed browser automation fallback logic
+  - Renamed function to reflect email-only approach
+  - Removed Playwright/Chromium imports and dependencies
+- ✅ Updated dependent services
+  - Created `src/workflows/email-crm-workflow.js` to replace `hybrid-crm-workflow.js`
+  - Updated workflow to use email-only ingestion
+  - Removed browser-specific environment variable requirements
+- ✅ Created test files for email-only approach
+  - Created `test-email-crm-workflow.js` for testing the email-only workflow
+  - Updated existing test files to use email-only approach
+- ✅ Created documentation for email-only ingestion
+  - Created `EMAIL-INGESTION-README.md` with detailed documentation
+  - Updated project status documentation

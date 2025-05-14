@@ -1,12 +1,16 @@
-# Config-Driven Playwright Agent Runner
+# [DEPRECATED] Config-Driven Playwright Agent Runner
 
-This document describes the implementation of a generic, config-driven Playwright automation engine for CRM report extraction.
+**NOTE: This document describes a deprecated implementation that has been replaced by the email-only ingestion approach. It is kept for historical reference only.**
 
-## Overview
+The browser automation approach described in this document is no longer used in the AgentFlow project. Instead, the project now uses an email-only ingestion approach for CRM report extraction.
 
-The implementation allows executing multi-step automation flows (login → optional OTP → navigation → report download) for different CRM platforms using JSON configuration files instead of hardcoded flows.
+For information about the current email-only ingestion approach, please see the `EMAIL-INGESTION-README.md` file.
 
-Key benefits:
+## Historical Implementation (No Longer Used)
+
+The implementation allowed executing multi-step automation flows (login → optional OTP → navigation → report download) for different CRM platforms using JSON configuration files instead of hardcoded flows.
+
+Key benefits were:
 - Support multiple CRM platforms (VinSolutions, VAUTO) without code changes
 - Define workflows in configuration rather than code
 - Easy to add new platforms without modifying the core engine
@@ -132,7 +136,7 @@ For VAUTO:
        missingVars.push(placeholder);
      }
    });
-   
+
    if (missingVars.length > 0) {
      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
    }
@@ -147,25 +151,22 @@ For VAUTO:
    }
    ```
 
-## Testing
+## Why This Approach Was Deprecated
 
-The implementation includes test scripts:
+The browser automation approach was deprecated for the following reasons:
 
-1. `test-crm-flow.ts` - Tests the full flow for both platforms
-2. `src/test-playwright-config.js` - Simple test for configuration loading and browser launch
+1. **Reliability Issues**: Browser automation was prone to failures due to website changes, network issues, and other factors.
+2. **Maintenance Overhead**: Keeping browser automation scripts up-to-date required significant maintenance effort.
+3. **Resource Intensity**: Browser automation required more computational resources than email-based approaches.
+4. **Simplified Architecture**: Moving to an email-only approach simplified the codebase and reduced dependencies.
 
-## Usage Example
+## Migration to Email-Only Approach
 
-```typescript
-// Get a CRM report from VinSolutions
-const filePath = await fetchCRMReport({
-  platform: 'VinSolutions',
-  dealerId: 'ABC123'
-});
+The project has been refactored to use an email-only ingestion approach, which:
 
-// Parse the report data
-const reportData = await parseCRMReport(filePath);
+- Removes dependencies on Playwright/Chromium
+- Simplifies the codebase
+- Improves reliability
+- Reduces resource usage
 
-// Do something with the data
-console.log(`Report has ${reportData.totalRecords} records`);
-```
+For details on the current implementation, please refer to the `EMAIL-INGESTION-README.md` file.

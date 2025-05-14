@@ -20,14 +20,24 @@ A flexible AI agent backend using Fellou Eko that executes various tasks includi
 - ✅ Multi-step task execution (extract-then-summarize)
 
 ### Automotive Dealership Features
-- ✅ CRM report ingestion (VinSolutions, VAUTO, DealerTrack)
-- ✅ AI-powered insight generation
+- ✅ CRM report ingestion via email-only approach (VinSolutions, VAUTO, DealerTrack)
+- ✅ Complete data flow integration pipeline for attachment parsing, storage, and analysis
+- ✅ Support for CSV, XLSX, and PDF file formats with validation
+- ✅ Structured storage of results in filesystem and database
+- ✅ AI-powered insight generation with metadata tracking
 - ✅ Role-based insight distribution
 - ✅ Scheduled report processing
 - ✅ Email notifications
 - ✅ OTP email verification for secure access
 
-### Recent Fixes
+### Recent Fixes and Improvements
+- ✅ Implemented complete data flow integration pipeline with attachment parsers, results persistence, and insight generation
+- ✅ Added support for CSV, XLSX, and PDF file formats with Zod validation
+- ✅ Created structured storage system for parsed results in both filesystem and database
+- ✅ Implemented deduplication logic to avoid reprocessing identical reports
+- ✅ Enhanced insight generator to work with in-memory data objects
+- ✅ Added metadata tracking for LLM responses and prompt versions
+- ✅ Created comprehensive unit tests for all new components
 - ✅ Fixed workflowEmailService.js for proper email notifications
 - ✅ Fixed taskParser.js export for correct task parsing
 - ✅ Fixed emailOTP.js module for OTP verification
@@ -44,6 +54,10 @@ A flexible AI agent backend using Fellou Eko that executes various tasks includi
 - ✅ Set up CI pipeline using GitHub Actions for automated testing
 - ✅ Created email template system with HTML and plain text support
 - ✅ Optimized database queries with caching and indexing
+- ✅ Refactored ingestion orchestration to email-only approach with improved error handling
+- ✅ Removed browser automation dependencies (Playwright/Chromium)
+- ✅ Updated documentation to reflect email-only approach
+- ✅ Updated tests to use email-only ingestion
 
 ## Prerequisites
 
@@ -76,6 +90,25 @@ npm install
    - `EKO_API_KEY`: Required for the AI agent to function. This should be a valid OpenAI API key that can access models like `gpt-4o-mini`.
    - `DATABASE_URL`: Required for storing and retrieving credentials.
    - Firecrawl API key: This should be added to the database using the provided utility script.
+
+   **Environment Variables:**
+
+   Required:
+   - `DATABASE_URL`: PostgreSQL connection string
+   - `EMAIL_USER`: Email account for notifications and report ingestion
+   - `EMAIL_PASS`: Password for email account
+   - `EMAIL_HOST`: IMAP/SMTP server for email operations
+   - `EMAIL_PORT`: SMTP port (default: 587)
+   - `API_KEY`: Secret key for API authentication
+
+   Optional:
+   - `LOG_LEVEL`: Logging level (default: 'info')
+   - `PORT`: Server port (default: 3000)
+   - `NODE_ENV`: Environment (development/production)
+   - `DOWNLOAD_DIR`: Directory for downloaded reports
+   - `EMAIL_PORT_IMAP`: IMAP port (default: 993)
+   - `EMAIL_TLS`: Use TLS for IMAP (default: true)
+   - `USE_SAMPLE_DATA`: Use sample data for testing (true/false)
 
 4. Set up the Supabase database:
 
@@ -337,10 +370,27 @@ All task executions are logged to the database with the following information:
 - `src/scripts/test-query-performance.ts` - Script to test query performance
 - `src/docs/DATABASE_OPTIMIZATION.md` - Documentation for database optimization
 
+### Data Flow Integration Pipeline Components (Phase 7)
+- `src/services/attachmentParsers.ts` - Parsers for CSV, XLSX, and PDF files with validation
+- `src/services/resultsPersistence.ts` - Storage of parsed results in filesystem and database
+- `src/services/insightGenerator.ts` - Generation of insights from parsed data
+- `src/agents/emailIngestAndRunFlow.ts` - End-to-end orchestration of the data flow
+- `test-data-flow.js` - Test script for the complete data flow
+- `src/__tests__/services/attachmentParsers.test.ts` - Unit tests for attachment parsers
+- `src/__tests__/services/resultsPersistence.test.ts` - Unit tests for results persistence
+- `src/__tests__/services/insightGenerator.test.ts` - Unit tests for insight generator
+- `src/__tests__/agents/emailIngestAndRunFlow.test.ts` - Unit tests for orchestration flow
+
 ### Database Schemas
 - `api_keys` - Secure storage for API keys
 - `dealer_credentials` - Secure storage for dealer login credentials
 - `task_logs` - Persistent storage for task execution history and results
+- `report_sources` - Tracks where reports come from (email, manual upload, API, etc.)
+- `reports` - Stores processed report data and metadata
+- `insights` - Stores generated insights from report analysis
+- `insight_distributions` - Tracks distribution of insights to recipients
+- `historical_metrics` - Stores time-series data for trend analysis and reporting
+- `report_processing_jobs` - Tracks the status of report processing jobs for retries and monitoring
 
 ## Technologies Used
 
@@ -349,14 +399,19 @@ All task executions are logged to the database with the following information:
 - [Supabase](https://supabase.com/) - Database for storing API keys
 - [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
 - [Drizzle ORM](https://orm.drizzle.team/) - Database ORM
-- [Playwright](https://playwright.dev/) - Browser automation for CRM interactions
-- [imap-simple](https://www.npmjs.com/package/imap-simple) - Email OTP verification
+- [imap-simple](https://www.npmjs.com/package/imap-simple) - Email-only CRM report ingestion and OTP verification
 - [SendGrid](https://sendgrid.com/) - Email notifications
 - [Express](https://expressjs.com/) - Web server framework
 - [Express Rate Limit](https://www.npmjs.com/package/express-rate-limit) - API rate limiting
 - [Vitest](https://vitest.dev/) - Testing framework for unit and integration tests
 - [Nodemailer](https://nodemailer.com/) - Email sending library with retry capabilities
 - [Node Cache](https://www.npmjs.com/package/node-cache) - In-memory caching for database queries
+- [Zod](https://zod.dev/) - TypeScript-first schema validation
+- [csv-parse](https://www.npmjs.com/package/csv-parse) - CSV parsing library
+- [ExcelJS](https://www.npmjs.com/package/exceljs) - Excel file parsing library
+- [pdf-parse](https://www.npmjs.com/package/pdf-parse) - PDF parsing library
+- [OpenAI](https://www.npmjs.com/package/openai) - OpenAI API client for insight generation
+- [Jest](https://jestjs.io/) - Testing framework for unit and integration tests
 
 ## Extending the Project
 

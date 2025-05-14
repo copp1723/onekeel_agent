@@ -11,7 +11,7 @@
 
 import { db } from '../shared/db.js';
 import { schedules, type Schedule } from '../shared/schema.js';
-import { hybridIngestAndRunFlow } from '../agents/hybridIngestAndRunFlow.js';
+import { emailIngestAndRunFlow } from '../agents/hybridIngestAndRunFlow.js';
 import { generateInsights } from '../services/enhancedInsightGenerator.js';
 import { distributeInsights } from '../services/insightDistributionService.js';
 import { eq, and, lt, gte } from 'drizzle-orm';
@@ -343,8 +343,8 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
     };
 
     try {
-      // Use hybrid ingestion to fetch the report
-      const filePath = await hybridIngestAndRunFlow(schedule.platform!, envVars as Record<string, string>);
+      // Use email-only ingestion to fetch the report
+      const filePath = await emailIngestAndRunFlow(schedule.platform!, envVars as Record<string, string>);
 
       // Generate insights from the fetched report
       const insights = await generateInsights(

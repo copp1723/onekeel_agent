@@ -38,7 +38,6 @@ npm install \
   ioredis \
   bullmq \
   axios \
-  playwright-core \
   @eko-ai/eko \
   zod \
   express-session \
