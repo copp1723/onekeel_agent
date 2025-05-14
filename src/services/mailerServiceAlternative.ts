@@ -3,21 +3,17 @@
  * Provides email sending capabilities with SendGrid
  * This version implements a fallback mechanism when sender verification fails
  */
-
 import sgMail from '@sendgrid/mail';
 // @ts-ignore - Add declaration for nodemailer
 import nodemailer from 'nodemailer';
-import { emailLogs } from '../shared/schema.js';
-import { db } from '../shared/db.js';
+import { emailLogs } from '../shared/schema.js.js';
+import { db } from '../shared/db.js.js';
 import { eq } from 'drizzle-orm';
-
 // Track if SendGrid is initialized
 let isMailerInitialized = false;
 let sendGridApiKey: string | null = null;
-
 // Backup nodemailer transporter
 let nodeMailerTransport: any = null;
-
 /**
  * Initialize the email service with API key
  */
@@ -33,7 +29,6 @@ export function initializeMailer(apiKey: string): boolean {
     return false;
   }
 }
-
 /**
  * Initialize the nodemailer fallback
  * Uses ethereal.email for testing
@@ -42,7 +37,6 @@ async function initializeNodemailerFallback(): Promise<boolean> {
   try {
     // Create a test account at ethereal.email
     const testAccount = await nodemailer.createTestAccount();
-    
     // Create reusable transporter with ethereal.email
     nodeMailerTransport = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
@@ -53,7 +47,6 @@ async function initializeNodemailerFallback(): Promise<boolean> {
         pass: testAccount.pass,
       },
     });
-    
     console.log('Nodemailer fallback initialized with test account', testAccount.user);
     return true;
   } catch (error) {
@@ -61,7 +54,6 @@ async function initializeNodemailerFallback(): Promise<boolean> {
     return false;
   }
 }
-
 /**
  * Send an email using the configured service
  */
@@ -76,10 +68,8 @@ export async function sendEmail(
     if (!isMailerInitialized) {
       throw new Error('Mailer service not initialized. Call initializeMailer first.');
     }
-    
     // Log the email sending attempt
     const emailLogId = await logEmailAttempt(to, subject);
-    
     // Email message
     const message = {
       to: Array.isArray(to) ? to : [to],
@@ -88,33 +78,25 @@ export async function sendEmail(
       text,
       html,
     };
-    
     try {
       // Try sending with SendGrid first
       const response = await sgMail.send(message);
-      
       // Extract message ID from response (if available)
       const messageId = response && response[0] && (response[0] as any).messageId || undefined;
-      
       // Log success
       await updateemailLogsSuccess(emailLogId, messageId);
-      
       return {
         success: true,
         messageId,
       };
-      
     } catch (sendGridError: any) {
       console.warn('SendGrid email error, trying fallback method:', sendGridError?.response?.body?.errors || sendGridError);
-      
       // If it's a sender verification error, try with nodemailer fallback
       if (sendGridError?.response?.body?.errors?.[0]?.field === 'from') {
-        
         // Initialize nodemailer if not already done
         if (!nodeMailerTransport) {
           await initializeNodemailerFallback();
         }
-        
         // If nodemailer is available, use it
         if (nodeMailerTransport) {
           try {
@@ -125,28 +107,23 @@ export async function sendEmail(
               text,
               html,
             });
-            
             // Log the message and preview URL
             console.log('Nodemailer fallback message sent:', info.messageId);
             console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
-            
             // Log success with fallback
             await updateemailLogsSuccess(emailLogId, info.messageId, 'nodemailer-fallback');
-            
             return {
               success: true,
               messageId: info.messageId,
             };
           } catch (nodeMailerError) {
             console.error('Nodemailer fallback error:', nodeMailerError);
-            
             // Log both failures
             await updateemailLogsFailure(
               emailLogId,
               `SendGrid: ${sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message}, ` +
               `Nodemailer: ${(nodeMailerError as Error).message}`
             );
-            
             return {
               success: false,
               error: nodeMailerError,
@@ -154,19 +131,16 @@ export async function sendEmail(
           }
         }
       }
-      
       // Log the SendGrid failure
       await updateemailLogsFailure(
         emailLogId,
         sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message
       );
-      
       return {
         success: false,
         error: sendGridError,
       };
     }
-    
   } catch (error) {
     console.error('Email sending error:', error);
     return {
@@ -175,7 +149,6 @@ export async function sendEmail(
     };
   }
 }
-
 /**
  * Log an email sending attempt
  */
@@ -185,7 +158,6 @@ async function logEmailAttempt(
 ): Promise<string> {
   try {
     const recipients = Array.isArray(to) ? to.join(', ') : to;
-    
     const [emailLog] = await db
       .insert(emailLogs)
       .values({
@@ -196,7 +168,6 @@ async function logEmailAttempt(
         updatedAt: new Date(),
       })
       .returning();
-    
     return emailLog.id;
   } catch (error) {
     console.error('Failed to log email attempt:', error);
@@ -204,7 +175,6 @@ async function logEmailAttempt(
     return 'logging-failed';
   }
 }
-
 /**
  * Update email log with success status
  */
@@ -215,7 +185,6 @@ async function updateemailLogsSuccess(
 ): Promise<void> {
   try {
     if (id === 'logging-failed') return;
-    
     await db
       .update(emailLogs)
       .set({
@@ -223,12 +192,11 @@ async function updateemailLogsSuccess(
         sentAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(emailLogs.id, id));
+      .where(eq(emailLogs.id, id.toString()));
   } catch (error) {
     console.error('Failed to update email log with success:', error);
   }
 }
-
 /**
  * Update email log with failure status
  */
@@ -238,7 +206,6 @@ async function updateemailLogsFailure(
 ): Promise<void> {
   try {
     if (id === 'logging-failed') return;
-    
     await db
       .update(emailLogs)
       .set({
@@ -246,9 +213,8 @@ async function updateemailLogsFailure(
         errorMessage,
         updatedAt: new Date(),
       })
-      .where(eq(emailLogs.id, id));
+      .where(eq(emailLogs.id, id.toString()));
   } catch (error) {
     console.error('Failed to update email log with failure:', error);
   }
 }
-

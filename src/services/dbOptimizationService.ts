@@ -3,18 +3,15 @@
  * 
  * Service for optimizing database queries and implementing caching.
  */
-
-import { db } from '../shared/db.js';
+import { db } from '../shared/db.js.js';
 import { sql } from 'drizzle-orm';
 import NodeCache from 'node-cache';
-
 // Initialize cache with default TTL of 5 minutes and check period of 1 minute
 const cache = new NodeCache({
   stdTTL: 300,
   checkperiod: 60,
   useClones: false
 });
-
 /**
  * Cache options
  */
@@ -23,7 +20,6 @@ export interface CacheOptions {
   key?: string;
   bypass?: boolean;
 }
-
 /**
  * Execute a query with caching
  * 
@@ -36,33 +32,26 @@ export async function executeWithCache<T>(
   options: CacheOptions = {}
 ): Promise<T> {
   const { ttl, key, bypass = false } = options;
-  
   // Generate cache key if not provided
   const cacheKey = key || `query_${Math.random().toString(36).substring(2, 15)}`;
-  
   // Return cached result if available and bypass is not set
   if (!bypass && cache.has(cacheKey)) {
     return cache.get<T>(cacheKey)!;
   }
-  
   // Execute the query
   const result = await queryFn();
-  
   // Cache the result if bypass is not set
   if (!bypass) {
     cache.set(cacheKey, result, ttl);
   }
-  
   return result;
 }
-
 /**
  * Clear the entire cache
  */
 export function clearCache(): void {
   cache.flushAll();
 }
-
 /**
  * Clear a specific cache key
  * 
@@ -72,7 +61,6 @@ export function clearCache(): void {
 export function clearCacheKey(key: string): boolean {
   return cache.del(key) > 0;
 }
-
 /**
  * Get query execution statistics
  * 
@@ -88,7 +76,6 @@ export async function explainQuery(query: string): Promise<any[]> {
     throw error;
   }
 }
-
 /**
  * Get database statistics
  * 
@@ -108,7 +95,6 @@ export async function getDatabaseStats(): Promise<any> {
       FROM pg_stat_user_tables
       ORDER BY pg_total_relation_size(relid) DESC
     `));
-    
     // Get index statistics
     const indexStats = await db.execute(sql.raw(`
       SELECT
@@ -121,7 +107,6 @@ export async function getDatabaseStats(): Promise<any> {
       FROM pg_stat_user_indexes
       ORDER BY idx_scan DESC
     `));
-    
     // Get cache hit ratio
     const cacheStats = await db.execute(sql.raw(`
       SELECT
@@ -130,7 +115,6 @@ export async function getDatabaseStats(): Promise<any> {
         sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as ratio
       FROM pg_statio_user_tables
     `));
-    
     return {
       tables: tableStats.rows,
       indexes: indexStats.rows,
@@ -141,7 +125,6 @@ export async function getDatabaseStats(): Promise<any> {
     throw error;
   }
 }
-
 /**
  * Find slow queries in the database
  * 
@@ -166,7 +149,6 @@ export async function findSlowQueries(minExecutionTime: number = 1000): Promise<
       ORDER BY total_time / calls DESC
       LIMIT 20
     `));
-    
     return result.rows;
   } catch (error) {
     console.error('Error finding slow queries:', error);
@@ -174,7 +156,6 @@ export async function findSlowQueries(minExecutionTime: number = 1000): Promise<
     return [];
   }
 }
-
 /**
  * Optimize a table by analyzing it
  * 
@@ -190,7 +171,6 @@ export async function optimizeTable(tableName: string): Promise<boolean> {
     return false;
   }
 }
-
 /**
  * Check if an index exists
  * 
@@ -206,14 +186,12 @@ export async function indexExists(tableName: string, indexName: string): Promise
       WHERE tablename = '${tableName}'
       AND indexname = '${indexName}'
     `));
-    
     return result.rows.length > 0;
   } catch (error) {
     console.error(`Error checking if index exists for ${tableName}.${indexName}:`, error);
     return false;
   }
 }
-
 /**
  * Create an index if it doesn't exist
  * 
@@ -232,20 +210,16 @@ export async function createIndexIfNotExists(
   try {
     // Check if index already exists
     const exists = await indexExists(tableName, indexName);
-    
     if (exists) {
       console.log(`Index ${indexName} already exists on table ${tableName}`);
       return false;
     }
-    
     // Create the index
     const uniqueStr = unique ? 'UNIQUE' : '';
     const columnsStr = columns.join(', ');
-    
     await db.execute(sql.raw(`
       CREATE ${uniqueStr} INDEX ${indexName} ON ${tableName} (${columnsStr})
     `));
-    
     console.log(`Created index ${indexName} on table ${tableName}`);
     return true;
   } catch (error) {

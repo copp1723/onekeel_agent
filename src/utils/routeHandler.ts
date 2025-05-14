@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-
+import { isError } from '../utils/errorUtils.js.js';
 // Use a type that allows for custom properties on the request
 type AnyRequest = Request & {
   [key: string]: any;
@@ -11,7 +11,6 @@ type AnyRequest = Request & {
     [key: string]: any;
   };
 };
-
 /**
  * Helper function to wrap Express route handlers and provide consistent error handling
  * This also fixes TypeScript type compatibility issues with Express route handlers
@@ -29,18 +28,22 @@ export function routeHandler<P = any>(handler: (req: AnyRequest, res: Response, 
           if (!res.headersSent) {
             res.status(500).json({ 
               error: 'Internal server error', 
-              message: error.message 
+              message: (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) 
             });
           }
         });
       }
       return result;
     } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
       console.error('Route handler error:', error);
       if (!res.headersSent) {
         res.status(500).json({ 
           error: 'Internal server error', 
-          message: error instanceof Error ? error.message : String(error) 
+          message: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error) 
         });
       }
     }

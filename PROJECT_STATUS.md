@@ -136,6 +136,8 @@ The AgentFlow project is currently in a pre-deployment state with several issues
 
 ## Recent Updates
 
+- 2025-05-26: Fixed unknown at-rules errors in global CSS by updating postcss.config.js and downgrading Tailwind CSS and PostCSS to compatible versions
+- 2025-05-26: Added VSCode settings and CSS configuration files to help the IDE understand Tailwind directives
 - 2025-05-25: Executed automated TypeScript error fixing script to address common TypeScript errors
 - 2025-05-25: Fixed import path issues with double extensions (.js.js) and ellipsis imports ('...')
 - 2025-05-25: Improved error handling with proper type guards for unknown error types

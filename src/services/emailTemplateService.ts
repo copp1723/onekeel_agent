@@ -3,15 +3,12 @@
  * 
  * Service for managing and using email templates.
  */
-
-import { renderEmailTemplate, EmailTemplateOptions, EmailTemplateResult } from './emailTemplateEngine.js';
-import { sendEmail } from './mailerService.js';
-
+import { renderEmailTemplate, EmailTemplateOptions, EmailTemplateResult } from './emailTemplateEngine.js.js';
+import { sendEmail } from './mailerService.js.js';
 /**
  * Email template types
  */
 export type EmailTemplateType = 'notification' | 'alert' | 'report' | string;
-
 /**
  * Email template data
  */
@@ -32,7 +29,6 @@ export interface EmailTemplateData {
   tableRows?: any[][];
   [key: string]: any;
 }
-
 /**
  * Email options
  */
@@ -43,7 +39,6 @@ export interface EmailOptions {
   templateType: EmailTemplateType;
   templateData: EmailTemplateData;
 }
-
 /**
  * Generate email content from a template
  * 
@@ -64,17 +59,14 @@ export function generateEmailContent(
       day: 'numeric'
     });
   }
-  
   // Render the template
   const options: EmailTemplateOptions = {
     templateName: templateType,
     data: templateData,
     format: 'both'
   };
-  
   return renderEmailTemplate(options);
 }
-
 /**
  * Send an email using a template
  * 
@@ -83,15 +75,13 @@ export function generateEmailContent(
  */
 export async function sendTemplatedEmail(options: EmailOptions): Promise<any> {
   const { to, from, templateType, templateData } = options;
-  
   // Generate email content
   const content = generateEmailContent(templateType, templateData);
-  
   // Use template title as subject if not provided
   const subject = options.subject || templateData.title;
-  
   // Send the email
   return await sendEmail({
+      from: { email: process.env.DEFAULT_SENDER_EMAIL || "noreply@example.com", name: "System Notification" },
     to: Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }],
     from: from ? { email: from } : undefined,
     content: {
@@ -101,7 +91,6 @@ export async function sendTemplatedEmail(options: EmailOptions): Promise<any> {
     }
   });
 }
-
 /**
  * Send a notification email
  * 
@@ -127,7 +116,6 @@ export async function sendNotificationEmail(
     }
   });
 }
-
 /**
  * Send an alert email
  * 
@@ -153,7 +141,6 @@ export async function sendAlertEmail(
     }
   });
 }
-
 /**
  * Send a report email
  * 

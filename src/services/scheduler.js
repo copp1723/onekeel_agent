@@ -19,6 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as cron from 'node-cron';
 import * as fs from 'fs';
 import * as path from 'path';
+import logger from '../utils/logger';
 
 // Maximum number of retries before marking a schedule as failed
 const MAX_RETRIES = 3;
@@ -84,7 +85,7 @@ function getNextRunTime(cronExpression) {
 
     return nextDate;
   } catch (error) {
-    console.error('Error calculating next run time:', error);
+    logger.error({ event: 'next_run_calc_error', cronExpression, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error calculating next run time');
     // Default to 1 hour from now if parsing fails
     const fallbackDate = new Date();
     fallbackDate.setHours(fallbackDate.getHours() + 1);
@@ -98,7 +99,7 @@ function getNextRunTime(cronExpression) {
  */
 export async function initializeScheduler() {
   try {
-    console.log('Initializing enhanced scheduler service...');
+    logger.info({ event: 'scheduler_init_start', timestamp: new Date().toISOString() }, 'Initializing enhanced scheduler service...');
 
     // Load all active schedules
     const activeSchedules = await db
@@ -106,14 +107,14 @@ export async function initializeScheduler() {
       .from(schedules)
       .where(eq(schedules.status, 'active'));
 
-    console.log(`Found ${activeSchedules.length} active schedules`);
+    logger.info({ event: 'scheduler_active_count', count: activeSchedules.length, timestamp: new Date().toISOString() }, 'Found active schedules count');
 
     // Start each schedule
     for (const schedule of activeSchedules) {
       try {
         await startSchedule(schedule.id);
       } catch (error) {
-        console.error(`Failed to start schedule ${schedule.id}:`, error);
+        logger.error({ event: 'schedule_start_failed', scheduleId: schedule.id, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Failed to start schedule');
 
         // Mark problematic schedules as failed
         await db
@@ -133,9 +134,9 @@ export async function initializeScheduler() {
       await checkSchedulesForExecution();
     }, 60000); // Every minute
 
-    console.log('Scheduler initialization completed');
+    logger.info({ event: 'scheduler_init_complete', timestamp: new Date().toISOString() }, 'Scheduler initialization completed');
   } catch (error) {
-    console.error('Error initializing scheduler:', error);
+    logger.error({ event: 'scheduler_init_error', errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error initializing scheduler');
     throw error;
   }
 }
@@ -159,19 +160,19 @@ async function checkSchedulesForExecution() {
       );
 
     if (dueSchedules.length > 0) {
-      console.log(`Found ${dueSchedules.length} schedules due for execution`);
+      logger.info({ event: 'schedules_due', count: dueSchedules.length, timestamp: new Date().toISOString() }, 'Found schedules due for execution');
 
       for (const schedule of dueSchedules) {
         try {
           // Execute the schedule
           await executeSchedule(schedule.id);
         } catch (error) {
-          console.error(`Error executing schedule ${schedule.id}:`, error);
+          logger.error({ event: 'schedule_exec_error', scheduleId: schedule.id, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error executing due schedule');
         }
       }
     }
   } catch (error) {
-    console.error('Error checking schedules for execution:', error);
+    logger.error({ event: 'schedules_check_error', errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error checking schedules for execution');
   }
 }
 
@@ -212,7 +213,7 @@ export async function createSchedule(options) {
 
     return newSchedule;
   } catch (error) {
-    console.error('Error creating schedule:', error);
+    logger.error({ event: 'schedule_create_error', errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error creating schedule');
     throw error;
   }
 }
@@ -240,7 +241,7 @@ export async function startSchedule(scheduleId) {
       try {
         await executeSchedule(scheduleId);
       } catch (error) {
-        console.error(`Error executing scheduled job ${scheduleId}:`, error);
+        logger.error({ event: 'schedule_exec_error', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error executing scheduled job');
       }
     });
 
@@ -257,9 +258,9 @@ export async function startSchedule(scheduleId) {
       })
       .where(eq(schedules.id, scheduleId));
 
-    console.log(`Schedule ${scheduleId} started successfully`);
+    logger.info({ event: 'schedule_started', scheduleId, cron: schedule.cron, timestamp: new Date().toISOString() }, 'Schedule started successfully');
   } catch (error) {
-    console.error(`Error starting schedule ${scheduleId}:`, error);
+    logger.error({ event: 'schedule_start_error', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error starting schedule');
     throw error;
   }
 }
@@ -278,9 +279,9 @@ export async function stopSchedule(scheduleId) {
       activeJobs.delete(scheduleId);
     }
 
-    console.log(`Schedule ${scheduleId} stopped`);
+    logger.info({ event: 'schedule_stopped', scheduleId, timestamp: new Date().toISOString() }, 'Schedule stopped');
   } catch (error) {
-    console.error(`Error stopping schedule ${scheduleId}:`, error);
+    logger.error({ event: 'schedule_stop_error', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error stopping schedule');
     throw error;
   }
 }
@@ -300,7 +301,7 @@ export async function executeSchedule(scheduleId) {
       throw new Error(`Schedule not found: ${scheduleId}`);
     }
 
-    console.log(`Executing schedule ${scheduleId} (${schedule.intent} for ${schedule.platform})`);
+    logger.info({ event: 'schedule_execute_start', scheduleId, intent: schedule.intent, platform: schedule.platform, timestamp: new Date().toISOString() }, 'Executing schedule');
 
     // Update the last run time
     await db
@@ -352,9 +353,9 @@ export async function executeSchedule(scheduleId) {
         })
         .where(eq(schedules.id, scheduleId));
 
-      console.log(`Schedule ${scheduleId} executed successfully`);
+      logger.info({ event: 'schedule_execute_success', scheduleId, intent: schedule.intent, platform: schedule.platform, timestamp: new Date().toISOString() }, 'Schedule executed successfully');
     } catch (error) {
-      console.error(`Error executing schedule ${scheduleId}:`, error);
+      logger.error({ event: 'schedule_execute_error', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error executing schedule');
 
       // Increment retry count
       const newRetryCount = (schedule.retryCount || 0) + 1;
@@ -377,13 +378,13 @@ export async function executeSchedule(scheduleId) {
       } else if (newRetryCount < MAX_RETRIES) {
         // Optional: immediate retry with exponential backoff
         const backoffTime = Math.pow(2, newRetryCount) * 1000; // 2^n seconds
-        console.log(`Will retry schedule ${scheduleId} in ${backoffTime / 1000} seconds`);
+        logger.warn({ event: 'schedule_retry_scheduled', scheduleId, retryDelaySec: backoffTime/1000, timestamp: new Date().toISOString() }, 'Will retry schedule with backoff');
 
         setTimeout(async () => {
           try {
             await executeSchedule(scheduleId);
           } catch (retryError) {
-            console.error(`Error during retry of schedule ${scheduleId}:`, retryError);
+            logger.error({ event: 'schedule_retry_error', scheduleId, errorMessage: retryError.message, stack: retryError.stack, timestamp: new Date().toISOString() }, 'Error during schedule retry');
           }
         }, backoffTime);
       }
@@ -391,7 +392,7 @@ export async function executeSchedule(scheduleId) {
       throw error;
     }
   } catch (error) {
-    console.error(`Schedule execution failed ${scheduleId}:`, error);
+    logger.error({ event: 'schedule_execution_failed', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Schedule execution failed');
     throw error;
   }
 }
@@ -408,7 +409,7 @@ export async function getSchedule(scheduleId) {
 
     return schedule;
   } catch (error) {
-    console.error(`Error getting schedule ${scheduleId}:`, error);
+    logger.error({ event: 'schedule_get_error', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error getting schedule');
     throw error;
   }
 }
@@ -452,7 +453,7 @@ export async function listSchedules(options = {}) {
 
     return await query.orderBy(schedules.createdAt);
   } catch (error) {
-    console.error('Error listing schedules:', error);
+    logger.error({ event: 'schedule_list_error', errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error listing schedules');
     throw error;
   }
 }
@@ -523,7 +524,7 @@ export async function updateSchedule(scheduleId, updates) {
 
     return updatedSchedule;
   } catch (error) {
-    console.error(`Error updating schedule ${scheduleId}:`, error);
+    logger.error({ event: 'schedule_update_error', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error updating schedule');
     throw error;
   }
 }
@@ -544,7 +545,7 @@ export async function deleteSchedule(scheduleId) {
 
     return !!deletedSchedule;
   } catch (error) {
-    console.error(`Error deleting schedule ${scheduleId}:`, error);
+    logger.error({ event: 'schedule_delete_error', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error deleting schedule');
     throw error;
   }
 }
@@ -584,7 +585,7 @@ export async function retrySchedule(scheduleId) {
 
     return updatedSchedule;
   } catch (error) {
-    console.error(`Error retrying schedule ${scheduleId}:`, error);
+    logger.error({ event: 'schedule_retry_request_error', scheduleId, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, 'Error retrying schedule');
     throw error;
   }
 }
@@ -596,6 +597,6 @@ export async function retrySchedule(scheduleId) {
  */
 export async function getScheduleLogs(scheduleId) {
   // This is a placeholder until we implement the schedule_runs table
-  console.log(`Getting logs for schedule ${scheduleId}`);
+  logger.debug({ event: 'schedule_logs_requested', scheduleId, timestamp: new Date().toISOString() }, 'Getting logs for schedule');
   return [];
 }

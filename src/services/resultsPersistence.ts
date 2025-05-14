@@ -4,15 +4,13 @@
  * Handles storing parsed results in both the filesystem and database
  * with support for deduplication and structured organization.
  */
-
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/index';
-import { reports, reportSources } from '../shared/report-schema';
+import { db } from '../db/index.js.js';
+import { reports, reportSources } from '../shared/report-schema.js.js';
 import { eq } from 'drizzle-orm';
-import { ParserResult } from './attachmentParsers';
-
+import { ParserResult } from './attachmentParsers.js.js';
 // Interface for storing results
 export interface StorageResult {
   id: string;
@@ -25,7 +23,6 @@ export interface StorageResult {
   status: 'pending_analysis' | 'analyzed' | 'error';
   metadata: Record<string, any>;
 }
-
 /**
  * Create directory structure for storing results
  * @param vendor - Vendor name
@@ -34,19 +31,15 @@ export interface StorageResult {
 export function createResultsDirectory(vendor: string): string {
   const resultsDir = path.join(process.cwd(), 'results');
   const vendorDir = path.join(resultsDir, vendor);
-  
   // Create directories if they don't exist
   if (!fs.existsSync(resultsDir)) {
     fs.mkdirSync(resultsDir, { recursive: true });
   }
-  
   if (!fs.existsSync(vendorDir)) {
     fs.mkdirSync(vendorDir, { recursive: true });
   }
-  
   return vendorDir;
 }
-
 /**
  * Store parsed results in the filesystem
  * @param vendor - Vendor name
@@ -63,14 +56,11 @@ export function storeResultsToFile(
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const fileName = `${today}-${reportId}.json`;
   const filePath = path.join(vendorDir, fileName);
-  
   // Write data to file
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   console.log(`Stored results to ${filePath}`);
-  
   return filePath;
 }
-
 /**
  * Check if a report with the same content already exists
  * @param vendor - Vendor name
@@ -89,11 +79,9 @@ export async function checkForDuplicateReport(
     .from(reports)
     .where(eq(reports.vendor, vendor))
     .where(eq(reports.recordCount, recordCount));
-  
   if (existingReports.length === 0) {
     return null;
   }
-  
   // Check if any of the existing reports have the same file name
   const fileName = metadata.fileName;
   for (const report of existingReports) {
@@ -103,10 +91,8 @@ export async function checkForDuplicateReport(
       return report.id as string;
     }
   }
-  
   return null;
 }
-
 /**
  * Store report source information in the database
  * @param sourceInfo - Source information
@@ -124,7 +110,6 @@ export async function storeReportSource(
   }
 ): Promise<string> {
   const sourceId = uuidv4();
-  
   await db.insert(reportSources).values({
     id: sourceId,
     vendor: sourceInfo.vendor,
@@ -137,11 +122,9 @@ export async function storeReportSource(
     createdAt: new Date(),
     updatedAt: new Date()
   });
-  
   console.log(`Stored report source: ${sourceId}`);
   return sourceId;
 }
-
 /**
  * Store report data in the database
  * @param reportData - Report data
@@ -165,14 +148,11 @@ export async function storeReportData(
     reportData.recordCount,
     reportData.metadata || {}
   );
-  
   if (duplicateId) {
     console.log(`Using existing report: ${duplicateId}`);
     return duplicateId;
   }
-  
   const reportId = uuidv4();
-  
   await db.insert(reports).values({
     id: reportId,
     sourceId: reportData.sourceId,
@@ -186,11 +166,9 @@ export async function storeReportData(
     createdAt: new Date(),
     updatedAt: new Date()
   });
-  
   console.log(`Stored report data: ${reportId}`);
   return reportId;
 }
-
 /**
  * Store parsed results in both filesystem and database
  * @param vendor - Vendor name
@@ -213,10 +191,8 @@ export async function storeResults(
   try {
     // Generate a report ID
     const reportId = uuidv4();
-    
     // Store results to file
     const jsonPath = storeResultsToFile(vendor, parserResult, reportId);
-    
     // Store report source
     const sourceId = await storeReportSource({
       vendor,
@@ -227,7 +203,6 @@ export async function storeResults(
       filePath: sourceInfo.filePath,
       metadata: sourceInfo.metadata
     });
-    
     // Store report data
     const storedReportId = await storeReportData({
       sourceId,
@@ -241,7 +216,6 @@ export async function storeResults(
         jsonPath
       }
     });
-    
     return {
       id: storedReportId,
       filePath: sourceInfo.filePath,
@@ -261,7 +235,6 @@ export async function storeResults(
     throw error;
   }
 }
-
 export default {
   createResultsDirectory,
   storeResultsToFile,

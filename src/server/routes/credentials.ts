@@ -2,23 +2,18 @@
  * Credential management routes
  * Handles CRUD operations for user credentials with authentication
  */
-
 import express from 'express';
-import { isAuthenticated } from '../replitAuth.js';
+import { isAuthenticated } from '../replitAuth.js.js';
 import { 
   addCredential, 
   getCredentials, 
   getCredentialById,
   updateCredential,
   deleteCredential
-} from '../../services/credentialVault.js';
-import { type CredentialData } from '../../shared/schema.js';
-
+} from '../../services/credentialVault.js.js';
 const router = express.Router();
-
 // All routes require authentication
 router.use(isAuthenticated);
-
 /**
  * Get all credentials for the authenticated user
  * Optional platform filter
@@ -27,9 +22,7 @@ router.get('/', async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
     const platform = req.query.platform! as string | undefined;
-    
     const results = await getCredentials(userId, platform);
-    
     // Map results to safe response objects (don't send IVs to client)
     const response = results.map(({ credential, data }) => ({
       id: credential.id,
@@ -40,14 +33,12 @@ router.get('/', async (req: any, res) => {
       hasRefreshToken: !!credential.refreshToken,
       data
     }));
-    
     res.json(response);
   } catch (error) {
     console.error('Error getting credentials:', error);
     res.status(500).json({ error: 'Failed to retrieve credentials' });
   }
 });
-
 /**
  * Get a specific credential by ID
  */
@@ -55,9 +46,7 @@ router.get('/:id', async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
     const credentialId = req.params.id;
-    
     const { credential, data } = await getCredentialById(credentialId, userId);
-    
     res.json({
       id: credential.id,
       platform: credential.platform!,
@@ -68,7 +57,7 @@ router.get('/:id', async (req: any, res) => {
       data
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : 'Unknown error';
     if (errorMessage.includes('not found') || errorMessage.includes('access denied')) {
       res.status(404).json({ error: 'Credential not found' });
     } else {
@@ -77,7 +66,6 @@ router.get('/:id', async (req: any, res) => {
     }
   }
 });
-
 /**
  * Add a new credential
  */
@@ -85,12 +73,10 @@ router.post('/', async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
     const { platform, label, data, refreshToken, refreshTokenExpiry } = req.body;
-    
     // Validate required fields
     if (!platform || !data) {
       return res.status(400).json({ error: 'Platform and credential data are required' });
     }
-    
     // Create credential
     const credential = await addCredential(
       userId,
@@ -102,7 +88,6 @@ router.post('/', async (req: any, res) => {
         refreshTokenExpiry: refreshTokenExpiry ? new Date(refreshTokenExpiry) : undefined
       }
     );
-    
     res.status(201).json({
       id: credential.id,
       platform: credential.platform!,
@@ -114,7 +99,6 @@ router.post('/', async (req: any, res) => {
     res.status(500).json({ error: 'Failed to create credential' });
   }
 });
-
 /**
  * Update a credential
  */
@@ -123,7 +107,6 @@ router.put('/:id', async (req: any, res) => {
     const userId = req.user.claims.sub;
     const credentialId = req.params.id;
     const { label, data, refreshToken, refreshTokenExpiry, active } = req.body;
-    
     // Update credential
     const credential = await updateCredential(
       credentialId,
@@ -136,7 +119,6 @@ router.put('/:id', async (req: any, res) => {
         active
       }
     );
-    
     res.json({
       id: credential.id,
       platform: credential.platform!,
@@ -144,7 +126,7 @@ router.put('/:id', async (req: any, res) => {
       updated: credential.updatedAt
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : 'Unknown error';
     if (errorMessage.includes('not found') || errorMessage.includes('access denied')) {
       res.status(404).json({ error: 'Credential not found' });
     } else {
@@ -153,7 +135,6 @@ router.put('/:id', async (req: any, res) => {
     }
   }
 });
-
 /**
  * Delete a credential (soft delete)
  */
@@ -161,9 +142,7 @@ router.delete('/:id', async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
     const credentialId = req.params.id;
-    
     const success = await deleteCredential(credentialId, userId);
-    
     if (success) {
       res.status(204).send();
     } else {
@@ -174,5 +153,4 @@ router.delete('/:id', async (req: any, res) => {
     res.status(500).json({ error: 'Failed to delete credential' });
   }
 });
-
 export default router;

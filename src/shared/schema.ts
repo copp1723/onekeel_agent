@@ -9,8 +9,9 @@ import {
   boolean,
   serial,
   integer,
+  bigint,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
-
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
@@ -22,7 +23,6 @@ export const sessions = pgTable(
   },
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
-
 // User storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
@@ -34,7 +34,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
-
 // Credential storage with encryption
 export const credentials = pgTable("credentials", {
   id: uuid("id").defaultRandom().primaryKey().notNull(),
@@ -51,7 +50,6 @@ export const credentials = pgTable("credentials", {
 }, (table) => [
   index("idx_credentials_user_platform").on(table.userId!, table.platform!),
 ]);
-
 // Execution plans for multi-step tasks
 export const plans = pgTable("plans", {
   id: serial("id").primaryKey(),
@@ -62,7 +60,6 @@ export const plans = pgTable("plans", {
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });
-
 // Task logs for tracking tasks and their execution
 export const taskLogs = pgTable("task_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -76,7 +73,6 @@ export const taskLogs = pgTable("task_logs", {
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });
-
 // Job Queue for task retry and recovery
 export const jobs = pgTable("jobs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -93,7 +89,6 @@ export const jobs = pgTable("jobs", {
   index("idx_jobs_status").on(table.status),
   index("idx_jobs_next_run_at").on(table.nextRunAt),
 ]);
-
 // Workflows for persistent multi-step task execution with memory
 export const workflows = pgTable("workflows", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -112,7 +107,6 @@ export const workflows = pgTable("workflows", {
   index("idx_workflows_status").on(table.status),
   index("idx_workflows_user").on(table.userId!),
 ]);
-
 // Enhanced scheduler for automated workflow execution with recovery
 export const schedules = pgTable("schedules", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -135,7 +129,6 @@ export const schedules = pgTable("schedules", {
   index("idx_schedules_next_run").on(table.nextRunAt),
   index("idx_schedules_user_id").on(table.userId!),
 ]);
-
 // Email logs for tracking email sending
 export const emailLogs = pgTable("email_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -152,7 +145,6 @@ export const emailLogs = pgTable("email_logs", {
   index("idx_email_logs_workflow_id").on(table.workflowId!),
   index("idx_email_logs_status").on(table.status),
 ]);
-
 // Email notification configuration for workflows
 export const emailNotifications = pgTable("email_notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -165,7 +157,6 @@ export const emailNotifications = pgTable("email_notifications", {
 }, (table) => [
   index("idx_email_notifications_workflow_id").on(table.workflowId!),
 ]);
-
 // Emails table for storing email content
 export const emails = pgTable("emails", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -180,7 +171,6 @@ export const emails = pgTable("emails", {
 }, (table) => [
   index("idx_emails_workflow_id").on(table.workflowId!),
 ]);
-
 // Email queue for processing emails asynchronously
 export const emailQueue = pgTable("email_queue", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -201,7 +191,6 @@ export const emailQueue = pgTable("email_queue", {
   index("idx_email_queue_status").on(table.status),
   index("idx_email_queue_process_after").on(table.processAfter),
 ]);
-
 // Health check tables for API and service monitoring
 export const healthChecks = pgTable("health_checks", {
   id: varchar("id", { length: 50 }).primaryKey(), // Use a stable identifier like 'database', 'email', etc.
@@ -217,7 +206,6 @@ export const healthChecks = pgTable("health_checks", {
   index("idx_health_checks_status").on(table.status),
   index("idx_health_checks_last_checked").on(table.lastChecked),
 ]);
-
 // Health check logs for historical tracking
 export const healthLogs = pgTable("health_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -231,7 +219,6 @@ export const healthLogs = pgTable("health_logs", {
   index("idx_health_logs_check_id").on(table.checkId),
   index("idx_health_logs_timestamp").on(table.timestamp),
 ]);
-
 // Dealer credentials for CRM access
 export const dealerCredentials = pgTable("dealer_credentials", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -247,10 +234,9 @@ export const dealerCredentials = pgTable("dealer_credentials", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_dealer_credentials_user_id").on(table.userId!),
-  index("idx_dealer_credentials_platform").on(table.platform),
-  index("idx_dealer_credentials_dealer_id").on(table.dealerId),
+  index("idx_dealer_credentials_platform").on(table.platform!),
+  index("idx_dealer_credentials_dealer_id").on(table.dealerId!),
 ]);
-
 // API keys for external services
 export const apiKeys = pgTable("api_keys", {
   id: varchar("id", { length: 50 }).primaryKey(),
@@ -262,47 +248,82 @@ export const apiKeys = pgTable("api_keys", {
 }, (table) => [
   index("idx_api_keys_key_name").on(table.keyName),
 ]);
-
+// Security audit logs for tracking security-related events
+export const securityAuditLogs = pgTable("security_audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id),
+  eventType: varchar("event_type", { length: 50 }).notNull(), // 'credential_create', 'credential_update', 'credential_delete', 'login_attempt', 'decryption_failure', etc.
+  eventData: jsonb("event_data").default({}), // Additional event data (sanitized of sensitive information)
+  ipAddress: varchar("ip_address", { length: 45 }), // IPv4 or IPv6 address
+  userAgent: text("user_agent"),
+  severity: varchar("severity", { length: 20 }).notNull().default("info"), // 'info', 'warning', 'error', 'critical'
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+}, (table) => [
+  index("idx_security_audit_logs_user_id").on(table.userId!),
+  index("idx_security_audit_logs_event_type").on(table.eventType),
+  index("idx_security_audit_logs_timestamp").on(table.timestamp),
+  index("idx_security_audit_logs_severity").on(table.severity),
+]);
+// User-specific credentials with enhanced encryption
+export const userCredentials = pgTable("user_credentials", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  serviceName: varchar("service_name", { length: 100 }).notNull(), // Name of the service (e.g., 'vinsolutions', 'vauto', 'openai')
+  credentialName: varchar("credential_name", { length: 100 }).notNull(), // User-friendly name for the credential
+  encryptedPayload: text("encrypted_payload").notNull(), // AES-GCM encrypted credential data
+  iv: text("iv").notNull(), // Initialization vector
+  authTag: text("auth_tag").notNull(), // Authentication tag for GCM mode
+  metadata: jsonb("metadata").default({}), // Non-sensitive metadata about the credential
+  expiresAt: timestamp("expires_at"), // Optional expiration date
+  lastUsed: timestamp("last_used"), // When the credential was last used
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  idx_user_credentials_unique: uniqueIndex("idx_user_credentials_unique")
+    .on(table.userId!, table.serviceName, table.credentialName)
+}));
+// Circuit breaker state tracking
+export const circuitBreakerState = pgTable("circuit_breaker_state", {
+  name: varchar("name", { length: 255 }).primaryKey(),
+  state: varchar("state", { length: 20 }).notNull(), // 'closed', 'open', 'half-open'
+  failures: integer("failures").default(0).notNull(),
+  successes: integer("successes").default(0).notNull(),
+  last_failure_ms: bigint("last_failure_ms", { mode: "number" }).default(0).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-
 export type UpsertCredential = typeof credentials.$inferInsert;
 export type Credential = typeof credentials.$inferSelect;
-
 export type UpsertPlan = typeof plans.$inferInsert;
 export type Plan = typeof plans.$inferSelect;
-
 export type UpsertWorkflow = typeof workflows.$inferInsert;
 export type Workflow = typeof workflows.$inferSelect;
-
 export type UpsertSchedule = typeof schedules.$inferInsert;
 export type Schedule = typeof schedules.$inferSelect;
-
 export type UpsertEmailLog = typeof emailLogs.$inferInsert;
 export type EmailLog = typeof emailLogs.$inferSelect;
-
 export type UpsertEmailNotification = typeof emailNotifications.$inferInsert;
 export type EmailNotification = typeof emailNotifications.$inferSelect;
-
 export type UpsertHealthCheck = typeof healthChecks.$inferInsert;
 export type HealthCheck = typeof healthChecks.$inferSelect;
-
 export type UpsertHealthLog = typeof healthLogs.$inferInsert;
 export type HealthLog = typeof healthLogs.$inferSelect;
-
 export type UpsertEmail = typeof emails.$inferInsert;
 export type Email = typeof emails.$inferSelect;
-
 export type UpsertEmailQueue = typeof emailQueue.$inferInsert;
 export type EmailQueue = typeof emailQueue.$inferSelect;
-
 export type UpsertDealerCredential = typeof dealerCredentials.$inferInsert;
 export type DealerCredential = typeof dealerCredentials.$inferSelect;
-
 export type UpsertApiKey = typeof apiKeys.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
-
+export type UpsertSecurityAuditLog = typeof securityAuditLogs.$inferInsert;
+export type SecurityAuditLog = typeof securityAuditLogs.$inferSelect;
+export type UpsertUserCredential = typeof userCredentials.$inferInsert;
+export type UserCredential = typeof userCredentials.$inferSelect;
 // Workflow step interfaces
 export type WorkflowStepType =
   | 'emailIngestion'
@@ -312,7 +333,6 @@ export type WorkflowStepType =
   | 'dataProcessing'
   | 'api'
   | 'custom';
-
 export interface WorkflowStep {
   id: string;
   type: WorkflowStepType;
@@ -322,9 +342,7 @@ export interface WorkflowStep {
   maxRetries?: number;
   backoffFactor?: number;
 }
-
 export type WorkflowStatus = 'pending' | 'running' | 'paused' | 'failed' | 'completed';
-
 // Unencrypted credential data typings
 export interface CredentialData {
   username?: string;

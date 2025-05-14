@@ -3,16 +3,14 @@
  * A simplified version of the scheduler without node-cron dependency.
  * Uses setInterval for basic periodic scheduling.
  */
-
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../shared/db.js';
-import { schedules, workflows } from '../shared/schema.js';
+import { isError } from '../utils/errorUtils.js.js';
+import { db } from '../shared/db.js.js';
+import { schedules, workflows } from '../shared/schema.js.js';
 import { eq } from 'drizzle-orm';
-import { runWorkflow } from './workflowService.js';
-
+import { runWorkflow } from './workflowService.js.js';
 // Store active schedule timers
 const activeSchedules = new Map<string, NodeJS.Timeout>();
-
 // Schedule type
 export interface Schedule {
   id: string;
@@ -31,28 +29,23 @@ export interface Schedule {
   platform: string;
   intent: string;
 }
-
 /**
  * Initialize the scheduler on application startup
  * Loads all enabled schedules from the database and starts them
  */
 export async function initializeScheduler(): Promise<void> {
   console.log('Initializing scheduler service (simple version)...');
-
   try {
     // Clean up any active timers
     activeSchedules.forEach((timer, scheduleId) => {
       stopSchedule(scheduleId);
     });
-
     // Load all enabled schedules
     const enabledSchedules = await db
       .select()
       .from(schedules)
       .where(eq(schedules.enabled, true));
-
     console.log(`Found ${enabledSchedules.length} enabled schedules`);
-
     // Start each schedule
     for (const schedule of enabledSchedules) {
       try {
@@ -65,7 +58,6 @@ export async function initializeScheduler(): Promise<void> {
     console.error('Error initializing scheduler:', error);
   }
 }
-
 /**
  * Parse interval from cron expression (simplified)
  * This only handles basic interval patterns
@@ -79,19 +71,16 @@ function parseIntervalFromCron(cronExpression: string): number {
       const minutes = parseInt(minuteMatch[1], 10);
       return minutes * 60 * 1000; // Convert to milliseconds
     }
-
     // Every hour at minute x: x * * * *
     const hourlyMatch = cronExpression.match(/^(\d+)\s+\*\s+\*\s+\*\s+\*$/);
     if (hourlyMatch) {
       return 60 * 60 * 1000; // 1 hour in milliseconds
     }
-
     // Every day at specific time: m h * * *
     const dailyMatch = cronExpression.match(/^(\d+)\s+(\d+)\s+\*\s+\*\s+\*$/);
     if (dailyMatch) {
       return 24 * 60 * 60 * 1000; // 24 hours in milliseconds
     }
-
     // Default: every hour
     return 60 * 60 * 1000;
   } catch (error) {
@@ -100,7 +89,6 @@ function parseIntervalFromCron(cronExpression: string): number {
     return 60 * 60 * 1000;
   }
 }
-
 /**
  * Create a new schedule for a workflow
  */
@@ -119,16 +107,13 @@ export async function createSchedule(
     const workflow = await db
       .select()
       .from(workflows)
-      .where(eq(workflows.id, workflowId));
-
+      .where(eq(workflows.id, workflowId.toString()));
     if (!workflow || workflow.length === 0) {
       throw new Error(`Workflow with ID ${workflowId} not found`);
     }
-
     // Create and save schedule
     const id = uuidv4();
     const now = new Date();
-
     // Note: In the database schema, the field is 'cron' not 'cronExpression'
     const [schedule] = await db
       .insert(schedules)
@@ -141,19 +126,16 @@ export async function createSchedule(
         updatedAt: now
       })
       .returning();
-
     // Start the schedule if enabled
     if (schedule.enabled) {
       await startSchedule(schedule as Schedule);
     }
-
     return schedule as Schedule;
   } catch (error) {
     console.error('Error creating schedule:', error);
     throw error;
   }
 }
-
 /**
  * Start a schedule
  */
@@ -163,21 +145,16 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
     if (activeSchedules.has(schedule.id)) {
       stopSchedule(schedule.id);
     }
-
     // Parse the interval from cron expression
     const interval = parseIntervalFromCron(schedule.cron);
-
     // Create a new timer
     const timer = setInterval(async () => {
       await executeScheduledWorkflow(schedule);
     }, interval);
-
     // Store active timer
     activeSchedules.set(schedule.id, timer);
-
     // Calculate next run time
     const nextRunAt = new Date(Date.now() + interval);
-
     // Update the next run time in the database
     await db
       .update(schedules)
@@ -187,15 +164,17 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
         // But we'll log it for debugging purposes
       })
       .where(eq(schedules.id, schedule.id));
-
     console.log(`Started schedule ${schedule.id} with interval ${interval}ms, next run at ${nextRunAt.toISOString()}`);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
     console.error(`Error starting schedule ${schedule.id}:`, error);
     throw new Error(`Error starting schedule: ${errorMessage}`);
   }
 }
-
 /**
  * Stop a schedule
  */
@@ -207,7 +186,6 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
     console.log(`Stopped schedule ${scheduleId}`);
   }
 }
-
 /**
  * Execute a scheduled workflow
  */
@@ -217,9 +195,7 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
       console.error('Cannot execute schedule without workflowId:', schedule);
       return;
     }
-
     console.log(`Executing scheduled workflow ${schedule.workflowId!}`);
-
     // Update lastRunAt time
     await db
       .update(schedules)
@@ -228,15 +204,12 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
         updatedAt: new Date(),
       })
       .where(eq(schedules.id, schedule.id));
-
     // Execute the workflow
     await executeWorkflowById(schedule.workflowId!);
-
   } catch (error) {
     console.error(`Error executing scheduled workflow ${schedule.workflowId!}:`, error);
   }
 }
-
 /**
  * Execute a scheduled workflow directly (called by job processor)
  */
@@ -246,12 +219,10 @@ export async function executeWorkflowById(workflowId: string): Promise<void> {
     const [workflow] = await db
       .select()
       .from(workflows)
-      .where(eq(workflows.id, workflowId));
-
+      .where(eq(workflows.id, workflowId.toString()));
     if (!workflow) {
       throw new Error(`Workflow with ID ${workflowId} not found`);
     }
-
     // Reset the workflow for re-execution
     await db
       .update(workflows)
@@ -260,18 +231,19 @@ export async function executeWorkflowById(workflowId: string): Promise<void> {
         currentStep: 0,
         lastUpdated: new Date(),
       })
-      .where(eq(workflows.id, workflowId));
-
+      .where(eq(workflows.id, workflowId.toString()));
     // Run the workflow
     await runWorkflow(workflowId);
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
     console.error(`Error executing workflow ${workflowId}:`, error);
     throw new Error(`Failed to execute workflow: ${errorMessage}`);
   }
 }
-
 /**
  * Get a schedule by ID
  */
@@ -279,11 +251,9 @@ export async function getSchedule(scheduleId: string): Promise<Schedule | undefi
   const [schedule] = await db
     .select()
     .from(schedules)
-    .where(eq(schedules.id, scheduleId));
-
+    .where(eq(schedules.id, scheduleId.toString()));
   return schedule as Schedule;
 }
-
 /**
  * List all schedules
  */
@@ -291,7 +261,6 @@ export async function listSchedules(): Promise<Schedule[]> {
   const scheduleList = await db.select().from(schedules);
   return scheduleList as Schedule[];
 }
-
 /**
  * Update a schedule
  */
@@ -309,33 +278,27 @@ export async function updateSchedule(
     const [currentSchedule] = await db
       .select()
       .from(schedules)
-      .where(eq(schedules.id, scheduleId));
-
+      .where(eq(schedules.id, scheduleId.toString()));
     if (!currentSchedule) {
       throw new Error(`Schedule with ID ${scheduleId} not found`);
     }
-
     // Prepare the database update object
     const dbUpdates: any = {
       updatedAt: new Date(),
     };
-
     // Map cronExpression to cron (the DB field name)
     if (updates.cronExpression) {
       dbUpdates.cron = updates.cronExpression;
     }
-
     if (updates.enabled !== undefined) {
       dbUpdates.enabled = updates.enabled;
     }
-
     // Update the schedule
     const [updatedSchedule] = await db
       .update(schedules)
       .set(dbUpdates)
-      .where(eq(schedules.id, scheduleId))
+      .where(eq(schedules.id, scheduleId.toString()))
       .returning();
-
     // If the cron expression changed or it was enabled/disabled, restart or stop
     if (
       (updates.cronExpression && updates.cronExpression !== currentSchedule.cron) ||
@@ -347,15 +310,17 @@ export async function updateSchedule(
         await stopSchedule(scheduleId);
       }
     }
-
     return updatedSchedule as Schedule;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
     console.error(`Error updating schedule ${scheduleId}:`, error);
     throw new Error(`Failed to update schedule: ${errorMessage}`);
   }
 }
-
 /**
  * Delete a schedule
  */
@@ -363,16 +328,18 @@ export async function deleteSchedule(scheduleId: string): Promise<boolean> {
   try {
     // Stop the schedule if it's running
     await stopSchedule(scheduleId);
-
     // Delete from the database
     const result = await db
       .delete(schedules)
-      .where(eq(schedules.id, scheduleId));
-
+      .where(eq(schedules.id, scheduleId.toString()));
     // Check if something was deleted
     return true; // If we get here, it worked
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
     console.error(`Error deleting schedule ${scheduleId}:`, error);
     throw new Error(`Failed to delete schedule: ${errorMessage}`);
   }

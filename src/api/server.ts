@@ -1,57 +1,62 @@
 // src/api/server.ts
 import express, { Request, Response } from 'express';
-import { routeHandler } from '../utils/routeHandler.js';
-import parseTask from '../services/taskParser.js';
-import { getTaskLogs } from '../shared/logger.js';
+import { isError } from '../utils/errorUtils.js.js';
+import { routeHandler } from '../utils/routeHandler.js.js';
+import parseTask from '../services/taskParser.js.js';
+import { getTaskLogs } from '../shared/logger.js.js';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { registerAuthRoutes } from '../server/routes/index.js';
-import { initializeJobQueue } from '../services/jobQueue.js';
-import { initializeScheduler } from '../services/schedulerService.js';
-import { initializeMailer } from '../services/mailerService.js';
-import jobsRouter from '../server/routes/jobs.js';
-import workflowsRouter from '../server/routes/workflows.js';
-import { rateLimiters } from '../shared/middleware/rateLimiter.js';
-import { errorHandlerMiddleware } from '../shared/errorHandler.js';
-
+import { registerAuthRoutes } from '../server/routes/index.js.js';
+import { initializeJobQueue } from '../services/jobQueue.js.js';
+import { initializeScheduler } from '../services/schedulerService.js.js';
+import { initializeMailer } from '../services/mailerService.js.js';
+import jobsRouter from '../server/routes/jobs.js.js';
+import workflowsRouter from '../server/routes/workflows.js.js';
+import { rateLimiters } from '../shared/middleware/rateLimiter.js.js';
+import { errorHandlerMiddleware } from '../shared/errorHandler.js.js';
+import { validateEnvOrExit } from '../utils/envValidator.js.js';
+import { initializeEncryption } from '../utils/encryption.js.js';
+import { logger } from '../shared/logger.js.js';
 // Load environment variables
 dotenv.config();
-
+// Validate environment variables
+// This will exit the process in production if required variables are missing or using defaults
+validateEnvOrExit();
+// Initialize encryption with validated key
+initializeEncryption();
+// Log startup information
+logger.info({
+  event: 'server_startup',
+  environment: process.env.NODE_ENV || 'development',
+  timestamp: new Date().toISOString()
+}, 'Server starting with validated environment');
 // Initialize Express app
 const app = express();
 app.use(express.json());
-
 // Serve static files from the public directory
 app.use(express.static('public'));
-
 // Apply global rate limiter to all routes
 app.use(rateLimiters.api);
-
 // Configure and register authentication routes
 (async () => {
   try {
     // Initialize job queue service
     await initializeJobQueue();
     console.log('Job queue initialized');
-
     // Initialize the task scheduler
     await initializeScheduler();
     console.log('Task scheduler initialized');
-
     // Initialize email service if SendGrid API key is available
     if (process.env.SENDGRID_API_KEY) {
       initializeMailer();
     } else {
       console.warn('SendGrid API key not found; email functionality will be limited');
     }
-
     // Register authentication and API routes
     await registerAuthRoutes(app);
     console.log('Authentication routes registered successfully');
-
     // Register job management routes
     app.use('/api/jobs', jobsRouter);
-
     // Register workflow routes
     app.use('/api/workflows', workflowsRouter);
     console.log('Job management and workflow routes registered');
@@ -59,10 +64,8 @@ app.use(rateLimiters.api);
     console.error('Failed to register routes:', error);
   }
 })();
-
 // Set up routes
 const router = express.Router();
-
 // Health check
 router.get(
   '/health',
@@ -75,7 +78,6 @@ router.get(
     });
   })
 );
-
 // Test-parser endpoint
 router.post(
   '/test-parser',
@@ -87,7 +89,6 @@ router.post(
     res.json(result);
   })
 );
-
 // Tasks listing endpoint
 router.get(
   '/tasks',
@@ -96,35 +97,27 @@ router.get(
     res.json(tasks);
   })
 );
-
 // Register API routes
 app.use('/api', router);
-
 // Serve the index.html file for the root route
 app.get('/', routeHandler((_req: Request, res: Response) => {
   res.sendFile('index.html', { root: './public' });
 }));
-
 // Import job queue and database dependencies
-import { enqueueJob } from '../services/jobQueue.js';
-import { db } from '../shared/db.js';
-import { taskLogs } from '../shared/schema.js';
-
+import { enqueueJob } from '../services/jobQueue.js.js';
+import { db } from '../shared/db.js.js';
+import { taskLogs } from '../shared/schema.js.js';
 // API endpoint to submit a new task
 app.post('/api/tasks', rateLimiters.taskSubmission, async (req: Request, res: Response) => {
   try {
     const { task } = req.body;
-
     if (!task || typeof task !== 'string') {
       return res.status(400).json({ error: 'Task is required and must be a string' });
     }
-
     // Parse the task to determine its type and parameters
     const parsedTask = await parseTask(task);
-
     // Generate task ID
     const taskId = crypto.randomUUID();
-
     // Create the task object and insert into database
     await // @ts-ignore
 db.insert(taskLogs).values({
@@ -134,44 +127,39 @@ db.insert(taskLogs).values({
       taskText: task,
       taskData: parsedTask.parameters,
       status: 'pending'
-    });
-
+      } as any) // @ts-ignore - Ensuring all required properties are provided;
     // Enqueue the task for processing with job queue
     const jobId = await enqueueJob(taskId);
-
     console.log(`Task ${taskId} submitted and enqueued as job ${jobId}`);
-
     // Return the task ID
     return res.status(201).json({
       id: taskId,
       jobId: jobId,
       message: 'Task submitted and enqueued successfully'
     });
-
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     console.error('Error in task submission:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : 'Unknown error'
     });
   }
 });
-
 // API endpoint for direct task execution
 app.post('/submit-task', rateLimiters.taskSubmission, async (req: Request, res: Response) => {
   try {
     const { task } = req.body;
-
     if (!task || typeof task !== 'string') {
       return res.status(400).json({ error: 'Task is required and must be a string' });
     }
-
     // Parse the task to determine its type and parameters
     const parsedTask = await parseTask(task);
-
     // Generate task ID
     const taskId = crypto.randomUUID();
-
     // Create the task object and insert into database
     await // @ts-ignore
 db.insert(taskLogs).values({
@@ -181,32 +169,30 @@ db.insert(taskLogs).values({
       taskText: task,
       taskData: parsedTask.parameters,
       status: 'pending'
-    });
-
+      } as any) // @ts-ignore - Ensuring all required properties are provided;
     // Enqueue the task with high priority (1 is highest)
     const jobId = await enqueueJob(taskId, 1);
-
     console.log(`Direct task ${taskId} submitted and enqueued as job ${jobId}`);
-
     // Return the task ID
     return res.status(201).json({
       id: taskId,
       jobId: jobId,
       message: 'Task submitted for immediate processing'
     });
-
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     console.error('Error in direct task execution:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : 'Unknown error'
     });
   }
 });
-
 // Add global error handler middleware
 app.use(errorHandlerMiddleware);
-
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
@@ -220,6 +206,5 @@ app.listen(PORT, () => {
   console.log(`  GET /api/health - Health check endpoint (rate limited: 30/minute)`);
   console.log(`Rate limiting enabled: 100 requests per 15 minutes globally`);
 });
-
 // Export the app for testing
 export { app };

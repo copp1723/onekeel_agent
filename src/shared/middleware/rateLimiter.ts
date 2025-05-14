@@ -6,13 +6,10 @@
  */
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
-import { logger } from '../logger.js';
-import { AppError } from '../errorTypes.js';
-
+import { logger } from '../logger.js.js';
 // Default rate limit settings
 const DEFAULT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const DEFAULT_MAX_REQUESTS = 100; // 100 requests per window
-
 /**
  * Rate limit configuration interface
  */
@@ -24,7 +21,6 @@ export interface RateLimitConfig {
   legacyHeaders?: boolean;
   keyGenerator?: (req: Request) => string;
 }
-
 /**
  * Creates a rate limiting middleware with the specified configuration
  * 
@@ -54,7 +50,6 @@ export function createRateLimiter(config: RateLimitConfig = {}) {
           max: options.max
         }
       });
-
       // Return error response
       res.status(429).json({
         status: 'error',
@@ -64,10 +59,8 @@ export function createRateLimiter(config: RateLimitConfig = {}) {
       });
     }
   };
-
   return rateLimit(limiterConfig);
 }
-
 /**
  * Predefined rate limiters for common use cases
  */
@@ -78,21 +71,18 @@ export const rateLimiters = {
     max: 100,
     message: 'Too many API requests, please try again after 15 minutes'
   }),
-
   // Authentication rate limiter (5 requests per minute)
   auth: createRateLimiter({
     windowMs: 60 * 1000,
     max: 5,
     message: 'Too many authentication attempts, please try again after 1 minute'
   }),
-
   // Task submission rate limiter (10 requests per minute)
   taskSubmission: createRateLimiter({
     windowMs: 60 * 1000,
     max: 10,
     message: 'Too many task submissions, please try again after 1 minute'
   }),
-
   // Health check rate limiter (30 requests per minute)
   healthCheck: createRateLimiter({
     windowMs: 60 * 1000,

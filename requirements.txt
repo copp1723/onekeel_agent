@@ -48,6 +48,27 @@ tailwindcss>=4.1.6
 ts-node>=10.9.2
 typescript>=5.8.3
 uuid>=11.1.0
+zod>=3.22.4
+
+# Security dependencies
+# Enhanced encryption and security features
+# src/utils/encryption.ts - AES-256-GCM encryption
+# src/utils/envValidator.ts - Environment variable validation
+# src/services/userCredentialService.ts - Per-user credential isolation
+# ci/check-secrets.js - CI check for default secrets
+
+# Distributed Job Queue dependencies
+# BullMQ and Redis for distributed job processing
+# src/services/bullmqService.ts - Core BullMQ implementation
+# src/services/queueManager.ts - Queue management
+# src/services/distributedScheduler.ts - Distributed scheduler
+# src/workers/ingestionWorker.ts - Worker for ingestion jobs
+# src/workers/processingWorker.ts - Worker for processing jobs
+
+# Retry and Circuit Breaker dependencies
+# These are custom implementations in the codebase
+# src/utils/retry.ts - Retry with exponential backoff
+# src/utils/circuitBreaker.ts - Circuit breaker pattern
 
 # Development dependencies
 @types/connect-pg-simple>=7.0.3
@@ -64,9 +85,15 @@ uuid>=11.1.0
 @types/passport>=1.0.17
 @types/supertest>=2.0.16
 @types/uuid>=10.0.0
+@types/zod>=3.22.4
+@typescript-eslint/eslint-plugin>=7.0.0
+@typescript-eslint/parser>=7.0.0
 express-rate-limit>=7.5.0
 jest>=29.7.0
 supertest>=6.3.4
 ts-jest>=29.3.2
+typescript>=5.8.3
 vitest>=1.4.0
 @vitest/coverage-v8>=1.4.0
+eslint-plugin-security>=2.1.0
+eslint-plugin-typescript>=0.14.0

@@ -2,19 +2,15 @@
  * Fixed task parser implementation
  * With direct pattern matching for CRM report requests
  */
-import { type ParsedTask } from './taskParser.js';
-import { TaskType } from '../types.js';
+import { TaskType } from '../types.js.js';
 import * as uuid from 'uuid';
-
 /**
  * Simple parser function that directly handles VinSolutions CRM report requests
  * without complex logic or LLM calls
  */
 export function parseTaskDirect(taskText: string): ParsedTask {
   console.log(`TaskParser-fix.ts: processing task: "${taskText}"`);
-  
   const taskLower = taskText.toLowerCase();
-  
   // Log all pattern tests for debugging
   const patternTests = {
     vinsolutions: taskLower.includes('vinsolutions'),
@@ -26,9 +22,7 @@ export function parseTaskDirect(taskText: string): ParsedTask {
     get: taskLower.includes('get'),
     pull: taskLower.includes('pull')
   };
-  
   console.log('Pattern components:', patternTests);
-  
   // Define a comprehensive set of patterns to match different phrasings
   const patterns = [
     // Direct VinSolutions patterns
@@ -54,7 +48,6 @@ export function parseTaskDirect(taskText: string): ParsedTask {
       name: "Sales report + VinSolutions (any order)"
     }
   ];
-  
   // Test all patterns
   let matchedPattern = null;
   for (const p of patterns) {
@@ -65,16 +58,13 @@ export function parseTaskDirect(taskText: string): ParsedTask {
       break;
     }
   }
-  
   // Direct pattern matching for VinSolutions CRM report
   if (matchedPattern) {
     console.log(`☑️ Pattern matched: ${matchedPattern.name}`);
-    
     // Extract dealer ID if present
     const dealerMatch = taskText.match(/dealer(?:ship)?\s+([A-Za-z0-9]+)/i);
     const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
     console.log(`Dealer ID extracted: ${dealerId}`);
-    
     return {
       id: uuid.v4(), // Use uuid.v4() instead of uuidv4()
       type: TaskType.FetchCRMReport,
@@ -85,20 +75,16 @@ export function parseTaskDirect(taskText: string): ParsedTask {
       original: taskText
     };
   }
-  
   // Keyword-based detection as fallback
   if ((taskLower.includes('sales') && taskLower.includes('report')) || 
       (taskLower.includes('crm') && taskLower.includes('report'))) {
-    
     // If VinSolutions is mentioned anywhere, it's probably a VinSolutions request
     if (taskLower.includes('vinsolutions')) {
       console.log('☑️ VinSolutions keyword match detected');
-      
       // Extract dealer ID if present
       const dealerMatch = taskText.match(/dealer(?:ship)?\s+([A-Za-z0-9]+)/i);
       const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
       console.log(`Dealer ID extracted: ${dealerId}`);
-      
       return {
         id: uuid.v4(), // Use uuid.v4() instead of uuidv4()
         type: TaskType.FetchCRMReport,
@@ -110,12 +96,10 @@ export function parseTaskDirect(taskText: string): ParsedTask {
       };
     } else {
       console.log('☑️ Generic sales report pattern matched (non-VinSolutions)');
-      
       // Extract dealer ID if present
       const dealerMatch = taskText.match(/dealer(?:ship)?\s+([A-Za-z0-9]+)/i);
       const dealerId = dealerMatch ? dealerMatch[1] : 'ABC123';
       console.log(`Dealer ID extracted: ${dealerId}`);
-      
       return {
         id: uuid.v4(), // Use uuid.v4() instead of uuidv4()
         type: TaskType.FetchCRMReport,
@@ -127,7 +111,6 @@ export function parseTaskDirect(taskText: string): ParsedTask {
       };
     }
   }
-  
   // Default: unknown task type
   console.log('⚠️ No pattern matched, treating as unknown task type');
   return {

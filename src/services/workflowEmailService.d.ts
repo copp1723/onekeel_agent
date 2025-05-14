@@ -1,7 +1,6 @@
 /**
  * TypeScript type declarations for workflowEmailService.js
  */
-
 /**
  * Email notification settings result
  */
@@ -14,7 +13,6 @@ export interface EmailNotification {
   createdAt: Date;
   updatedAt: Date;
 }
-
 /**
  * Email log result
  */
@@ -30,7 +28,6 @@ export interface EmailLog {
   createdAt: Date;
   updatedAt: Date;
 }
-
 /**
  * Response from sending a workflow completion email
  */
@@ -40,7 +37,6 @@ export interface EmailSendResult {
   emailId?: string;
   error?: string;
 }
-
 /**
  * Response from configuring email notifications
  */
@@ -50,7 +46,6 @@ export interface EmailNotificationConfigResult {
   message: string;
   error?: string;
 }
-
 /**
  * Response from retrying a failed email
  */
@@ -60,7 +55,6 @@ export interface EmailRetryResult {
   emailLog?: EmailLog;
   error?: string;
 }
-
 /**
  * Send a workflow completion email
  * @param workflowId The ID of the completed workflow
@@ -71,7 +65,6 @@ export function sendWorkflowCompletionEmail(
   workflowId: string, 
   recipientOverride?: string | string[]
 ): Promise<EmailSendResult>;
-
 /**
  * Configure email notifications for a workflow
  * @param workflowId The ID of the workflow
@@ -87,7 +80,6 @@ export function configureEmailNotifications(
     sendOnFailure?: boolean;
   }
 ): Promise<EmailNotificationConfigResult>;
-
 /**
  * Get email notification settings for a workflow
  * @param workflowId The ID of the workflow
@@ -96,7 +88,6 @@ export function configureEmailNotifications(
 export function getEmailNotificationSettings(
   workflowId: string
 ): Promise<EmailNotification | null>;
-
 /**
  * Delete email notification settings for a workflow
  * @param workflowId The ID of the workflow
@@ -105,7 +96,6 @@ export function getEmailNotificationSettings(
 export function deleteEmailNotificationSettings(
   workflowId: string
 ): Promise<boolean>;
-
 /**
  * Get email logs for a workflow
  * @param workflowId The ID of the workflow
@@ -114,7 +104,6 @@ export function deleteEmailNotificationSettings(
 export function getEmailLogs(
   workflowId: string
 ): Promise<EmailLog[]>;
-
 /**
  * Retry failed email for a workflow
  * @param emailLogId The ID of the email log

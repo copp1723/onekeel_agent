@@ -3,21 +3,17 @@
  * 
  * Service for optimizing specific database queries.
  */
-
-import { db } from '../shared/db.js';
-import { sql } from 'drizzle-orm';
-import { executeWithCache, CacheOptions } from './dbOptimizationService.js';
-import { 
+import { db } from '../shared/db.js.js';
+import { executeWithCache, CacheOptions } from './dbOptimizationService.js.js';
+import {  
   taskLogs, 
   workflows, 
   emailQueue, 
   emailLogs, 
   healthChecks, 
-  healthLogs, 
   dealerCredentials 
-} from '../shared/schema.js';
-import { eq, and, or, desc, asc, gte, lte, inArray } from 'drizzle-orm';
-
+ } from '....js';
+import {    eq, and, or, desc, asc } from '....js';
 /**
  * Get recent task logs with caching
  * 
@@ -43,7 +39,6 @@ export async function getRecentTaskLogs(
     }
   );
 }
-
 /**
  * Get task logs by status with caching
  * 
@@ -72,7 +67,6 @@ export async function getTaskLogsByStatus(
     }
   );
 }
-
 /**
  * Get task logs by user with caching
  * 
@@ -101,7 +95,6 @@ export async function getTaskLogsByUser(
     }
   );
 }
-
 /**
  * Get active workflows with caching
  * 
@@ -133,7 +126,6 @@ export async function getActiveWorkflows(
     }
   );
 }
-
 /**
  * Get workflows by user with caching
  * 
@@ -162,7 +154,6 @@ export async function getWorkflowsByUser(
     }
   );
 }
-
 /**
  * Get pending emails with caching
  * 
@@ -189,7 +180,6 @@ export async function getPendingEmails(
     }
   );
 }
-
 /**
  * Get email logs by recipient with caching
  * 
@@ -218,7 +208,6 @@ export async function getEmailLogsByRecipient(
     }
   );
 }
-
 /**
  * Get health check status with caching
  * 
@@ -239,7 +228,6 @@ export async function getHealthCheckStatus(options: CacheOptions = {}) {
     }
   );
 }
-
 /**
  * Get dealer credentials by dealer ID with caching
  * 
@@ -257,7 +245,7 @@ export async function getDealerCredentialsByDealerId(
         .from(dealerCredentials)
         .where(
           and(
-            eq(dealerCredentials.dealerId, dealerId),
+            eq(dealerCredentials.dealerId!, dealerId),
             eq(dealerCredentials.active, true)
           )
         );

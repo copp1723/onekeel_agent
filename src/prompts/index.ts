@@ -4,13 +4,11 @@
  * This module exports all prompt-related functionality for the application.
  * It provides a centralized way to access system prompts and prompt routing logic.
  */
-
 // Export specific prompts with their versions
 export { 
   automotiveAnalystSystemPrompt, 
   promptVersion as automotiveAnalystPromptVersion 
-} from './automotiveAnalystPrompt.js';
-
+} from './automotiveAnalystPrompt.js.js';
 // Export prompt router functionality
 export { 
   getPromptByIntent,
@@ -20,8 +18,7 @@ export {
   routerVersion,
   type PromptIntent,
   type PromptInfo
-} from './promptRouter.js';
-
+} from './promptRouter.js.js';
 /**
  * Describes the expected structure of insight responses
  */
@@ -31,7 +28,6 @@ export interface InsightResponse {
   actionItems: string[]; // 3-5 specific actionable recommendations
   dataPoints?: Record<string, any>; // Optional additional structured data
 }
-
 /**
  * Parameters for a generic insight generation request
  */

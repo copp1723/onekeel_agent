@@ -1,7 +1,6 @@
 /**
  * Tests for Insight Generator Service
  */
-
 import fs from 'fs';
 import path from 'path';
 import { OpenAI } from 'openai';
@@ -11,11 +10,10 @@ import {
   storeInsight,
   generateInsights,
   InsightResponseSchema
-} from '../../services/insightGenerator';
-import { db } from '../../db/index';
-import { insights } from '../../shared/report-schema';
-import { FileType } from '../../services/attachmentParsers';
-
+} from '../../services/insightGenerator.js.js';
+import { db } from '../../db/index.js.js';
+import { insights } from '../../shared/report-schema.js.js';
+import { FileType } from '../../services/attachmentParsers.js.js';
 // Mock fs module
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(false),
@@ -23,13 +21,11 @@ jest.mock('fs', () => ({
   writeFileSync: jest.fn(),
   appendFileSync: jest.fn()
 }));
-
 // Mock path module
 jest.mock('path', () => ({
   join: jest.fn((...args) => args.join('/')),
   basename: jest.fn((filePath) => filePath.split('/').pop())
 }));
-
 // Mock db
 jest.mock('../../db/index', () => ({
   db: {
@@ -38,12 +34,10 @@ jest.mock('../../db/index', () => ({
     })
   }
 }));
-
 // Mock uuid
 jest.mock('uuid', () => ({
   v4: jest.fn().mockReturnValue('test-uuid')
 }));
-
 // Mock OpenAI
 jest.mock('openai', () => ({
   OpenAI: jest.fn().mockImplementation(() => ({
@@ -80,13 +74,11 @@ jest.mock('openai', () => ({
     }
   }))
 }));
-
 describe('Insight Generator Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.OPENAI_API_KEY = 'test-api-key';
   });
-  
   describe('logInsightRun', () => {
     it('should log insight run data', () => {
       // Arrange
@@ -97,16 +89,13 @@ describe('Insight Generator Service', () => {
         durationMs: 1000,
         outputSummary: ['Test Insight']
       };
-      
       // Act
       logInsightRun(logData);
-      
       // Assert
       expect(fs.existsSync).toHaveBeenCalled();
       expect(fs.appendFileSync).toHaveBeenCalled();
     });
   });
-  
   describe('saveResult', () => {
     it('should save insight result to file', () => {
       // Arrange
@@ -129,10 +118,8 @@ describe('Insight Generator Service', () => {
         promptVersion: '1.0.0',
         durationMs: 1000
       };
-      
       // Act
       const result = saveResult(platform, insightData, filename, metadata);
-      
       // Assert
       expect(fs.existsSync).toHaveBeenCalledTimes(2);
       expect(fs.mkdirSync).toHaveBeenCalledTimes(2);
@@ -140,7 +127,6 @@ describe('Insight Generator Service', () => {
       expect(result).toContain(filename);
     });
   });
-  
   describe('storeInsight', () => {
     it('should store insight in database', async () => {
       // Arrange
@@ -165,16 +151,13 @@ describe('Insight Generator Service', () => {
         qualityScores: { relevance: 9, clarity: 8 },
         businessImpact: { revenue: 'high', cost: 'medium' }
       };
-      
       // Act
       const result = await storeInsight(reportId, insightData, metadata);
-      
       // Assert
       expect(db.insert).toHaveBeenCalledWith(insights);
       expect(result).toBe('test-uuid');
     });
   });
-  
   describe('generateInsights', () => {
     it('should generate insights from parsed data', async () => {
       // Arrange
@@ -195,16 +178,12 @@ describe('Insight Generator Service', () => {
         modelVersion: 'gpt-4o',
         sampleSize: 1
       };
-      
       // Mock saveResult
       jest.spyOn(global, 'saveResult' as any).mockReturnValue('test/path.json');
-      
       // Mock storeInsight
       jest.spyOn(global, 'storeInsight' as any).mockResolvedValue('insight-id');
-      
       // Act
       const result = await generateInsights(data, platform, options);
-      
       // Assert
       expect(result).toEqual({
         insightId: 'insight-id',
@@ -229,7 +208,6 @@ describe('Insight Generator Service', () => {
         })
       });
     });
-    
     it('should handle errors during insight generation', async () => {
       // Arrange
       const data = {
@@ -243,7 +221,6 @@ describe('Insight Generator Service', () => {
         }
       };
       const platform = 'TestVendor';
-      
       // Mock OpenAI to throw an error
       (OpenAI as jest.Mock).mockImplementation(() => ({
         chat: {
@@ -252,12 +229,10 @@ describe('Insight Generator Service', () => {
           }
         }
       }));
-      
       // Act & Assert
       await expect(generateInsights(data, platform)).rejects.toThrow('API error');
     });
   });
-  
   describe('InsightResponseSchema', () => {
     it('should validate valid insight responses', () => {
       // Arrange
@@ -287,11 +262,9 @@ describe('Insight Generator Service', () => {
           }
         ]
       };
-      
       // Act & Assert
       expect(() => InsightResponseSchema.parse(validInsight)).not.toThrow();
     });
-    
     it('should reject invalid insight responses', () => {
       // Arrange
       const invalidInsight = {
@@ -299,7 +272,6 @@ describe('Insight Generator Service', () => {
         // Missing required fields
         actionItems: []
       };
-      
       // Act & Assert
       expect(() => InsightResponseSchema.parse(invalidInsight)).toThrow();
     });

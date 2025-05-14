@@ -2,8 +2,7 @@
  * Sample Data Provider
  * Provides sample data for testing CRM report flows without real credentials
  */
-import { CRMPlatform, PlatformConfig } from '../types.js';
-
+import { CRMPlatform, PlatformConfig } from '../types.js.js';
 /**
  * Returns a sample platform configuration for testing
  * Uses the same structure as the real platforms.json config
@@ -60,7 +59,6 @@ export function getSamplePlatformConfig(platform: CRMPlatform): PlatformConfig {
     };
   }
 }
-
 /**
  * Returns a sample CSV report for the specified dealer ID
  * Used when USE_SAMPLE_DATA environment variable is set to 'true'
@@ -72,9 +70,7 @@ export function getSampleReport(dealerId: string, platform: CRMPlatform = 'VinSo
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  
   const formattedDate = yesterday.toISOString().split('T')[0]; // YYYY-MM-DD format
-  
   if (platform === 'VinSolutions') {
     // Sample VinSolutions sales report
     return `Date,DealerID,SalesRep,Customer,VIN,Vehicle,SalePrice,TradeIn,Profit
@@ -93,7 +89,6 @@ ${formattedDate},${dealerId},S12348,WAUENAF44HN123458,Audi,A4,2022,15,38000,4200
 ${formattedDate},${dealerId},S12349,5TDZA3DC1CS123459,Toyota,Sienna,2022,10,34500,38500,37800`;
   }
 }
-
 /**
  * Creates a temporary CSV file with sample data
  * @param dealerId - Dealer ID to include in the sample data
@@ -104,17 +99,13 @@ export async function createSampleReportFile(dealerId: string, platform: CRMPlat
   const fs = await import('fs/promises');
   const path = await import('path');
   const os = await import('os');
-  
   // Generate sample data
   const sampleData = getSampleReport(dealerId, platform);
-  
   // Create temporary file
   const tempDir = os.tmpdir();
   const fileName = `${platform.toLowerCase()}_${dealerId}_report_${Date.now()}.csv`;
   const filePath = path.join(tempDir, fileName);
-  
   // Write sample data to file
   await fs.writeFile(filePath, sampleData, 'utf-8');
-  
   return filePath;
 }

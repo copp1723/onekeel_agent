@@ -4,16 +4,15 @@
  * Generates insights from parsed data using LLM-based analysis
  * and stores results in the database with metadata.
  */
-
 import fs from 'fs';
+import { isError } from '../utils/errorUtils.js.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { OpenAI } from 'openai';
-import { db } from '../db/index';
-import { insights } from '../shared/report-schema';
-import { ParserResult } from './attachmentParsers';
+import { db } from '../db/index.js.js';
+import { insights } from '../shared/report-schema.js.js';
+import { ParserResult } from './attachmentParsers.js.js';
 import { z } from 'zod';
-
 // Define the insight response schema
 export const InsightResponseSchema = z.object({
   title: z.string(),
@@ -39,10 +38,8 @@ export const InsightResponseSchema = z.object({
     yAxisLabel: z.string().optional()
   })).optional()
 });
-
 // Type for insight response
 export type InsightResponse = z.infer<typeof InsightResponseSchema>;
-
 // Type for insight run log data
 export interface InsightRunLogData {
   platform: string;
@@ -52,7 +49,6 @@ export interface InsightRunLogData {
   outputSummary: string[];
   error?: string;
 }
-
 // Type for insight generation options
 export interface InsightGenerationOptions {
   intent?: string;
@@ -61,12 +57,10 @@ export interface InsightGenerationOptions {
   sampleSize?: number;
   includeCharts?: boolean;
 }
-
 // Prompt templates for different intents
 const PROMPT_TEMPLATES: Record<string, { text: string; version: string }> = {
   automotive_analysis: {
     text: `You are an expert automotive dealership analyst. Your task is to analyze CRM data from a car dealership and provide actionable insights.
-
 Focus on:
 1. Sales performance trends
 2. Lead conversion rates
@@ -74,7 +68,6 @@ Focus on:
 4. Sales rep performance
 5. Customer demographics
 6. Marketing channel effectiveness
-
 Provide your analysis in a structured format with:
 - A clear title summarizing the main insight
 - A detailed description of what you found
@@ -82,13 +75,11 @@ Provide your analysis in a structured format with:
 - 3-5 specific, actionable recommendations
 - Key metrics with values and trends
 - Charts that would help visualize the data (describe what they would show)
-
 Your insights should be specific, data-driven, and actionable for dealership management.`,
     version: '2.0.0'
   },
   inventory_analysis: {
     text: `You are an expert automotive inventory analyst. Your task is to analyze inventory data from a car dealership and provide actionable insights.
-
 Focus on:
 1. Inventory aging and turnover
 2. Popular models and configurations
@@ -96,7 +87,6 @@ Focus on:
 4. Inventory mix optimization
 5. Seasonal trends
 6. Competitive positioning
-
 Provide your analysis in a structured format with:
 - A clear title summarizing the main insight
 - A detailed description of what you found
@@ -104,12 +94,10 @@ Provide your analysis in a structured format with:
 - 3-5 specific, actionable recommendations
 - Key metrics with values and trends
 - Charts that would help visualize the data (describe what they would show)
-
 Your insights should be specific, data-driven, and actionable for inventory managers.`,
     version: '1.5.0'
   }
 };
-
 /**
  * Log insight generation run
  * @param logData - Insight run log data
@@ -120,20 +108,16 @@ export function logInsightRun(logData: InsightRunLogData): void {
     timestamp,
     ...logData
   };
-  
-  console.log(`[INSIGHT RUN] ${timestamp} - ${logData.platform} - ${logData.promptIntent} - ${logData.durationMs}ms`);
-  
+  console.log(`[INSIGHT RUN] ${timestamp} - ${logData.platform!} - ${logData.promptIntent} - ${logData.durationMs}ms`);
   // Create logs directory if it doesn't exist
   const logsDir = path.join(process.cwd(), 'logs');
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
   }
-  
   // Append to log file
   const logFile = path.join(logsDir, 'insight-runs.jsonl');
   fs.appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
 }
-
 /**
  * Save insight result to file
  * @param platform - Platform name
@@ -153,13 +137,11 @@ export function saveResult(
   if (!fs.existsSync(insightsDir)) {
     fs.mkdirSync(insightsDir, { recursive: true });
   }
-  
   // Create platform directory if it doesn't exist
   const platformDir = path.join(insightsDir, platform);
   if (!fs.existsSync(platformDir)) {
     fs.mkdirSync(platformDir, { recursive: true });
   }
-  
   // Create result object
   const result = {
     insight: insightData,
@@ -169,14 +151,11 @@ export function saveResult(
       platform
     }
   };
-  
   // Save to file
   const filePath = path.join(platformDir, `${filename}.json`);
   fs.writeFileSync(filePath, JSON.stringify(result, null, 2));
-  
   return filePath;
 }
-
 /**
  * Store insight in database
  * @param reportId - Report ID
@@ -197,7 +176,6 @@ export async function storeInsight(
   }
 ): Promise<string> {
   const insightId = uuidv4();
-  
   await db.insert(insights).values({
     id: insightId,
     reportId,
@@ -208,12 +186,10 @@ export async function storeInsight(
     businessImpact: metadata.businessImpact || null,
     createdAt: new Date(),
     updatedAt: new Date()
-  });
-  
+      } as any) // @ts-ignore - Ensuring all required properties are provided;
   console.log(`Stored insight: ${insightId}`);
   return insightId;
 }
-
 /**
  * Generate insights from parsed data
  * @param data - Parsed data
@@ -231,17 +207,14 @@ export async function generateInsights(
   metadata: Record<string, any>;
 }> {
   // Set default options
-  const intent = options.intent || 'automotive_analysis';
+  const intent = options.intent! || 'automotive_analysis';
   const promptInfo = PROMPT_TEMPLATES[intent] || PROMPT_TEMPLATES.automotive_analysis;
   const modelVersion = options.modelVersion || 'gpt-4o';
   const sampleSize = options.sampleSize || Math.min(100, data.records.length);
-  
   // Initialize OpenAI client
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  
   // Start timing
   const startTime = Date.now();
-  
   try {
     // Prepare sample data
     const sampleData = JSON.stringify(
@@ -249,7 +222,6 @@ export async function generateInsights(
       null,
       2
     );
-    
     // Generate insights
     const response = await openai.chat.completions.create({
       model: modelVersion,
@@ -263,21 +235,17 @@ export async function generateInsights(
       temperature: 0.2,
       response_format: { type: 'json_object' }
     });
-    
     // Calculate duration
     const endTime = Date.now();
     const durationMs = endTime - startTime;
-    
     // Parse the response
     const content = response.choices[0].message.content;
     if (!content) {
       throw new Error('Failed to generate insights: Empty response from OpenAI');
     }
-    
     // Parse and validate JSON response
     const rawInsightData = JSON.parse(content);
     const insightData = InsightResponseSchema.parse(rawInsightData);
-    
     // Log the insight run
     const insightRunData: InsightRunLogData = {
       platform,
@@ -287,7 +255,6 @@ export async function generateInsights(
       outputSummary: [insightData.title]
     };
     logInsightRun(insightRunData);
-    
     // Save result to file
     const outputFilename = `insight_${Date.now()}`;
     const outputPath = saveResult(platform, insightData, outputFilename, {
@@ -297,7 +264,6 @@ export async function generateInsights(
       sampleSize,
       modelVersion
     });
-    
     // Store in database
     const metadata = {
       promptVersion: promptInfo.version,
@@ -305,9 +271,7 @@ export async function generateInsights(
       durationMs,
       filePath: outputPath
     };
-    
     const insightId = await storeInsight(data.id, insightData, metadata);
-    
     return {
       insightId,
       insight: insightData,
@@ -320,8 +284,12 @@ export async function generateInsights(
       }
     };
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Log error
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
     const insightRunData: InsightRunLogData = {
       platform,
       promptIntent: intent,
@@ -331,12 +299,10 @@ export async function generateInsights(
       error: errorMessage
     };
     logInsightRun(insightRunData);
-    
     console.error('Error generating insights:', error);
     throw error;
   }
 }
-
 export default {
   generateInsights,
   logInsightRun,

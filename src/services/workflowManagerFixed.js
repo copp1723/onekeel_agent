@@ -6,6 +6,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+const logger = require('../utils/logger').default;
 
 // In-memory storage for workflows
 const workflows = new Map();
@@ -76,7 +77,7 @@ class WorkflowManager {
       
       return result;
     } catch (error) {
-      console.error(`Error executing step ${stepIndex} of workflow ${id}:`, error);
+      logger.error({ event: 'workflow_step_error', workflowId: id, stepIndex, errorMessage: error.message, stack: error.stack, timestamp: new Date().toISOString() }, `Error executing workflow step`);
       
       // Update workflow status to error
       workflow.status = 'error';

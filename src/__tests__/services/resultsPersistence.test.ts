@@ -1,7 +1,6 @@
 /**
  * Tests for Results Persistence Service
  */
-
 import fs from 'fs';
 import path from 'path';
 import { 
@@ -11,24 +10,21 @@ import {
   storeReportSource,
   storeReportData,
   storeResults
-} from '../../services/resultsPersistence';
-import { db } from '../../db/index';
-import { reports, reportSources } from '../../shared/report-schema';
-import { FileType } from '../../services/attachmentParsers';
-
+} from '../../services/resultsPersistence.js.js';
+import { db } from '../../db/index.js.js';
+import { reports, reportSources } from '../../shared/report-schema.js.js';
+import { FileType } from '../../services/attachmentParsers.js.js';
 // Mock fs module
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(false),
   mkdirSync: jest.fn(),
   writeFileSync: jest.fn()
 }));
-
 // Mock path module
 jest.mock('path', () => ({
   join: jest.fn((...args) => args.join('/')),
   basename: jest.fn((filePath) => filePath.split('/').pop())
 }));
-
 // Mock db
 jest.mock('../../db/index', () => ({
   db: {
@@ -44,46 +40,37 @@ jest.mock('../../db/index', () => ({
     })
   }
 }));
-
 // Mock uuid
 jest.mock('uuid', () => ({
   v4: jest.fn().mockReturnValue('test-uuid')
 }));
-
 describe('Results Persistence Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  
   describe('createResultsDirectory', () => {
     it('should create directories if they do not exist', () => {
       // Arrange
       const vendor = 'TestVendor';
-      
       // Act
       const result = createResultsDirectory(vendor);
-      
       // Assert
       expect(fs.existsSync).toHaveBeenCalledTimes(2);
       expect(fs.mkdirSync).toHaveBeenCalledTimes(2);
       expect(result).toBe(process.cwd() + '/results/TestVendor');
     });
-    
     it('should not create directories if they already exist', () => {
       // Arrange
       const vendor = 'TestVendor';
       (fs.existsSync as jest.Mock).mockReturnValue(true);
-      
       // Act
       const result = createResultsDirectory(vendor);
-      
       // Assert
       expect(fs.existsSync).toHaveBeenCalledTimes(2);
       expect(fs.mkdirSync).not.toHaveBeenCalled();
       expect(result).toBe(process.cwd() + '/results/TestVendor');
     });
   });
-  
   describe('storeResultsToFile', () => {
     it('should store results to a file', () => {
       // Arrange
@@ -99,10 +86,8 @@ describe('Results Persistence Service', () => {
         }
       };
       const reportId = 'test-report-id';
-      
       // Act
       const result = storeResultsToFile(vendor, data, reportId);
-      
       // Assert
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining(reportId),
@@ -111,27 +96,22 @@ describe('Results Persistence Service', () => {
       expect(result).toContain(reportId);
     });
   });
-  
   describe('checkForDuplicateReport', () => {
     it('should return null if no duplicate is found', async () => {
       // Arrange
       const vendor = 'TestVendor';
       const recordCount = 10;
       const metadata = { fileName: 'test.csv' };
-      
       // Act
       const result = await checkForDuplicateReport(vendor, recordCount, metadata);
-      
       // Assert
       expect(result).toBeNull();
     });
-    
     it('should return the report ID if a duplicate is found', async () => {
       // Arrange
       const vendor = 'TestVendor';
       const recordCount = 10;
       const metadata = { fileName: 'test.csv' };
-      
       // Mock db to return a matching report
       (db.select as jest.Mock).mockReturnValue({
         from: jest.fn().mockReturnValue({
@@ -145,15 +125,12 @@ describe('Results Persistence Service', () => {
           })
         })
       });
-      
       // Act
       const result = await checkForDuplicateReport(vendor, recordCount, metadata);
-      
       // Assert
       expect(result).toBe('existing-report-id');
     });
   });
-  
   describe('storeReportSource', () => {
     it('should store report source information', async () => {
       // Arrange
@@ -166,16 +143,13 @@ describe('Results Persistence Service', () => {
         filePath: 'test.csv',
         metadata: { test: true }
       };
-      
       // Act
       const result = await storeReportSource(sourceInfo);
-      
       // Assert
       expect(db.insert).toHaveBeenCalledWith(reportSources);
       expect(result).toBe('test-uuid');
     });
   });
-  
   describe('storeReportData', () => {
     it('should store report data', async () => {
       // Arrange
@@ -198,15 +172,12 @@ describe('Results Persistence Service', () => {
         status: 'pending_analysis' as const,
         metadata: { test: true }
       };
-      
       // Act
       const result = await storeReportData(reportData);
-      
       // Assert
       expect(db.insert).toHaveBeenCalledWith(reports);
       expect(result).toBe('test-uuid');
     });
-    
     it('should return existing report ID if duplicate is found', async () => {
       // Arrange
       const reportData = {
@@ -228,19 +199,15 @@ describe('Results Persistence Service', () => {
         status: 'pending_analysis' as const,
         metadata: { fileName: 'test.csv' }
       };
-      
       // Mock checkForDuplicateReport to return an ID
       jest.spyOn(global, 'checkForDuplicateReport' as any).mockResolvedValue('existing-report-id');
-      
       // Act
       const result = await storeReportData(reportData);
-      
       // Assert
       expect(result).toBe('existing-report-id');
       expect(db.insert).not.toHaveBeenCalled();
     });
   });
-  
   describe('storeResults', () => {
     it('should store results in both filesystem and database', async () => {
       // Arrange
@@ -264,19 +231,14 @@ describe('Results Persistence Service', () => {
         filePath: 'test.csv',
         metadata: { test: true }
       };
-      
       // Mock storeResultsToFile
       jest.spyOn(global, 'storeResultsToFile' as any).mockReturnValue('test/path.json');
-      
       // Mock storeReportSource
       jest.spyOn(global, 'storeReportSource' as any).mockResolvedValue('source-id');
-      
       // Mock storeReportData
       jest.spyOn(global, 'storeReportData' as any).mockResolvedValue('report-id');
-      
       // Act
       const result = await storeResults(vendor, parserResult, sourceInfo);
-      
       // Assert
       expect(result).toEqual({
         id: 'report-id',

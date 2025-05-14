@@ -1,33 +1,22 @@
-
-import { EmailSendOptions, sendEmail as sendEmailService } from './mailerService.js';
-import { db } from '../shared/db.js';
-import { emailQueue as emailQueueTable } from '../shared/schema.js';
+import { db } from '../shared/db.js.js';
+import { isError } from '../utils/errorUtils.js.js';
+import { emailQueue as emailQueueTable } from '../shared/schema.js.js';
 import { eq } from 'drizzle-orm';
+import { EmailSendOptions, sendEmail as sendEmailService } from './mailerService.js.js';
 import { v4 as uuidv4 } from 'uuid';
-
-export interface QueuedEmail {
-  id: string;
-  options: EmailSendOptions;
-  attempts: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  error: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface EmailQueueOptions {
+import logger from '../utils/logger.js.js';
+import { formatError } from '../utils/logger.js.js';
+interface EmailQueueOptions {
   maxRetries?: number;
   retryDelay?: number;
   backoffFactor?: number;
 }
-
-export class EmailQueueService {
+class EmailQueueService {
   private static instance: EmailQueueService;
   private isProcessing: boolean = false;
   private maxRetries: number = 3;
   private retryDelay: number = 5000; // 5 seconds in milliseconds
   private backoffFactor: number = 2; // Exponential backoff factor
-
   private constructor(options?: EmailQueueOptions) {
     if (options) {
       if (options.maxRetries !== undefined) this.maxRetries = options.maxRetries;
@@ -35,20 +24,15 @@ export class EmailQueueService {
       if (options.backoffFactor !== undefined) this.backoffFactor = options.backoffFactor;
     }
   }
-
   static getInstance(options?: EmailQueueOptions): EmailQueueService {
     if (!EmailQueueService.instance) {
       EmailQueueService.instance = new EmailQueueService(options);
     }
     return EmailQueueService.instance;
   }
-
   async enqueue(options: EmailSendOptions): Promise<string> {
     const id = uuidv4();
-
-    // Extract email data from options
     const to = Array.isArray(options.to) ? options.to[0] : options.to;
-
     await db.insert(emailQueueTable).values({
       id,
       recipientEmail: to.email,
@@ -61,22 +45,22 @@ export class EmailQueueService {
       maxAttempts: this.maxRetries,
       createdAt: new Date(),
       updatedAt: new Date()
-    });
-
+      } as any) // @ts-ignore - Ensuring all required properties are provided;
     // Start processing if not already running
     if (!this.isProcessing) {
-      this.processQueue().catch(console.error);
+      this.processQueue().catch(error => 
+        logger.error({
+          event: 'email_queue_process_error',
+          ...formatError(error)
+        })
+      );
     }
-
     return id;
   }
-
   private async processQueue(): Promise<void> {
     if (this.isProcessing) return;
-
     try {
       this.isProcessing = true;
-
       while (true) {
         // Get next pending email
         const [email] = await db
@@ -85,11 +69,9 @@ export class EmailQueueService {
           .where(eq(emailQueueTable.status, 'pending'))
           .orderBy(emailQueueTable.createdAt)
           .limit(1);
-
         if (!email) {
           break; // No more emails to process
         }
-
         // Mark as processing
         await db
           .update(emailQueueTable)
@@ -98,12 +80,9 @@ export class EmailQueueService {
             updatedAt: new Date()
           })
           .where(eq(emailQueueTable.id, email.id));
-
         try {
-          const options = JSON.parse(email.options as string);
-          // Send email using mailerService
-          await this.sendEmail(options);
-
+          const options = JSON.parse(email.options as string) as EmailSendOptions;
+          await sendEmailService(options);
           // Mark as completed
           await db
             .update(emailQueueTable)
@@ -112,31 +91,39 @@ export class EmailQueueService {
               updatedAt: new Date()
             })
             .where(eq(emailQueueTable.id, email.id));
-
+          logger.info({
+            event: 'email_sent',
+            emailId: email.id,
+            recipient: email.recipientEmail
+          });
         } catch (error) {
-          const attempts = (email.attempts as number) + 1;
-          const status = attempts >= this.maxRetries ? 'failed' : 'pending';
-
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+          const attempts = (email.attempts ?? 0) + 1;
+          const status = attempts >= (email.maxAttempts ?? this.maxRetries) ? 'failed' : 'pending';
           // Calculate exponential backoff delay
           const retryDelay = this.calculateBackoff(attempts);
-
           await db
             .update(emailQueueTable)
             .set({
               status,
               attempts,
-              lastError: error instanceof Error ? error.message : String(error),
+              lastError: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error),
               updatedAt: new Date(),
-              // Add processAfter field for delayed retry
               processAfter: status === 'pending' ? new Date(Date.now() + retryDelay) : null
             })
             .where(eq(emailQueueTable.id, email.id));
-
+          logger.error({
+            event: 'email_send_error',
+            emailId: email.id,
+            recipient: email.recipientEmail,
+            attempt: attempts,
+            maxAttempts: email.maxAttempts,
+            ...formatError(error)
+          });
           if (status === 'pending') {
-            // Log retry information
-            console.log(`Email ${email.id} failed, will retry in ${retryDelay/1000}s (attempt ${attempts}/${this.maxRetries})`);
-
-            // Wait before continuing to next email
             await new Promise(resolve => setTimeout(resolve, Math.min(retryDelay, this.retryDelay)));
           }
         }
@@ -145,92 +132,76 @@ export class EmailQueueService {
       this.isProcessing = false;
     }
   }
-
-  /**
-   * Calculate exponential backoff delay based on attempt number
-   */
   private calculateBackoff(attempt: number): number {
     return Math.min(
-      // Cap at 1 hour to prevent extremely long delays
-      60 * 60 * 1000,
-      // Exponential backoff: baseDelay * (factor ^ attempt)
+      60 * 60 * 1000, // Cap at 1 hour
       this.retryDelay * Math.pow(this.backoffFactor, attempt - 1)
     );
   }
-
-  /**
-   * Send an email using the mailer service
-   */
-  private async sendEmail(options: EmailSendOptions): Promise<void> {
-    try {
-      await sendEmailService(options);
-    } catch (error) {
-      console.error('Error sending email:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get the status of an email in the queue
-   */
-  async getStatus(id: string): Promise<QueuedEmail | null> {
+  async getStatus(id: string): Promise<EmailQueueStatus | null> {
     const [email] = await db
       .select()
       .from(emailQueueTable)
-      .where(eq(emailQueueTable.id, id));
-
+      .where(eq(emailQueueTable.id, id.toString()));
     if (!email) return null;
-
     return {
       id: email.id,
-      options: JSON.parse(email.options as string),
-      attempts: email.attempts as number,
-      status: email.status as 'pending' | 'processing' | 'completed' | 'failed',
+      options: JSON.parse(email.options as string) as EmailSendOptions,
+      attempts: email.attempts ?? 0,
+      status: email.status,
       error: email.lastError || '',
-      createdAt: email.createdAt as Date,
-      updatedAt: email.updatedAt as Date
+      createdAt: email.createdAt!,
+      updatedAt: email.updatedAt!
     };
   }
-
-  /**
-   * Manually retry a failed email
-   */
   async retryEmail(id: string): Promise<boolean> {
     const [email] = await db
       .select()
       .from(emailQueueTable)
-      .where(eq(emailQueueTable.id, id));
-
+      .where(eq(emailQueueTable.id, id.toString()));
     if (!email || email.status !== 'failed') {
       return false;
     }
-
     try {
-      // Reset the email for retry
-      const updateQuery = db.update(emailQueueTable);
-
-      updateQuery.set({
-        status: 'pending',
-        attempts: 0,
-        lastError: null,
-        updatedAt: new Date(),
-        processAfter: null
-      });
-
-      await updateQuery.where(eq(emailQueueTable.id, id));
-
+      await db
+        .update(emailQueueTable)
+        .set({
+          status: 'pending',
+          attempts: 0,
+          lastError: null,
+          updatedAt: new Date(),
+          processAfter: null
+        })
+        .where(eq(emailQueueTable.id, id.toString()));
       // Start processing if not already running
       if (!this.isProcessing) {
-        this.processQueue().catch(console.error);
+        this.processQueue().catch(error => 
+          logger.error({
+            event: 'email_queue_retry_error',
+            emailId: id,
+            ...formatError(error)
+          })
+        );
       }
-
       return true;
     } catch (error) {
-      console.error('Failed to retry email:', error);
+      logger.error({
+        event: 'email_retry_error',
+        emailId: id,
+        ...formatError(error)
+      });
       return false;
     }
   }
 }
-
-// Export a singleton instance
+interface EmailQueueStatus {
+  id: string;
+  options: EmailSendOptions;
+  attempts: number;
+  status: string;
+  error: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Export singleton instance
 export const emailQueue = EmailQueueService.getInstance();

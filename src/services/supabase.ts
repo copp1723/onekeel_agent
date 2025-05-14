@@ -1,122 +1,86 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { sql } from 'drizzle-orm';
-import postgres from 'postgres';
+import { db } from '../shared/db.js.js';
+import {  getErrorMessage } from '...';
+import {  getErrorMessage } from '....js';
+import { isError } from '../utils/errorUtils.js.js';
+import { apiKeys, dealerCredentials } from '../shared/schema.js.js';
+import { eq } from 'drizzle-orm';
+import logger from '../utils/logger.js.js';
 import dotenv from 'dotenv';
-import { dealerCredentials } from '../shared/schema.js';
-
 // Load environment variables
 dotenv.config();
-
-// Define the database connection
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is not set');
+// Define interface for dealer credentials
+interface DealerCredential {
+  id: string;
+  dealerId: string;
+  platform: string;
+  username: string;
+  encryptedPassword: string;
+  iv: string;
+  apiEndpoint?: string;
+  active: boolean;
+  lastUsed: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
-
-// Create a postgres client with the connection string
-const client = postgres(connectionString);
-const db = drizzle(client);
-
-/**
- * Retrieves an API key from the Supabase database
- * @param keyName - The name of the API key to retrieve
- * @returns The API key value or null if not found
- */
 export async function getApiKey(keyName: string): Promise<string | null> {
   try {
-    // Query the api_keys table for the specified key
-    const result = await db.execute<{ key_value: string }>(
-      sql`SELECT key_value FROM api_keys WHERE key_name = ${keyName} LIMIT 1`
-    );
-    
-    if (result.length > 0) {
-      return result[0].key_value;
-    }
-    
-    console.error(`API key "${keyName}" not found in database`);
-    return null;
+    const [result] = await db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.keyName, keyName));
+    return result?.keyValue || null;
   } catch (error) {
-    console.error('Error retrieving API key from Supabase:', error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    logger.error({ event: 'supabase_api_key_retrieval_error', keyName, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error retrieving API key from Supabase');
     return null;
   }
 }
-
-/**
- * Retrieves dealer credentials from the Supabase database
- * @param dealerId - The unique identifier for the dealer
- * @returns The dealer credentials or null if not found
- */
-export async function getDealerCredentials(dealerId: string): Promise<{username: string, password: string, apiEndpoint?: string} | null> {
+export async function updateLastUsed(id: string): Promise<void> {
+  await db
+    .update(dealerCredentials)
+    .set({ lastUsed: new Date() })
+    .where(eq(dealerCredentials.id, id.toString()));
+}
+export async function getDealerCredentials(dealerId: string): Promise<DealerCredential | null> {
   try {
-    // Query the dealer_credentials table for the specified dealer
-    const result = await db.execute<{ username: string, password: string, api_endpoint: string }>(
-      sql`SELECT username, password, api_endpoint FROM dealer_credentials WHERE dealer_id = ${dealerId} LIMIT 1`
-    );
-    
-    if (result.length > 0) {
-      // Update the last used timestamp
-      await // @ts-ignore
-db.update(dealerCredentials)
-        .set({ lastUsed: new Date().toISOString() })
-        .where(sql`dealer_id = ${dealerId}`);
-        
-      return {
-        username: result[0].username,
-        password: result[0].password,
-        apiEndpoint: result[0].api_endpoint
-      };
-    }
-    
-    console.error(`Dealer credentials for "${dealerId}" not found in database`);
-    return null;
+    const [result] = await db
+      .select()
+      .from(dealerCredentials)
+      .where(eq(dealerCredentials.dealerId!, dealerId));
+    return result || null;
   } catch (error) {
-    console.error('Error retrieving dealer credentials from Supabase:', error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    logger.error({ event: 'supabase_dealer_credentials_retrieval_error', dealerId, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error retrieving dealer credentials from Supabase');
     return null;
   }
 }
-
-/**
- * Saves dealer credentials to the Supabase database
- * @param dealerId - The unique identifier for the dealer
- * @param credentials - The credentials to save
- * @returns Boolean indicating success or failure
- */
-export async function saveDealerCredentials(
-  dealerId: string, 
-  credentials: {username: string, password: string, apiEndpoint?: string}
-): Promise<boolean> {
+export async function saveDealerCredentials(credentials: Omit<DealerCredential, 'id' | 'createdAt' | 'updatedAt'>): Promise<DealerCredential | null> {
   try {
-    // Check if credentials already exist
-    const existing = await db.execute(
-      sql`SELECT dealer_id FROM dealer_credentials WHERE dealer_id = ${dealerId} LIMIT 1`
-    );
-    
-    if (existing.length > 0) {
-      // Update existing credentials
-      await // @ts-ignore
-db.update(dealerCredentials)
-        .set({ 
-          username: credentials.username,
-          password: credentials.password,
-          apiEndpoint: credentials.apiEndpoint,
-          lastUsed: new Date().toISOString()
-        })
-        .where(sql`dealer_id = ${dealerId}`);
-    } else {
-      // Insert new credentials
-      await // @ts-ignore
-db.insert(dealerCredentials).values({
-        dealerId,
+    const [result] = await db
+      .insert(dealerCredentials)
+      .values({
+        dealerId: credentials.dealerId!,
+        platform: credentials.platform!,
         username: credentials.username,
-        password: credentials.password,
-        apiEndpoint: credentials.apiEndpoint,
-        lastUsed: new Date().toISOString()
-      });
-    }
-    
-    return true;
+        encryptedPassword: credentials.encryptedPassword,
+        iv: credentials.iv,
+        active: true,
+        apiEndpoint: credentials.apiEndpoint
+      })
+      .returning();
+    return result;
   } catch (error) {
-    console.error('Error saving dealer credentials to Supabase:', error);
-    return false;
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    logger.error({ event: 'supabase_dealer_credentials_save_error', dealerId: credentials.dealerId!, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error saving dealer credentials to Supabase');
+    return null;
   }
 }

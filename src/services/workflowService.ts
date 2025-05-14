@@ -2,16 +2,17 @@
  * Workflow Service
  * Handles multi-step workflows with memory, state transitions, and resumability
  */
-import { db } from '../shared/db.js';
-import { workflows, WorkflowStatus, WorkflowStep, Workflow } from '../shared/schema.js';
+import { db } from '../shared/db.js.js';
+import { isError } from '../utils/errorUtils.js.js';
+import { workflows, WorkflowStatus, WorkflowStep, Workflow } from '../shared/schema.js.js';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-
 // Import step handlers
-import { stepHandlers } from './stepHandlers.js';
+import { stepHandlers } from './stepHandlers.js.js';
 // Import email service
-import { sendWorkflowCompletionEmail } from './workflowEmailServiceFixed.js';
-
+import { sendWorkflowCompletionEmail } from './workflowEmailServiceFixed.js.js';
+// Import logger
+import logger from '../utils/logger.js.js';
 /**
  * Create a new workflow
  */
@@ -25,13 +26,11 @@ export async function createWorkflow(
     if (!steps || !Array.isArray(steps) || steps.length === 0) {
       throw new Error('Workflow must have at least one step');
     }
-
     // Make sure each step has a unique ID
     const stepsWithIds = steps.map(step => ({
       ...step,
       id: step.id || uuidv4()
     }));
-
     // Create the workflow
     const [workflow] = await // @ts-ignore
 db.insert(workflows).values({
@@ -42,44 +41,37 @@ db.insert(workflows).values({
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
-    }).returning();
-
-    console.log(`Created workflow ${workflow.id} with ${stepsWithIds.length} steps`);
+      } as any) // @ts-ignore - Ensuring all required properties are provided.returning();
+    logger.info({ event: 'workflow_created', workflowId: workflow.id, stepsCount: stepsWithIds.length, timestamp: new Date().toISOString() }, 'Workflow created');
     return workflow;
   } catch (error) {
     console.error('Error creating workflow:', error);
     throw error;
   }
 }
-
 /**
  * Run a workflow step
  */
 export async function runWorkflow(workflowId: string): Promise<Workflow> {
   try {
     // Get the workflow
-    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, workflowId));
-
+    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, workflowId.toString()));
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`);
     }
-
     // Check if workflow is already locked
     if (workflow.locked) {
       const lockedTime = workflow.lockedAt ? new Date(workflow.lockedAt).getTime() : 0;
       const currentTime = new Date().getTime();
-
       // If locked for more than 5 minutes, consider it stale and continue
       if (currentTime - lockedTime < 5 * 60 * 1000) {
         throw new Error(`Workflow ${workflowId} is currently locked`);
       }
     }
-
     // If workflow is completed or failed, don't run again
     if (workflow.status === 'completed' || workflow.status === 'failed') {
       return workflow;
     }
-
     // Lock the workflow
     const [updatedWorkflow] = await // @ts-ignore
 db.update(workflows)
@@ -90,24 +82,20 @@ db.update(workflows)
         updatedAt: new Date(),
       })
       .where(and(
-        eq(workflows.id, workflowId),
+        eq(workflows.id, workflowId.toString()),
         eq(workflows.locked, false)
       ))
       .returning();
-
     // If we couldn't update (lock), another process might be running this
     if (!updatedWorkflow) {
       throw new Error(`Could not lock workflow ${workflowId} for execution`);
     }
-
     // Parse the steps as JSON
     const steps: WorkflowStep[] = Array.isArray(updatedWorkflow.steps) ?
       updatedWorkflow.steps as WorkflowStep[] :
       JSON.parse(updatedWorkflow.steps as unknown as string) as WorkflowStep[];
-
     // Execute the current step
     const currentStepIndex = updatedWorkflow.currentStep;
-
     if (currentStepIndex >= steps.length) {
       // Mark as completed if all steps are done
       const [finalWorkflow] = await // @ts-ignore
@@ -117,14 +105,12 @@ db.update(workflows)
           locked: false,
           updatedAt: new Date(),
         })
-        .where(eq(workflows.id, workflowId))
+        .where(eq(workflows.id, workflowId.toString()))
         .returning();
-
       // Send completion email if workflow has a notification email configured
       try {
         // First try to send using the new email notification system
         const result = await sendWorkflowCompletionEmail(finalWorkflow.id);
-
         // Define a type for the expected response object
         interface EmailResult {
           success: boolean;
@@ -132,7 +118,6 @@ db.update(workflows)
           error?: string;
           emailId?: string;
         }
-
         if (typeof result === 'boolean') {
           // Handle old boolean return type for backwards compatibility
           if (!result) {
@@ -142,21 +127,18 @@ db.update(workflows)
                 JSON.parse(finalWorkflow.context) :
                 finalWorkflow.context as Record<string, any>) :
               {};
-
             // If notification emails are configured in context, send completion email
             if (context.notifyEmail) {
               const recipients = Array.isArray(context.notifyEmail)
                 ? context.notifyEmail
                 : [context.notifyEmail];
-
-              console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
+              logger.debug({ event: 'email_completion_sending', workflowId, recipients, timestamp: new Date().toISOString() }, 'Sending workflow completion email');
               await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
             }
           }
         } else {
           // Cast the result to the defined type to ensure TypeScript is happy
           const emailResult = result as EmailResult;
-
           // Handle object return type with success property
           if (emailResult && !emailResult.success) {
             // Fall back to context-based notifications
@@ -165,56 +147,45 @@ db.update(workflows)
                 JSON.parse(finalWorkflow.context) :
                 finalWorkflow.context as Record<string, any>) :
               {};
-
             // If notification emails are configured in context, send completion email
             if (context.notifyEmail) {
               const recipients = Array.isArray(context.notifyEmail)
                 ? context.notifyEmail
                 : [context.notifyEmail];
-
-              console.log(`Sending workflow completion email to: ${recipients.join(', ')}`);
+              logger.debug({ event: 'email_completion_sending', workflowId, recipients, timestamp: new Date().toISOString() }, 'Sending workflow completion email');
               await sendWorkflowCompletionEmail(finalWorkflow.id, recipients);
             }
           } else if (emailResult && emailResult.message) {
-            console.log(`Workflow completion email sent: ${emailResult.message}`);
+            logger.info({ event: 'email_completion_sent', workflowId, messageId: emailResult.message, timestamp: new Date().toISOString() }, 'Workflow completion email sent');
           }
         }
       } catch (emailError) {
         // Log the error but don't fail the workflow
         console.error(`Failed to send completion email for workflow ${workflowId}:`, emailError);
       }
-
       return finalWorkflow;
     }
-
     const currentStep = steps[currentStepIndex];
-
     try {
       // Get the handler for this step type
       const handler = stepHandlers[currentStep.type];
-
       if (!handler) {
         throw new Error(`No handler found for step type ${currentStep.type}`);
       }
-
-      console.log(`Executing step ${currentStepIndex + 1}/${steps.length}: ${currentStep.name}`);
-
+      logger.debug({ event: 'step_execution_start', workflowId, stepIndex: currentStepIndex + 1, totalSteps: steps.length, stepName: currentStep.name, timestamp: new Date().toISOString() }, 'Executing workflow step');
       // Execute the step - ensure context is an object
       const context = updatedWorkflow.context ?
         (typeof updatedWorkflow.context === 'string' ?
           JSON.parse(updatedWorkflow.context) :
           updatedWorkflow.context as Record<string, any>) :
         {};
-
       const stepResult = await handler(currentStep.config, context);
-
       // Merge the step result into the context
       const newContext = {
         ...(context || {}),
         [currentStep.id]: stepResult,
         __lastStepResult: stepResult // Store the last step result for easy access
       };
-
       // Update the workflow
       const [newWorkflow] = await // @ts-ignore
 db.update(workflows)
@@ -226,83 +197,76 @@ db.update(workflows)
           updatedAt: new Date(),
           lastUpdated: new Date(),
         })
-        .where(eq(workflows.id, workflowId))
+        .where(eq(workflows.id, workflowId.toString()))
         .returning();
-
       return newWorkflow;
     } catch (error) {
       // Handle step error
       console.error(`Error executing step ${currentStepIndex + 1}/${steps.length}:`, error);
-
       // Determine if we should retry the step
       let shouldRetry = false;
       let retryBackoff = 0;
-
       if (currentStep.maxRetries && currentStep.retries !== undefined) {
         if (currentStep.retries < currentStep.maxRetries) {
           shouldRetry = true;
-
           // Calculate exponential backoff if specified
           if (currentStep.backoffFactor) {
             retryBackoff = Math.pow(currentStep.backoffFactor, currentStep.retries) * 1000;
           }
-
           // Update retry count in the steps
           steps[currentStepIndex].retries = (currentStep.retries || 0) + 1;
         }
       }
-
       // Update the workflow with error information
       const [failedWorkflow] = await // @ts-ignore
 db.update(workflows)
         .set({
           steps: steps,
           status: shouldRetry ? 'paused' : 'failed',
-          lastError: error instanceof Error ? error.message : String(error),
+          lastError: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error),
           locked: false,
           updatedAt: new Date(),
           lastUpdated: new Date(),
           ...(shouldRetry && retryBackoff > 0 ? { lockedAt: new Date(Date.now() + retryBackoff) } : {})
         })
-        .where(eq(workflows.id, workflowId))
+        .where(eq(workflows.id, workflowId.toString()))
         .returning();
-
       return failedWorkflow;
     }
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     console.error('Error running workflow:', error);
-
     // Ensure we unlock the workflow in case of error
     try {
       await // @ts-ignore
 db.update(workflows)
         .set({
           locked: false,
-          lastError: error instanceof Error ? error.message : String(error),
+          lastError: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error),
           updatedAt: new Date(),
         })
-        .where(eq(workflows.id, workflowId));
+        .where(eq(workflows.id, workflowId.toString()));
     } catch (unlockError) {
       console.error('Error unlocking workflow:', unlockError);
     }
-
     throw error;
   }
 }
-
 /**
  * Get a workflow by ID
  */
 export async function getWorkflow(workflowId: string): Promise<Workflow | null> {
   try {
-    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, workflowId));
+    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, workflowId.toString()));
     return workflow || null;
   } catch (error) {
     console.error('Error getting workflow:', error);
     throw error;
   }
 }
-
 /**
  * List workflows with optional filtering
  */
@@ -313,16 +277,13 @@ export async function listWorkflows(
 ): Promise<Workflow[]> {
   try {
     let whereConditions = [];
-
     // Add filters if provided
     if (status) {
       whereConditions.push(eq(workflows.status, status));
     }
-
     if (userId) {
       whereConditions.push(eq(workflows.userId!, userId));
     }
-
     // Execute query with appropriate conditions
     if (whereConditions.length > 0) {
       // Apply all filters using AND
@@ -339,7 +300,6 @@ export async function listWorkflows(
     throw error;
   }
 }
-
 /**
  * Reset a workflow to its initial state
  */
@@ -354,30 +314,27 @@ db.update(workflows)
         locked: false,
         updatedAt: new Date(),
       })
-      .where(eq(workflows.id, workflowId))
+      .where(eq(workflows.id, workflowId.toString()))
       .returning();
-
     return workflow;
   } catch (error) {
     console.error('Error resetting workflow:', error);
     throw error;
   }
 }
-
 /**
  * Delete a workflow
  */
 export async function deleteWorkflow(workflowId: string): Promise<boolean> {
   try {
     const result = await // @ts-ignore
-db.delete(workflows).where(eq(workflows.id, workflowId));
+db.delete(workflows).where(eq(workflows.id, workflowId.toString()));
     return true;
   } catch (error) {
     console.error('Error deleting workflow:', error);
     throw error;
   }
 }
-
 /**
  * Get workflows (optionally filtered by status and user ID)
  */
@@ -385,18 +342,14 @@ export async function getWorkflows(status?: string, userId?: string | null): Pro
   try {
     // Build the query with filters
     let query = db.select().from(workflows);
-
     // Apply filters conditionally
     const conditions: any[] = [];
-
     if (status) {
       conditions.push(eq(workflows.status, status as WorkflowStatus));
     }
-
     if (userId) {
       conditions.push(eq(workflows.userId!, userId));
     }
-
     // Apply all conditions if we have any
     if (conditions.length === 1) {
       // Cast the query to any to bypass the type error
@@ -406,10 +359,8 @@ export async function getWorkflows(status?: string, userId?: string | null): Pro
       // Cast the query to any to bypass the type error
       query = (query as any).where(and(...conditions));
     }
-
     // Execute the query with ordering
     const results = await query.orderBy(workflows.createdAt);
-
     // Return the results in reverse chronological order
     return results.reverse();
   } catch (error) {
@@ -417,7 +368,6 @@ export async function getWorkflows(status?: string, userId?: string | null): Pro
     throw error;
   }
 }
-
 /**
  * Configure email notifications for a workflow
  * @param workflowId The ID of the workflow
@@ -435,28 +385,23 @@ export async function configureWorkflowNotifications(
     const [workflow] = await db
       .select()
       .from(workflows)
-      .where(eq(workflows.id, workflowId));
-
+      .where(eq(workflows.id, workflowId.toString()));
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`);
     }
-
     // Process email to get a single recipient
     const recipientEmail = Array.isArray(emails) ? emails[0] : emails;
-
     // For backward compatibility, also store in context
     const context = workflow.context ?
       (typeof workflow.context === 'string' ?
         JSON.parse(workflow.context) :
         workflow.context as Record<string, any>) :
       {};
-
     // Update the context with notification emails for legacy support
     const updatedContext = {
       ...context,
       notifyEmail: emails
     };
-
     // Update the workflow context
     const [updatedWorkflow] = await // @ts-ignore
 db.update(workflows)
@@ -464,13 +409,9 @@ db.update(workflows)
         context: updatedContext,
         updatedAt: new Date(),
       })
-      .where(eq(workflows.id, workflowId))
+      .where(eq(workflows.id, workflowId.toString()))
       .returning();
-
-    // Note: Temporarily removing configureEmailNotifications call
-    // We'll re-add this once the email notification functionality is fully implemented
-    console.log(`Configured workflow notifications for ${workflowId} with email: ${recipientEmail}`);
-
+    logger.info({ event: 'workflow_notification_configured', workflowId, recipientEmail, timestamp: new Date().toISOString() }, 'Configured workflow notifications');
     return updatedWorkflow;
   } catch (error) {
     console.error('Error configuring workflow notifications:', error);

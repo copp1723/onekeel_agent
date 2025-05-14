@@ -2,7 +2,6 @@
  * Email Notification API Routes
  * Handles email notification configuration and management
  */
-
 import { Router } from 'express';
 import { Request, Response } from 'express';
 import {
@@ -12,10 +11,8 @@ import {
   configureNotification,
   getNotificationSettings,
   deleteNotification
-} from '../../services/workflowEmailService.js';
-
+} from '../../services/workflowEmailService.js.js';
 const router = Router();
-
 /**
  * Configure email notifications for a workflow
  * POST /api/emails/notifications/:workflowId
@@ -24,13 +21,11 @@ router.post('/notifications/:workflowId', async (req: Request, res: Response) =>
   try {
     const { workflowId } = req.params;
     const { recipientEmail, sendOnCompletion, sendOnFailure } = req.body;
-
     const result = await configureNotification(workflowId, {
       recipientEmail,
       sendOnCompletion,
       sendOnFailure
     });
-
     return res.json(result);
   } catch (error) {
     console.error('Error configuring notification:', error);
@@ -40,7 +35,6 @@ router.post('/notifications/:workflowId', async (req: Request, res: Response) =>
     });
   }
 });
-
 /**
  * Get email notification settings for a workflow
  * GET /api/emails/notifications/:workflowId
@@ -58,7 +52,6 @@ router.get('/notifications/:workflowId', async (req: Request, res: Response) => 
     });
   }
 });
-
 /**
  * Delete notification settings for a workflow
  * DELETE /api/emails/notifications/:workflowId
@@ -76,7 +69,6 @@ router.delete('/notifications/:workflowId', async (req: Request, res: Response) 
     });
   }
 });
-
 /**
  * Get email logs for a workflow
  * GET /api/emails/logs/:workflowId
@@ -94,7 +86,6 @@ router.get('/logs/:workflowId', async (req: Request, res: Response) => {
     });
   }
 });
-
 /**
  * Retry sending a failed email
  * POST /api/emails/retry/:emailLogId
@@ -112,5 +103,4 @@ router.post('/retry/:emailLogId', async (req: Request, res: Response) => {
     });
   }
 });
-
 export default router;

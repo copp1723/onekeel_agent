@@ -1,5 +1,4 @@
-import * as schema from '../../shared/schema';
-
+import * as schema from '../../shared/schema.js.js';
 describe('Database Schema', () => {
   it('should export all required tables', () => {
     // Check that all expected tables are exported
@@ -13,7 +12,6 @@ describe('Database Schema', () => {
     expect(schema.apiKeys).toBeDefined();
     expect(schema.dealerCredentials).toBeDefined();
   });
-
   it('should export all required types', () => {
     // Check that all expected types are exported
     expect(schema.User).toBeDefined();
@@ -35,7 +33,6 @@ describe('Database Schema', () => {
     expect(schema.DealerCredential).toBeDefined();
     expect(schema.UpsertDealerCredential).toBeDefined();
   });
-
   it('should have correct primary keys for tables', () => {
     // Check that tables have the expected primary key
     expect(schema.users.id.primary).toBe(true);
@@ -48,13 +45,12 @@ describe('Database Schema', () => {
     expect(schema.apiKeys.id.primary).toBe(true);
     expect(schema.dealerCredentials.id.primary).toBe(true);
   });
-
   it('should have correct foreign key relationships', () => {
     // Check that foreign keys reference the correct tables
-    expect(schema.tasks.workflowId.references).toBeDefined();
+    expect(schema.tasks.workflowId!.references).toBeDefined();
     expect(schema.taskResults.taskId.references).toBeDefined();
-    expect(schema.emailNotifications.workflowId.references).toBeDefined();
-    expect(schema.emails.workflowId.references).toBeDefined();
-    expect(schema.dealerCredentials.userId.references).toBeDefined();
+    expect(schema.emailNotifications.workflowId!.references).toBeDefined();
+    expect(schema.emails.workflowId!.references).toBeDefined();
+    expect(schema.dealerCredentials.userId!.references).toBeDefined();
   });
 });

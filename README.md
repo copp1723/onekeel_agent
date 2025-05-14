@@ -31,6 +31,8 @@ A flexible AI agent backend using Fellou Eko that executes various tasks includi
 - ✅ OTP email verification for secure access
 
 ### Recent Fixes and Improvements
+- ✅ Fixed unknown at-rules errors in global CSS by updating postcss.config.js and downgrading Tailwind CSS and PostCSS to compatible versions
+- ✅ Added VSCode settings and CSS configuration files to help the IDE understand Tailwind directives
 - ✅ Executed automated TypeScript error fixing script to address common TypeScript errors
 - ✅ Fixed import path issues with double extensions (.js.js) and ellipsis imports ('...')
 - ✅ Improved error handling with proper type guards for unknown error types
