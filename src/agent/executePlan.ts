@@ -1,12 +1,12 @@
 import { sql } from 'drizzle-orm';
-import { EkoTool } from '../tools/extractCleanContent.js.js';
-import { db } from '../shared/db.js.js';
-import { plans } from '../shared/schema.js.js';
-import {  eq , sql } from 'drizzle-orm';
+import { EkoTool } from '../tools/extractCleanContent.js';
+import { db } from '../shared/db.js';
+import { plans } from '../shared/schema.js';
+import { eq, sql } from 'drizzle-orm';
 // Define steps table schema inline until added to main schema
 const steps = {
   id: 'id',
-  planId: 'plan_id'
+  planId: 'plan_id',
 };
 export interface PlanStep {
   tool: string;
@@ -25,7 +25,7 @@ export interface StepResult {
 /**
  * Executes a multi-step plan by running each tool in sequence
  * and passing outputs between steps as needed
- * 
+ *
  * @param plan - The execution plan with steps to run
  * @param tools - Map of available tools by name
  * @returns The result of the final step or all step results
@@ -40,9 +40,12 @@ export async function executePlan(
     let planId = plan.planId;
     if (!planId) {
       const [newPlan] = await // @ts-ignore
-db.insert(plans).values({
-        task: plan.taskText || 'Unknown task'
-      }).returning({ id: sql`${plans.id }`});
+      db
+        .insert(plans)
+        .values({
+          task: plan.taskText || 'Unknown task',
+        })
+        .returning({ id: sql`${plans.id}` });
       planId = String(newPlan.id);
       console.log(`Created new plan in database with ID: ${planId}`);
     }
@@ -58,13 +61,16 @@ db.insert(plans).values({
       const processedInput = processInputTemplates(step.input, stepResults);
       // Create step record in database with pending status
       const [stepRecord] = await // @ts-ignore
-db.insert(steps).values({
-        planId: planId,
-        stepIndex: i,
-        tool: step.tool,
-        input: processedInput,
-        status: 'pending'
-      }).returning({ id: sql`${steps.id }`});
+      db
+        .insert(steps)
+        .values({
+          planId: planId,
+          stepIndex: i,
+          tool: step.tool,
+          input: processedInput,
+          status: 'pending',
+        })
+        .returning({ id: sql`${steps.id}` });
       const stepId = stepRecord.id;
       console.log(`Created step record with ID: ${stepId}`);
       try {
@@ -72,29 +78,38 @@ db.insert(steps).values({
         const output = await tool.handler(processedInput);
         // Update step in database with success status and output
         await // @ts-ignore
-db.update(steps)
-          .set({ 
+        db
+          .update(steps)
+          .set({
             output: output,
-            status: 'completed' 
+            status: 'completed',
           })
           .where(eq(steps.id, stepId.toString()));
         stepResults.push({ output, stepId });
         console.log(`Step ${i} completed successfully`);
       } catch (error) {
         console.error(`Error in step ${i}:`, error);
-        const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error);
+        const errorMessage =
+          error instanceof Error
+            ? error instanceof Error
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error);
         // Update step in database with error status
         await // @ts-ignore
-db.update(steps)
-          .set({ 
+        db
+          .update(steps)
+          .set({
             status: 'failed',
-            error: errorMessage
+            error: errorMessage,
           })
           .where(eq(steps.id, stepId.toString()));
-        stepResults.push({ 
-          output: null, 
+        stepResults.push({
+          output: null,
           error: errorMessage,
-          stepId
+          stepId,
         });
         // Don't break execution on error, but log it
       }
@@ -103,7 +118,7 @@ db.update(steps)
     return {
       finalOutput: stepResults[stepResults.length - 1]?.output,
       stepResults,
-      planId
+      planId,
     };
   } catch (error) {
     console.error('Error executing plan:', error);
@@ -113,7 +128,7 @@ db.update(steps)
 /**
  * Processes input templates by replacing variables with actual values
  * from previous step results
- * 
+ *
  * @param input - The input object with potential template variables
  * @param stepResults - Results from previous steps
  * @returns Processed input with templates replaced by actual values
@@ -129,39 +144,39 @@ function processInputTemplates(
       const templateRegex = /{{step(\d+)\.output(\.[\w\.]+)?}}/g;
       let processedValue = value;
       // Replace all template references with actual values
-      processedValue = processedValue.replace(
-        templateRegex,
-        (_match, stepIndex, propertyPath) => {
-          const index = parseInt(stepIndex, 10);
-          if (index < 0 || index >= stepResults.length) {
-            throw new Error(`Invalid step reference: step${index}`);
-          }
-          let result = stepResults[index].output;
-          // If a property path is specified, traverse the object
-          if (propertyPath) {
-            // Remove leading dot and split by dots
-            const props = propertyPath.substring(1).split('.');
-            // Navigate through the properties
-            try {
-              for (const prop of props) {
-                if (!result || typeof result !== 'object') {
-                  throw new Error(`Cannot access property '${prop}' of non-object value`);
-                }
-                result = result[prop];
-              }
-            } catch (e) {
-              console.warn(`Failed to access property path ${propertyPath} in step ${index} output:`, e);
-              // Return empty string for failed property access
-              return '';
-            }
-          }
-          // If the result is an object or array, stringify it
-          if (typeof result === 'object' && result !== null) {
-            return JSON.stringify(result);
-          }
-          return String(result);
+      processedValue = processedValue.replace(templateRegex, (_match, stepIndex, propertyPath) => {
+        const index = parseInt(stepIndex, 10);
+        if (index < 0 || index >= stepResults.length) {
+          throw new Error(`Invalid step reference: step${index}`);
         }
-      );
+        let result = stepResults[index].output;
+        // If a property path is specified, traverse the object
+        if (propertyPath) {
+          // Remove leading dot and split by dots
+          const props = propertyPath.substring(1).split('.');
+          // Navigate through the properties
+          try {
+            for (const prop of props) {
+              if (!result || typeof result !== 'object') {
+                throw new Error(`Cannot access property '${prop}' of non-object value`);
+              }
+              result = result[prop];
+            }
+          } catch (e) {
+            console.warn(
+              `Failed to access property path ${propertyPath} in step ${index} output:`,
+              e
+            );
+            // Return empty string for failed property access
+            return '';
+          }
+        }
+        // If the result is an object or array, stringify it
+        if (typeof result === 'object' && result !== null) {
+          return JSON.stringify(result);
+        }
+        return String(result);
+      });
       // If the entire value was a template, try to parse it back to an object
       if (processedValue !== value && value.match(/^{{step\d+\.output(\.[\w\.]+)?}}$/)) {
         try {

@@ -23,8 +23,8 @@ export const isAuthenticated = (req: AuthRequest, res: Response, next: NextFunct
     claims: {
       sub: 'dev-user-123',
       name: 'Development User',
-      email: 'dev@example.com'
-    }
+      email: 'dev@example.com',
+    },
   };
   next();
 };

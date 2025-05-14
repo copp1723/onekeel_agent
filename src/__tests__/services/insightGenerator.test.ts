@@ -4,39 +4,39 @@
 import fs from 'fs';
 import path from 'path';
 import { OpenAI } from 'openai';
-import { 
+import {
   logInsightRun,
   saveResult,
   storeInsight,
   generateInsights,
-  InsightResponseSchema
-} from '../../services/insightGenerator.js.js';
-import { db } from '../../db/index.js.js';
-import { insights } from '../../shared/report-schema.js.js';
-import { FileType } from '../../services/attachmentParsers.js.js';
+  InsightResponseSchema,
+} from '../../services/insightGenerator.js';
+import { db } from '../../db/index.js';
+import { insights } from '../../shared/report-schema.js';
+import { FileType } from '../../services/attachmentParsers.js';
 // Mock fs module
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(false),
   mkdirSync: jest.fn(),
   writeFileSync: jest.fn(),
-  appendFileSync: jest.fn()
+  appendFileSync: jest.fn(),
 }));
 // Mock path module
 jest.mock('path', () => ({
   join: jest.fn((...args) => args.join('/')),
-  basename: jest.fn((filePath) => filePath.split('/').pop())
+  basename: jest.fn((filePath) => filePath.split('/').pop()),
 }));
 // Mock db
 jest.mock('../../db/index', () => ({
   db: {
     insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockResolvedValue({ insertId: 1 })
-    })
-  }
+      values: jest.fn().mockResolvedValue({ insertId: 1 }),
+    }),
+  },
 }));
 // Mock uuid
 jest.mock('uuid', () => ({
-  v4: jest.fn().mockReturnValue('test-uuid')
+  v4: jest.fn().mockReturnValue('test-uuid'),
 }));
 // Mock OpenAI
 jest.mock('openai', () => ({
@@ -55,24 +55,24 @@ jest.mock('openai', () => ({
                     {
                       title: 'Action 1',
                       description: 'Do something',
-                      priority: 'high'
-                    }
+                      priority: 'high',
+                    },
                   ],
                   metrics: [
                     {
                       name: 'Metric 1',
                       value: 42,
-                      trend: 'up'
-                    }
-                  ]
-                })
-              }
-            }
-          ]
-        })
-      }
-    }
-  }))
+                      trend: 'up',
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        }),
+      },
+    },
+  })),
 }));
 describe('Insight Generator Service', () => {
   beforeEach(() => {
@@ -87,7 +87,7 @@ describe('Insight Generator Service', () => {
         promptIntent: 'automotive_analysis',
         promptVersion: '1.0.0',
         durationMs: 1000,
-        outputSummary: ['Test Insight']
+        outputSummary: ['Test Insight'],
       };
       // Act
       logInsightRun(logData);
@@ -108,15 +108,15 @@ describe('Insight Generator Service', () => {
           {
             title: 'Action 1',
             description: 'Do something',
-            priority: 'high'
-          }
-        ]
+            priority: 'high',
+          },
+        ],
       };
       const filename = 'test-insight';
       const metadata = {
         promptIntent: 'automotive_analysis',
         promptVersion: '1.0.0',
-        durationMs: 1000
+        durationMs: 1000,
       };
       // Act
       const result = saveResult(platform, insightData, filename, metadata);
@@ -139,9 +139,9 @@ describe('Insight Generator Service', () => {
           {
             title: 'Action 1',
             description: 'Do something',
-            priority: 'high'
-          }
-        ]
+            priority: 'high',
+          },
+        ],
       };
       const metadata = {
         promptVersion: '1.0.0',
@@ -149,7 +149,7 @@ describe('Insight Generator Service', () => {
         durationMs: 1000,
         overallScore: 8,
         qualityScores: { relevance: 9, clarity: 8 },
-        businessImpact: { revenue: 'high', cost: 'medium' }
+        businessImpact: { revenue: 'high', cost: 'medium' },
       };
       // Act
       const result = await storeInsight(reportId, insightData, metadata);
@@ -168,15 +168,15 @@ describe('Insight Generator Service', () => {
         metadata: {
           fileType: FileType.CSV,
           fileName: 'test.csv',
-          parseDate: '2023-01-01T00:00:00.000Z'
-        }
+          parseDate: '2023-01-01T00:00:00.000Z',
+        },
       };
       const platform = 'TestVendor';
       const options = {
         intent: 'automotive_analysis',
         promptVersion: '1.0.0',
         modelVersion: 'gpt-4o',
-        sampleSize: 1
+        sampleSize: 1,
       };
       // Mock saveResult
       jest.spyOn(global, 'saveResult' as any).mockReturnValue('test/path.json');
@@ -194,9 +194,9 @@ describe('Insight Generator Service', () => {
           actionItems: expect.arrayContaining([
             expect.objectContaining({
               title: 'Action 1',
-              description: 'Do something'
-            })
-          ])
+              description: 'Do something',
+            }),
+          ]),
         }),
         metadata: expect.objectContaining({
           promptVersion: expect.any(String),
@@ -204,8 +204,8 @@ describe('Insight Generator Service', () => {
           platform: 'TestVendor',
           intent: 'automotive_analysis',
           sampleSize: 1,
-          outputPath: 'test/path.json'
-        })
+          outputPath: 'test/path.json',
+        }),
       });
     });
     it('should handle errors during insight generation', async () => {
@@ -217,17 +217,17 @@ describe('Insight Generator Service', () => {
         metadata: {
           fileType: FileType.CSV,
           fileName: 'test.csv',
-          parseDate: '2023-01-01T00:00:00.000Z'
-        }
+          parseDate: '2023-01-01T00:00:00.000Z',
+        },
       };
       const platform = 'TestVendor';
       // Mock OpenAI to throw an error
       (OpenAI as jest.Mock).mockImplementation(() => ({
         chat: {
           completions: {
-            create: jest.fn().mockRejectedValue(new Error('API error'))
-          }
-        }
+            create: jest.fn().mockRejectedValue(new Error('API error')),
+          },
+        },
       }));
       // Act & Assert
       await expect(generateInsights(data, platform)).rejects.toThrow('API error');
@@ -244,23 +244,23 @@ describe('Insight Generator Service', () => {
           {
             title: 'Action 1',
             description: 'Do something',
-            priority: 'high'
-          }
+            priority: 'high',
+          },
         ],
         metrics: [
           {
             name: 'Metric 1',
             value: 42,
-            trend: 'up'
-          }
+            trend: 'up',
+          },
         ],
         charts: [
           {
             title: 'Chart 1',
             type: 'bar',
-            data: { labels: ['A', 'B'], values: [1, 2] }
-          }
-        ]
+            data: { labels: ['A', 'B'], values: [1, 2] },
+          },
+        ],
       };
       // Act & Assert
       expect(() => InsightResponseSchema.parse(validInsight)).not.toThrow();
@@ -270,7 +270,7 @@ describe('Insight Generator Service', () => {
       const invalidInsight = {
         title: 'Test Insight',
         // Missing required fields
-        actionItems: []
+        actionItems: [],
       };
       // Act & Assert
       expect(() => InsightResponseSchema.parse(invalidInsight)).toThrow();

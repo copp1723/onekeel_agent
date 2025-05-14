@@ -5,10 +5,10 @@
  * and environment validation for production security.
  */
 import crypto from 'crypto';
-import { isError } from '../utils/errorUtils.js.js';
-import { db } from '../shared/db.js.js';
-import { securityAuditLogs } from '../shared/schema.js.js';
-import { logger } from '../shared/logger.js.js';
+import { isError } from '../utils/errorUtils.js';
+import { db } from '../shared/db.js';
+import { securityAuditLogs } from '../shared/schema.js';
+import { logger } from '../shared/logger.js';
 // Constants for encryption
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16; // 16 bytes for AES
@@ -72,8 +72,10 @@ export function isEncryptionConfigured(): boolean {
   }
   // In production, we should never use the default key
   if (process.env.NODE_ENV === 'production') {
-    return encryptionKey.toString('hex') !==
-      crypto.scryptSync(DEFAULT_KEY, 'salt', KEY_LENGTH).toString('hex');
+    return (
+      encryptionKey.toString('hex') !==
+      crypto.scryptSync(DEFAULT_KEY, 'salt', KEY_LENGTH).toString('hex')
+    );
   }
   return true;
 }
@@ -110,19 +112,47 @@ export function encryptData(
     return {
       encryptedData: encrypted,
       iv: iv.toString('base64'),
-      authTag: authTag.toString('base64')
+      authTag: authTag.toString('base64'),
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     // Log encryption error (without the actual data)
     logger.error('Encryption failed:', error);
     // Log security event
-    logSecurityEvent('encryption_failure', userId, {
-      error: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)
-    }, 'error');
+    logSecurityEvent(
+      'encryption_failure',
+      userId,
+      {
+        error:
+          error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? isError(error)
+                  ? error instanceof Error
+                    ? error.message
+                    : String(error)
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error),
+      },
+      'error'
+    );
     throw new Error('Failed to encrypt data');
   }
 }
@@ -163,16 +193,44 @@ export function decryptData(
       return decrypted;
     }
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     // Log decryption error
     logger.error('Decryption failed:', error);
     // Log security event
-    logSecurityEvent('decryption_failure', userId, {
-      error: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)
-    }, 'warning');
+    logSecurityEvent(
+      'decryption_failure',
+      userId,
+      {
+        error:
+          error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? isError(error)
+                  ? error instanceof Error
+                    ? error.message
+                    : String(error)
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error),
+      },
+      'warning'
+    );
     throw new Error('Failed to decrypt data - authentication failed');
   }
 }
@@ -197,17 +255,19 @@ export function legacyDecryptData(encryptedData: string, iv: string): Record<str
     const decrypted = CryptoJS.AES.decrypt(encryptedData, legacyKey, {
       iv: ivParams,
       mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7
+      padding: CryptoJS.pad.Pkcs7,
     });
     // Convert to string and parse as JSON
     const decryptedString = decrypted.toString(CryptoJS.enc.Utf8);
     if (!decryptedString) {
-      throw new Error("Legacy decryption failed - invalid key or corrupted data");
+      throw new Error('Legacy decryption failed - invalid key or corrupted data');
     }
     return JSON.parse(decryptedString);
   } catch (error) {
-    logger.error("Failed to decrypt legacy data:", error);
-    throw new Error("Legacy decryption failed - data may be corrupted or encryption key is invalid");
+    logger.error('Failed to decrypt legacy data:', error);
+    throw new Error(
+      'Legacy decryption failed - data may be corrupted or encryption key is invalid'
+    );
   }
 }
 /**
@@ -249,19 +309,42 @@ export async function logSecurityEvent(
       eventType,
       eventData,
       severity,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     // If we can't log to the database, at least log to the console
     logger.error('Failed to log security event:', {
-      error: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error),
+      error:
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error),
       eventType,
       userId,
-      severity
+      severity,
     });
   }
 }
@@ -273,10 +356,10 @@ export function testEncryption(): boolean {
   try {
     // Test data
     const testData = {
-      username: "test@example.com",
-      password: "password123",
-      apiKey: "sk_test_12345",
-      timestamp: new Date().toISOString()
+      username: 'test@example.com',
+      password: 'password123',
+      apiKey: 'sk_test_12345',
+      timestamp: new Date().toISOString(),
     };
     // Encrypt
     const { encryptedData, iv, authTag } = encryptData(testData);
@@ -290,7 +373,7 @@ export function testEncryption(): boolean {
       decrypted.timestamp === testData.timestamp
     );
   } catch (error) {
-    logger.error("Encryption test failed:", error);
+    logger.error('Encryption test failed:', error);
     return false;
   }
 }

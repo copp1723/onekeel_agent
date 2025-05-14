@@ -136,12 +136,21 @@ export function isAppError(error: any): error is AppError {
 /**
  * Helper function to convert unknown errors to AppError
  */
-export function toAppError(error: unknown, defaultMessage: string = 'An unexpected error occurred'): AppError {
+export function toAppError(
+  error: unknown,
+  defaultMessage: string = 'An unexpected error occurred'
+): AppError {
   if (isAppError(error)) {
     return error;
   }
   if (error instanceof Error) {
-    return new InternalError((error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)));
+    return new InternalError(
+      error instanceof Error
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : String(error)
+    );
   }
   return new InternalError(defaultMessage);
 }

@@ -2,7 +2,7 @@
  * Email Templates Service
  * Provides templates for various email types in the application
  */
-import { Workflow } from '../shared/schema.js.js';
+import { Workflow } from '../shared/schema.js';
 interface TemplateData {
   workflowId: string;
   workflowStatus: string;
@@ -22,9 +22,10 @@ interface StatusColor {
  */
 export function generateWorkflowSummaryHtml(data: TemplateData): string {
   try {
-    const duration = data.completedAt && data.createdAt
-      ? getDurationString(new Date(data.createdAt), new Date(data.completedAt))
-      : 'N/A';
+    const duration =
+      data.completedAt && data.createdAt
+        ? getDurationString(new Date(data.createdAt), new Date(data.completedAt))
+        : 'N/A';
     const statusColor = getStatusColor(data.workflowStatus);
     const formattedDate = formatDate(new Date());
     const insightsHtml = generateInsightsHtml(data.insights);
@@ -60,12 +61,16 @@ export function generateWorkflowSummaryHtml(data: TemplateData): string {
                 <span>${duration}</span>
               </div>
             </div>
-            ${data.summary ? `
+            ${
+              data.summary
+                ? `
             <div style="margin-bottom: 24px;">
               <h3 style="color: #333; margin: 0 0 12px 0;">Summary</h3>
               <p style="margin: 0;">${data.summary}</p>
             </div>
-            ` : ''}
+            `
+                : ''
+            }
             ${insightsHtml}
             ${errorHtml}
             <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e8e8e8; text-align: center; color: #666;">
@@ -84,11 +89,11 @@ export function generateWorkflowSummaryHtml(data: TemplateData): string {
 function formatDate(date: Date): string {
   return date.toLocaleString('en-US', {
     weekday: 'long',
-    year: 'numeric', 
+    year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 }
 function generateInsightsHtml(insights?: any[]): string {
@@ -97,7 +102,7 @@ function generateInsightsHtml(insights?: any[]): string {
     <div style="margin-bottom: 24px;">
       <h3 style="color: #333; margin: 0 0 12px 0;">Key Insights</h3>
       <ul style="margin: 0; padding-left: 20px;">
-        ${insights.map(insight => `<li style="margin-bottom: 8px;">${insight}</li>`).join('')}
+        ${insights.map((insight) => `<li style="margin-bottom: 8px;">${insight}</li>`).join('')}
       </ul>
     </div>
   `;
@@ -128,7 +133,7 @@ function getStatusColor(status: string): StatusColor {
     failed: { bg: '#fff1f0', text: '#f5222d' },
     running: { bg: '#e6f7ff', text: '#1890ff' },
     pending: { bg: '#fffbe6', text: '#faad14' },
-    paused: { bg: '#f5f5f5', text: '#8c8c8c' }
+    paused: { bg: '#f5f5f5', text: '#8c8c8c' },
   };
   return colors[status.toLowerCase()] || { bg: '#f5f5f5', text: '#595959' };
 }

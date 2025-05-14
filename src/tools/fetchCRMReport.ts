@@ -2,9 +2,9 @@
  * Tool for fetching CRM reports from various platforms
  * Uses the config-driven Playwright runner for automation
  */
-import { fetchCRMReport, parseCRMReport } from '../agents/fetchCRMReport.js.js';
-import { EkoTool } from './extractCleanContent.js.js';
-import { CRMReportOptions } from '../types.js.js';
+import { fetchCRMReport, parseCRMReport } from '../agents/fetchCRMReport.js';
+import { EkoTool } from './extractCleanContent.js';
+import { CRMReportOptions } from '../types.js';
 interface FetchCRMReportArgs {
   site: string; // CRM platform (VinSolutions, VAUTO)
   dealerId: string; // Dealership ID
@@ -48,7 +48,7 @@ export function fetchCRMReportTool(): EkoTool {
         // Use the fetchCRMReport function with the provided arguments
         const reportOptions: CRMReportOptions = {
           platform: site,
-          dealerId
+          dealerId,
         };
         // Only add optional properties if they're defined
         if (reportType) reportOptions.reportType = reportType;
@@ -62,19 +62,26 @@ export function fetchCRMReportTool(): EkoTool {
           message: `Successfully fetched CRM report from ${site}`,
           dealerId,
           reportFile: filePath,
-          reportData: parsedReport
+          reportData: parsedReport,
         };
       } catch (error: unknown) {
         console.error(`Error fetching CRM report:`, error);
-        const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error);
+        const errorMessage =
+          error instanceof Error
+            ? error instanceof Error
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error);
         return {
           success: false,
           message: `Failed to fetch CRM report: ${errorMessage}`,
           dealerId,
-          error: errorMessage
+          error: errorMessage,
         };
       }
-    }
+    },
   };
 }
 // Export as default for simpler imports

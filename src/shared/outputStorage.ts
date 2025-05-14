@@ -1,6 +1,6 @@
 /**
  * Output Storage Module
- * 
+ *
  * This module provides functionality to save output results to structured
  * directories for tracking and comparison.
  */
@@ -23,11 +23,7 @@ function ensureResultsDirectory(): void {
  * @param filename - Filename for the result
  * @returns Full path to store the result
  */
-export function createResultPath(
-  platform: string,
-  filename: string,
-  dateStr?: string
-): string {
+export function createResultPath(platform: string, filename: string, dateStr?: string): string {
   // Default to current date if not provided
   const date = dateStr || new Date().toISOString().split('T')[0];
   // Create platform directory
@@ -66,14 +62,10 @@ export function saveResult(
   const dataToSave = {
     timestamp: new Date().toISOString(),
     metadata: metadata || {},
-    result
+    result,
   };
   // Write to file
-  fs.writeFileSync(
-    fullPath,
-    JSON.stringify(dataToSave, null, 2),
-    'utf-8'
-  );
+  fs.writeFileSync(fullPath, JSON.stringify(dataToSave, null, 2), 'utf-8');
   return fullPath;
 }
 /**

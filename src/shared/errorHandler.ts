@@ -1,17 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, isAppError, toAppError } from './errorTypes.js.js';
-import { logger } from './logger.js.js';
+import { AppError, isAppError, toAppError } from './errorTypes.js';
+import { logger } from './logger.js';
 /**
  * Log error details
  */
 export function logError(error: AppError): void {
   const logData = {
     name: error.name,
-    message: (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)),
+    message:
+      error instanceof Error
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : String(error),
     statusCode: error.statusCode,
     isOperational: error.isOperational,
-    stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined),
-    context: error.context || {}
+    stack: error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+    context: error.context || {},
   };
   if (error.isOperational) {
     // Operational errors are expected errors that we want to log at info level
@@ -24,19 +29,31 @@ export function logError(error: AppError): void {
 /**
  * Format error response for API clients
  */
-export function formatErrorResponse(error: AppError, includeStack: boolean = false): Record<string, any> {
+export function formatErrorResponse(
+  error: AppError,
+  includeStack: boolean = false
+): Record<string, any> {
   const response: Record<string, any> = {
     status: 'error',
     statusCode: error.statusCode,
-    message: (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
+    message:
+      error instanceof Error
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : String(error),
   };
   // Include additional context for debugging if available
   if (error.context && Object.keys(error.context).length > 0) {
     response.context = error.context;
   }
   // Include stack trace in development environment
-  if (includeStack && (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined)) {
-    response.stack = (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined);
+  if (
+    includeStack &&
+    (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined)
+  ) {
+    response.stack =
+      error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined;
   }
   return response;
 }
@@ -61,7 +78,9 @@ export function errorHandlerMiddleware(
 /**
  * Async handler to catch errors in async route handlers
  */
-export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) {
+export function asyncHandler(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+) {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
@@ -102,9 +121,7 @@ export async function tryCatch<T>(
   try {
     return await fn();
   } catch (error) {
-    const appError = isAppError(error) 
-      ? error 
-      : toAppError(error, errorMessage);
+    const appError = isAppError(error) ? error : toAppError(error, errorMessage);
     // Add additional context
     appError.context = { ...appError.context, ...context };
     // Log the error
@@ -131,7 +148,7 @@ export async function retryWithBackoff<T>(
     initialDelay = 1000,
     backoffFactor = 2,
     maxDelay = 30000,
-    retryCondition = () => true
+    retryCondition = () => true,
   } = options;
   let lastError: any;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -147,13 +164,20 @@ export async function retryWithBackoff<T>(
       const delay = Math.min(initialDelay * Math.pow(backoffFactor, attempt - 1), maxDelay);
       // Log retry attempt
       logger.info(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms`, {
-        error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error),
+        error:
+          error instanceof Error
+            ? error instanceof Error
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error),
         attempt,
         maxRetries,
-        delay
+        delay,
       });
       // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
   // This should never be reached due to the throw in the catch block

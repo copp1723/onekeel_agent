@@ -5,22 +5,23 @@
  * with enhanced encryption and security audit logging.
  */
 import { eq, and } from 'drizzle-orm';
-import { isError } from '../utils/errorUtils.js.js';
-import { db } from '../shared/db.js.js';
-import {  
-  userCredentials } from '....js';
-import { 
-  encryptData,
-  decryptData,
-  isEncryptionConfigured,
-  logSecurityEvent } from '....js';
-import { logger } from '../shared/logger.js.js';
+import { isError } from '../utils/errorUtils.js';
+import { db } from '../shared/db.js';
+import { userCredentials } from '....js';
+import { encryptData, decryptData, isEncryptionConfigured, logSecurityEvent } from '....js';
+import { logger } from '../shared/logger.js';
 // Add error type guard
 function isCredentialError(error: unknown): error is { message: string } {
-  return error !== null && 
-         typeof error === 'object' && 
-         'message' in error &&
-         typeof (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) === 'string';
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof (error instanceof Error
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error)) === 'string'
+  );
 }
 /**
  * Add a new credential for a user
@@ -45,7 +46,10 @@ export async function addUserCredential(
   if (!isEncryptionConfigured()) {
     if (process.env.NODE_ENV === 'production') {
       const error = new Error('Cannot add credentials: Encryption not properly configured');
-      logger.error('Security violation: Attempted to add credentials without proper encryption', error);
+      logger.error(
+        'Security violation: Attempted to add credentials without proper encryption',
+        error
+      );
       // Log security event
       await logSecurityEvent(
         'encryption_not_configured',
@@ -72,12 +76,10 @@ export async function addUserCredential(
       expiresAt,
       active: true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
     // Insert into database
-    const [createdCredential] = await db.insert(userCredentials)
-      .values(credential)
-      .returning();
+    const [createdCredential] = await db.insert(userCredentials).values(credential).returning();
     // Log security event
     await logSecurityEvent(
       'credential_created',
@@ -85,17 +87,39 @@ export async function addUserCredential(
       {
         credentialId: createdCredential.id,
         serviceName,
-        credentialName
+        credentialName,
       },
       'info'
     );
     return createdCredential;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    if (isCredentialError(error) && isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) !== 'Credential not found or access denied') {
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    if (
+      isCredentialError(error) && isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error) !== 'Credential not found or access denied'
+    ) {
       logger.error('Error saving credential:', error);
     }
     throw error;
@@ -114,13 +138,16 @@ export async function getUserCredentialById(
 ): Promise<{ credential: UserCredential; payload: CredentialPayload }> {
   try {
     // Query with user ID for security
-    const [credential] = await db.select()
+    const [credential] = await db
+      .select()
       .from(userCredentials)
-      .where(and(
-        eq(userCredentials.id, id.toString()),
-        eq(userCredentials.userId!, userId),
-        eq(userCredentials.active, true)
-      ));
+      .where(
+        and(
+          eq(userCredentials.id, id.toString()),
+          eq(userCredentials.userId!, userId),
+          eq(userCredentials.active, true)
+        )
+      );
     if (!credential) {
       // Log security event for attempted access
       await logSecurityEvent(
@@ -132,10 +159,11 @@ export async function getUserCredentialById(
       throw new Error('Credential not found or access denied');
     }
     // Update last used timestamp
-    await db.update(userCredentials)
+    await db
+      .update(userCredentials)
       .set({
         lastUsed: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(userCredentials.id, id.toString()));
     // Decrypt the payload
@@ -151,20 +179,42 @@ export async function getUserCredentialById(
       userId,
       {
         credentialId: id,
-        serviceName: credential.serviceName
+        serviceName: credential.serviceName,
       },
       'info'
     );
     return {
       credential,
-      payload
+      payload,
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    if (isCredentialError(error) && isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) !== 'Credential not found or access denied') {
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    if (
+      isCredentialError(error) && isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error) !== 'Credential not found or access denied'
+    ) {
       logger.error('Error loading credential:', error);
     }
     throw error;
@@ -183,15 +233,13 @@ export async function getUserCredentials(
 ): Promise<UserCredential[]> {
   try {
     // Build query conditions
-    const conditions = [
-      eq(userCredentials.userId!, userId),
-      eq(userCredentials.active, true)
-    ];
+    const conditions = [eq(userCredentials.userId!, userId), eq(userCredentials.active, true)];
     if (serviceName) {
       conditions.push(eq(userCredentials.serviceName, serviceName));
     }
     // Query active credentials
-    const results = await db.select()
+    const results = await db
+      .select()
       .from(userCredentials)
       .where(and(...conditions));
     // Log access
@@ -200,16 +248,28 @@ export async function getUserCredentials(
       userId,
       {
         serviceName: serviceName || 'all',
-        count: results.length
+        count: results.length,
       },
       'info'
     );
     return results;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     logger.error('Failed to list user credentials:', error);
     // Log security event
     await logSecurityEvent(
@@ -217,7 +277,18 @@ export async function getUserCredentials(
       userId,
       {
         serviceName: serviceName || 'all',
-        error: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)
+        error:
+          error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? isError(error)
+                  ? error instanceof Error
+                    ? error.message
+                    : String(error)
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error),
       },
       'error'
     );
@@ -243,13 +314,16 @@ export async function updateUserCredential(
 ): Promise<UserCredential> {
   try {
     // Verify the credential exists and belongs to the user
-    const [existingCredential] = await db.select()
+    const [existingCredential] = await db
+      .select()
       .from(userCredentials)
-      .where(and(
-        eq(userCredentials.id, id.toString()),
-        eq(userCredentials.userId!, userId),
-        eq(userCredentials.active, true)
-      ));
+      .where(
+        and(
+          eq(userCredentials.id, id.toString()),
+          eq(userCredentials.userId!, userId),
+          eq(userCredentials.active, true)
+        )
+      );
     if (!existingCredential) {
       // Log security event for attempted update
       await logSecurityEvent(
@@ -262,7 +336,7 @@ export async function updateUserCredential(
     }
     // Build update object
     const updates: Partial<UpsertUserCredential> = {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
     // If payload is provided, encrypt it
     if (payload) {
@@ -280,12 +354,10 @@ export async function updateUserCredential(
       updates.expiresAt = expiresAt;
     }
     // Update in database
-    const [updatedCredential] = await db.update(userCredentials)
+    const [updatedCredential] = await db
+      .update(userCredentials)
       .set(updates)
-      .where(and(
-        eq(userCredentials.id, id.toString()),
-        eq(userCredentials.userId!, userId)
-      ))
+      .where(and(eq(userCredentials.id, id.toString()), eq(userCredentials.userId!, userId)))
       .returning();
     // Log security event
     await logSecurityEvent(
@@ -294,17 +366,39 @@ export async function updateUserCredential(
       {
         credentialId: id,
         serviceName: existingCredential.serviceName,
-        credentialName: existingCredential.credentialName
+        credentialName: existingCredential.credentialName,
       },
       'info'
     );
     return updatedCredential;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    if (isCredentialError(error) && isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) !== 'Credential not found or access denied') {
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    if (
+      isCredentialError(error) && isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error) !== 'Credential not found or access denied'
+    ) {
       logger.error('Error saving credential:', error);
     }
     throw error;
@@ -317,19 +411,19 @@ export async function updateUserCredential(
  * @param userId - User ID for security verification
  * @returns Success flag
  */
-export async function deleteUserCredential(
-  id: string,
-  userId: string
-): Promise<boolean> {
+export async function deleteUserCredential(id: string, userId: string): Promise<boolean> {
   try {
     // Verify the credential exists and belongs to the user
-    const [existingCredential] = await db.select()
+    const [existingCredential] = await db
+      .select()
       .from(userCredentials)
-      .where(and(
-        eq(userCredentials.id, id.toString()),
-        eq(userCredentials.userId!, userId),
-        eq(userCredentials.active, true)
-      ));
+      .where(
+        and(
+          eq(userCredentials.id, id.toString()),
+          eq(userCredentials.userId!, userId),
+          eq(userCredentials.active, true)
+        )
+      );
     if (!existingCredential) {
       // Log security event for attempted deletion
       await logSecurityEvent(
@@ -341,15 +435,13 @@ export async function deleteUserCredential(
       throw new Error('Credential not found or access denied');
     }
     // Mark as inactive rather than deleting
-    const [updated] = await db.update(userCredentials)
+    const [updated] = await db
+      .update(userCredentials)
       .set({
         active: false,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
-      .where(and(
-        eq(userCredentials.id, id.toString()),
-        eq(userCredentials.userId!, userId)
-      ))
+      .where(and(eq(userCredentials.id, id.toString()), eq(userCredentials.userId!, userId)))
       .returning();
     // Log security event
     await logSecurityEvent(
@@ -358,17 +450,39 @@ export async function deleteUserCredential(
       {
         credentialId: id,
         serviceName: existingCredential.serviceName,
-        credentialName: existingCredential.credentialName
+        credentialName: existingCredential.credentialName,
       },
       'info'
     );
     return !!updated;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    if (isCredentialError(error) && isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) !== 'Credential not found or access denied') {
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    if (
+      isCredentialError(error) && isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error) !== 'Credential not found or access denied'
+    ) {
       logger.error('Error deleting credential:', error);
     }
     throw error;
@@ -391,12 +505,10 @@ export async function hardDeleteUserCredential(
 ): Promise<boolean> {
   try {
     // Verify the credential exists and belongs to the user
-    const [existingCredential] = await db.select()
+    const [existingCredential] = await db
+      .select()
       .from(userCredentials)
-      .where(and(
-        eq(userCredentials.id, id.toString()),
-        eq(userCredentials.userId!, userId)
-      ));
+      .where(and(eq(userCredentials.id, id.toString()), eq(userCredentials.userId!, userId)));
     if (!existingCredential) {
       // Log security event for attempted hard deletion
       await logSecurityEvent(
@@ -405,18 +517,16 @@ export async function hardDeleteUserCredential(
         {
           credentialId: id,
           userId,
-          reason: 'not_found'
+          reason: 'not_found',
         },
         'warning'
       );
       throw new Error('Credential not found');
     }
     // Permanently delete the credential
-    await db.delete(userCredentials)
-      .where(and(
-        eq(userCredentials.id, id.toString()),
-        eq(userCredentials.userId!, userId)
-      ));
+    await db
+      .delete(userCredentials)
+      .where(and(eq(userCredentials.id, id.toString()), eq(userCredentials.userId!, userId)));
     // Log security event
     await logSecurityEvent(
       'credential_hard_deleted',
@@ -426,17 +536,39 @@ export async function hardDeleteUserCredential(
         userId,
         serviceName: existingCredential.serviceName,
         credentialName: existingCredential.credentialName,
-        reason
+        reason,
       },
       'critical' // Hard deletion is a critical security event
     );
     return true;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    if (isCredentialError(error) && isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) !== 'Credential not found') {
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    if (
+      isCredentialError(error) && isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error) !== 'Credential not found'
+    ) {
       logger.error('Failed to hard delete user credential:', error);
       // Log security event
       await logSecurityEvent(
@@ -445,7 +577,18 @@ export async function hardDeleteUserCredential(
         {
           credentialId: id,
           userId,
-          error: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)
+          error:
+            error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? isError(error)
+                    ? error instanceof Error
+                      ? error.message
+                      : String(error)
+                    : String(error)
+                  : String(error)
+                : String(error)
+              : String(error),
         },
         'error'
       );
@@ -471,13 +614,14 @@ export async function getUserCredentialByService(
     const conditions = [
       eq(userCredentials.userId!, userId),
       eq(userCredentials.serviceName, serviceName),
-      eq(userCredentials.active, true)
+      eq(userCredentials.active, true),
     ];
     if (credentialName) {
       conditions.push(eq(userCredentials.credentialName, credentialName));
     }
     // Query for the credential
-    const [credential] = await db.select()
+    const [credential] = await db
+      .select()
       .from(userCredentials)
       .where(and(...conditions))
       .orderBy(userCredentials.updatedAt, { direction: 'desc' }); // Get most recently updated if multiple
@@ -489,17 +633,18 @@ export async function getUserCredentialByService(
         {
           serviceName,
           credentialName: credentialName || 'any',
-          reason: 'not_found'
+          reason: 'not_found',
         },
         'info' // This is often just a normal "not found" case
       );
       throw new Error(`No active credential found for service: ${serviceName}`);
     }
     // Update last used timestamp
-    await db.update(userCredentials)
+    await db
+      .update(userCredentials)
       .set({
         lastUsed: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(userCredentials.id, credential.id));
     // Decrypt the payload
@@ -515,20 +660,42 @@ export async function getUserCredentialByService(
       userId,
       {
         credentialId: credential.id,
-        serviceName
+        serviceName,
       },
       'info'
     );
     return {
       credential,
-      payload
+      payload,
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    if (isCredentialError(error) && !isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)?.includes('No active credential found')) {
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    if (
+      isCredentialError(error) && !isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error)?.includes('No active credential found')
+    ) {
       logger.error('Error getting active credential:', error);
     }
     throw error;

@@ -1,11 +1,11 @@
-import { db } from '../shared/db.js.js';
-import { isError } from '../utils/errorUtils.js.js';
-import { emailQueue as emailQueueTable } from '../shared/schema.js.js';
+import { db } from '../shared/db.js';
+import { isError } from '../utils/errorUtils.js';
+import { emailQueue as emailQueueTable } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { EmailSendOptions, sendEmail as sendEmailService } from './mailerService.js.js';
+import { EmailSendOptions, sendEmail as sendEmailService } from './mailerService.js';
 import { v4 as uuidv4 } from 'uuid';
-import logger from '../utils/logger.js.js';
-import { formatError } from '../utils/logger.js.js';
+import logger from '../utils/logger.js';
+import { formatError } from '../utils/logger.js';
 interface EmailQueueOptions {
   maxRetries?: number;
   retryDelay?: number;
@@ -44,14 +44,14 @@ class EmailQueueService {
       status: 'pending',
       maxAttempts: this.maxRetries,
       createdAt: new Date(),
-      updatedAt: new Date()
-      } as any) // @ts-ignore - Ensuring all required properties are provided;
+      updatedAt: new Date(),
+    } as any); // @ts-ignore - Ensuring all required properties are provided;
     // Start processing if not already running
     if (!this.isProcessing) {
-      this.processQueue().catch(error => 
+      this.processQueue().catch((error) =>
         logger.error({
           event: 'email_queue_process_error',
-          ...formatError(error)
+          ...formatError(error),
         })
       );
     }
@@ -77,7 +77,7 @@ class EmailQueueService {
           .update(emailQueueTable)
           .set({
             status: 'processing',
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(emailQueueTable.id, email.id));
         try {
@@ -88,19 +88,31 @@ class EmailQueueService {
             .update(emailQueueTable)
             .set({
               status: 'completed',
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(emailQueueTable.id, email.id));
           logger.info({
             event: 'email_sent',
             emailId: email.id,
-            recipient: email.recipientEmail
+            recipient: email.recipientEmail,
           });
         } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+          // Use type-safe error handling
+          const errorMessage = isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error);
+          // Use type-safe error handling
+          const errorMessage = isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error);
           const attempts = (email.attempts ?? 0) + 1;
           const status = attempts >= (email.maxAttempts ?? this.maxRetries) ? 'failed' : 'pending';
           // Calculate exponential backoff delay
@@ -110,9 +122,20 @@ class EmailQueueService {
             .set({
               status,
               attempts,
-              lastError: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error),
+              lastError:
+                error instanceof Error
+                  ? isError(error)
+                    ? error instanceof Error
+                      ? isError(error)
+                        ? error instanceof Error
+                          ? error.message
+                          : String(error)
+                        : String(error)
+                      : String(error)
+                    : String(error)
+                  : String(error),
               updatedAt: new Date(),
-              processAfter: status === 'pending' ? new Date(Date.now() + retryDelay) : null
+              processAfter: status === 'pending' ? new Date(Date.now() + retryDelay) : null,
             })
             .where(eq(emailQueueTable.id, email.id));
           logger.error({
@@ -121,10 +144,12 @@ class EmailQueueService {
             recipient: email.recipientEmail,
             attempt: attempts,
             maxAttempts: email.maxAttempts,
-            ...formatError(error)
+            ...formatError(error),
           });
           if (status === 'pending') {
-            await new Promise(resolve => setTimeout(resolve, Math.min(retryDelay, this.retryDelay)));
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.min(retryDelay, this.retryDelay))
+            );
           }
         }
       }
@@ -151,7 +176,7 @@ class EmailQueueService {
       status: email.status,
       error: email.lastError || '',
       createdAt: email.createdAt!,
-      updatedAt: email.updatedAt!
+      updatedAt: email.updatedAt!,
     };
   }
   async retryEmail(id: string): Promise<boolean> {
@@ -170,16 +195,16 @@ class EmailQueueService {
           attempts: 0,
           lastError: null,
           updatedAt: new Date(),
-          processAfter: null
+          processAfter: null,
         })
         .where(eq(emailQueueTable.id, id.toString()));
       // Start processing if not already running
       if (!this.isProcessing) {
-        this.processQueue().catch(error => 
+        this.processQueue().catch((error) =>
           logger.error({
             event: 'email_queue_retry_error',
             emailId: id,
-            ...formatError(error)
+            ...formatError(error),
           })
         );
       }
@@ -188,7 +213,7 @@ class EmailQueueService {
       logger.error({
         event: 'email_retry_error',
         emailId: id,
-        ...formatError(error)
+        ...formatError(error),
       });
       return false;
     }

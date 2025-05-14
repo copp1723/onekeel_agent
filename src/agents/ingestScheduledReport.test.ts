@@ -1,7 +1,11 @@
 /**
  * Tests for the ingestScheduledReport module
  */
-import { ingestScheduledReport, ReportNotFoundError, tryFetchReportFromEmail } from './ingestScheduledReport.js.js';
+import {
+  ingestScheduledReport,
+  ReportNotFoundError,
+  tryFetchReportFromEmail,
+} from './ingestScheduledReport.js';
 // Simple placeholder test file to be expanded with proper test implementation
 // IMPORTANT: This is just a placeholder and will be replaced with actual tests
 // Example test implementation for manual verification:
@@ -22,5 +26,5 @@ console.log('  EMAIL_TLS - Use TLS (optional, default: true)');
 export const testModule = {
   ingestScheduledReport,
   ReportNotFoundError,
-  tryFetchReportFromEmail
+  tryFetchReportFromEmail,
 };

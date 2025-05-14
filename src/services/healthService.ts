@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { isError } from '../utils/errorUtils.js.js';
+import { isError } from '../utils/errorUtils.js';
 /**
  * Health Monitoring Service
  *
@@ -8,9 +8,9 @@ import { isError } from '../utils/errorUtils.js.js';
  * of different services and APIs, and stores the results for display
  * in a health dashboard.
  */
-import { db } from '../shared/db.js.js';
-import { healthChecks, healthLogs } from '../shared/schema.js.js';
-import {  eq, desc, and, sql , sql } from 'drizzle-orm';
+import { db } from '../shared/db.js';
+import { healthChecks, healthLogs } from '../shared/schema.js';
+import { eq, desc, and, sql, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 // Types for health check results
 export interface HealthCheckResult {
@@ -38,10 +38,7 @@ const healthCheckFunctions: Record<string, () => Promise<HealthCheckResult>> = {
  * @param name - The name of the health check
  * @param checkFn - The function that performs the health check
  */
-export function registerHealthCheck(
-  name: string,
-  checkFn: () => Promise<HealthCheckResult>
-): void {
+export function registerHealthCheck(name: string, checkFn: () => Promise<HealthCheckResult>): void {
   healthCheckFunctions[name] = checkFn;
   console.log(`Registered health check: ${name}`);
 }
@@ -60,9 +57,21 @@ export async function runAllHealthChecks(): Promise<HealthCheckResult[]> {
       await storeHealthCheckResult(result);
     } catch (error) {
       // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      const errorMessage = isError(error)
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : String(error);
       // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      const errorMessage = isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
       // If a health check fails, record an error
       const errorResult: HealthCheckResult = {
         id: uuidv4(),
@@ -70,7 +79,7 @@ export async function runAllHealthChecks(): Promise<HealthCheckResult[]> {
         status: 'error',
         responseTime: 0,
         lastChecked: new Date(),
-        message: `Health check failed: ${error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)}`
+        message: `Health check failed: ${error instanceof Error ? (isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`,
       };
       results.push(errorResult);
       await storeHealthCheckResult(errorResult);
@@ -94,17 +103,29 @@ export async function runHealthCheck(name: string): Promise<HealthCheckResult | 
     await storeHealthCheckResult(result);
     return result;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     const errorResult: HealthCheckResult = {
       id: uuidv4(),
       name,
       status: 'error',
       responseTime: 0,
       lastChecked: new Date(),
-      message: `Health check failed: ${error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)}`
+      message: `Health check failed: ${error instanceof Error ? (isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`,
     };
     await storeHealthCheckResult(errorResult);
     return errorResult;
@@ -133,38 +154,34 @@ async function storeHealthCheckResult(result: HealthCheckResult): Promise<void> 
           lastChecked: result.lastChecked,
           message: result.message,
           details: result.details ? JSON.stringify(result.details) : null,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(healthChecks.id, checkId.toString()));
     } else {
       // Create new health check
       checkId = result.id || uuidv4();
-      await db
-        .insert(healthChecks)
-        .values({
-          id: checkId,
-          name: result.name,
-          status: result.status,
-          responseTime: result.responseTime,
-          lastChecked: result.lastChecked,
-          message: result.message,
-          details: result.details ? JSON.stringify(result.details) : null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-    }
-    // Add entry to health logs
-    await db
-      .insert(healthLogs)
-      .values({
-        id: uuidv4(),
-        checkId,
-        timestamp: result.lastChecked,
+      await db.insert(healthChecks).values({
+        id: checkId,
+        name: result.name,
         status: result.status,
         responseTime: result.responseTime,
+        lastChecked: result.lastChecked,
         message: result.message,
-        details: result.details ? JSON.stringify(result.details) : null
+        details: result.details ? JSON.stringify(result.details) : null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
+    }
+    // Add entry to health logs
+    await db.insert(healthLogs).values({
+      id: uuidv4(),
+      checkId,
+      timestamp: result.lastChecked,
+      status: result.status,
+      responseTime: result.responseTime,
+      message: result.message,
+      details: result.details ? JSON.stringify(result.details) : null,
+    });
   } catch (error) {
     console.error('Error storing health check result:', error);
   }
@@ -174,18 +191,15 @@ async function storeHealthCheckResult(result: HealthCheckResult): Promise<void> 
  * @returns List of the latest health check results for each service
  */
 export async function getLatestHealthChecks(): Promise<HealthCheckResult[]> {
-  const results = await db
-    .select()
-    .from(healthChecks)
-    .orderBy(desc(healthChecks.lastChecked));
-  return results.map(result => ({
+  const results = await db.select().from(healthChecks).orderBy(desc(healthChecks.lastChecked));
+  return results.map((result) => ({
     id: result.id,
     name: result.name,
     status: result.status as 'ok' | 'warning' | 'error',
     responseTime: result.responseTime,
     lastChecked: result.lastChecked,
     message: result.message || 'No message provided',
-    details: result.details ? JSON.parse(result.details) : undefined
+    details: result.details ? JSON.parse(result.details) : undefined,
   }));
 }
 /**
@@ -201,14 +215,14 @@ export async function getHealthLogs(checkId: string, limit = 100): Promise<Healt
     .where(eq(healthLogs.checkId, checkId))
     .orderBy(desc(healthLogs.timestamp))
     .limit(limit);
-  return logs.map(log => ({
+  return logs.map((log) => ({
     id: log.id,
     checkId: log.checkId,
     timestamp: log.timestamp,
     status: log.status as 'ok' | 'warning' | 'error',
     responseTime: log.responseTime,
     message: log.message || 'No message provided',
-    details: log.details ? JSON.parse(log.details) : undefined
+    details: log.details ? JSON.parse(log.details) : undefined,
   }));
 }
 /**
@@ -233,12 +247,12 @@ export async function getHealthSummary(): Promise<{
       servicesWarning: 0,
       servicesError: 0,
       averageResponseTime: 0,
-      lastChecked: null
+      lastChecked: null,
     };
   }
-  const servicesOk = checks.filter(c => c.status === 'ok').length;
-  const servicesWarning = checks.filter(c => c.status === 'warning').length;
-  const servicesError = checks.filter(c => c.status === 'error').length;
+  const servicesOk = checks.filter((c) => c.status === 'ok').length;
+  const servicesWarning = checks.filter((c) => c.status === 'warning').length;
+  const servicesError = checks.filter((c) => c.status === 'error').length;
   // Calculate overall status
   let overallStatus: 'ok' | 'warning' | 'error' = 'ok';
   if (servicesError > 0) {
@@ -250,7 +264,7 @@ export async function getHealthSummary(): Promise<{
   const totalResponseTime = checks.reduce((sum, check) => sum + check.responseTime, 0);
   const averageResponseTime = totalResponseTime / checks.length;
   // Find the most recent check
-  const lastChecked = new Date(Math.max(...checks.map(c => c.lastChecked.getTime())));
+  const lastChecked = new Date(Math.max(...checks.map((c) => c.lastChecked.getTime())));
   return {
     overallStatus,
     servicesCount: checks.length,
@@ -258,7 +272,7 @@ export async function getHealthSummary(): Promise<{
     servicesWarning,
     servicesError,
     averageResponseTime,
-    lastChecked
+    lastChecked,
   };
 }
 /**
@@ -280,23 +294,35 @@ export async function checkDatabaseHealth(): Promise<HealthCheckResult> {
       lastChecked: new Date(),
       message: 'Database is operational',
       details: {
-        connectionString: process.env.DATABASE_URL ?
-          process.env.DATABASE_URL.replace(/:[^:]*@/, ':***@') :
-          'Using environment variables'
-      }
+        connectionString: process.env.DATABASE_URL
+          ? process.env.DATABASE_URL.replace(/:[^:]*@/, ':***@')
+          : 'Using environment variables',
+      },
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     return {
       id,
       name,
       status: 'error',
       responseTime: Date.now() - startTime,
       lastChecked: new Date(),
-      message: `Database error: ${error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)}`
+      message: `Database error: ${error instanceof Error ? (isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`,
     };
   }
 }
@@ -325,21 +351,33 @@ export async function checkEmailService(): Promise<HealthCheckResult> {
       message,
       details: {
         provider: hasSendGridKey ? 'SendGrid' : 'Nodemailer',
-        configured: hasSendGridKey
-      }
+        configured: hasSendGridKey,
+      },
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     return {
       id,
       name,
       status: 'error',
       responseTime: Date.now() - startTime,
       lastChecked: new Date(),
-      message: `Email service error: ${error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)}`
+      message: `Email service error: ${error instanceof Error ? (isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`,
     };
   }
 }
@@ -356,9 +394,7 @@ export async function checkAIService(): Promise<HealthCheckResult> {
     // Note: We don't actually make an API call here to avoid unnecessary usage
     // In a production system, you might want to periodically make a simple API call
     const status = hasOpenAIKey ? 'ok' : 'error';
-    const message = hasOpenAIKey
-      ? 'AI service is configured'
-      : 'Missing OpenAI API key';
+    const message = hasOpenAIKey ? 'AI service is configured' : 'Missing OpenAI API key';
     return {
       id,
       name,
@@ -368,21 +404,33 @@ export async function checkAIService(): Promise<HealthCheckResult> {
       message,
       details: {
         provider: 'OpenAI',
-        configured: hasOpenAIKey
-      }
+        configured: hasOpenAIKey,
+      },
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     return {
       id,
       name,
       status: 'error',
       responseTime: Date.now() - startTime,
       lastChecked: new Date(),
-      message: `AI service error: ${error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)}`
+      message: `AI service error: ${error instanceof Error ? (isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`,
     };
   }
 }
@@ -409,21 +457,33 @@ export async function checkSchedulerService(): Promise<HealthCheckResult> {
       lastChecked: new Date(),
       message: 'Scheduler service is operational',
       details: {
-        activeServices: activeSchedules[0]?.count || 0
-      }
+        activeServices: activeSchedules[0]?.count || 0,
+      },
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     return {
       id,
       name,
       status: 'error',
       responseTime: Date.now() - startTime,
       lastChecked: new Date(),
-      message: `Scheduler error: ${error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)}`
+      message: `Scheduler error: ${error instanceof Error ? (isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`,
     };
   }
 }

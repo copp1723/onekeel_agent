@@ -1,6 +1,6 @@
 /**
  * Automotive Analyst System Prompt
- * 
+ *
  * This prompt is designed for generating insights from automotive dealership data.
  * It's structured to produce consistent, domain-specific analysis for CRM exports
  * from platforms like VinSolutions and DealerSocket.

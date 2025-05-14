@@ -1,10 +1,10 @@
 import { Express } from 'express';
-import authRouter from './auth.js.js';
-import credentialsRouter from './credentials.js.js';
-import workflowRoutes from './workflows.js.js';
-import scheduleRoutes from './schedules.js.js';
-import { setupAuth } from '../replitAuth.js.js';
-import emailRoutes from './emails.js.js';
+import authRouter from './auth.js';
+import credentialsRouter from './credentials.js';
+import workflowRoutes from './workflows.js';
+import scheduleRoutes from './schedules.js';
+import { setupAuth } from '../replitAuth.js';
+import emailRoutes from './emails.js';
 /**
  * Register all auth and credential routes with the Express app
  * @param app Express application instance

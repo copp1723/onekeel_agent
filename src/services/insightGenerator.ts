@@ -1,42 +1,52 @@
 /**
  * Insight Generator Service
- * 
+ *
  * Generates insights from parsed data using LLM-based analysis
  * and stores results in the database with metadata.
  */
 import fs from 'fs';
-import { isError } from '../utils/errorUtils.js.js';
+import { isError } from '../utils/errorUtils.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { OpenAI } from 'openai';
-import { db } from '../db/index.js.js';
-import { insights } from '../shared/report-schema.js.js';
-import { ParserResult } from './attachmentParsers.js.js';
+import { db } from '../db/index.js';
+import { insights } from '../shared/report-schema.js';
+import { ParserResult } from './attachmentParsers.js';
 import { z } from 'zod';
 // Define the insight response schema
 export const InsightResponseSchema = z.object({
   title: z.string(),
   description: z.string(),
   summary: z.string(),
-  actionItems: z.array(z.object({
-    title: z.string(),
-    description: z.string(),
-    priority: z.enum(['high', 'medium', 'low']).optional(),
-    impact: z.string().optional()
-  })),
-  metrics: z.array(z.object({
-    name: z.string(),
-    value: z.union([z.string(), z.number()]),
-    change: z.string().optional(),
-    trend: z.enum(['up', 'down', 'stable']).optional()
-  })).optional(),
-  charts: z.array(z.object({
-    title: z.string(),
-    type: z.enum(['bar', 'line', 'pie', 'scatter']),
-    data: z.record(z.string(), z.any()),
-    xAxisLabel: z.string().optional(),
-    yAxisLabel: z.string().optional()
-  })).optional()
+  actionItems: z.array(
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      priority: z.enum(['high', 'medium', 'low']).optional(),
+      impact: z.string().optional(),
+    })
+  ),
+  metrics: z
+    .array(
+      z.object({
+        name: z.string(),
+        value: z.union([z.string(), z.number()]),
+        change: z.string().optional(),
+        trend: z.enum(['up', 'down', 'stable']).optional(),
+      })
+    )
+    .optional(),
+  charts: z
+    .array(
+      z.object({
+        title: z.string(),
+        type: z.enum(['bar', 'line', 'pie', 'scatter']),
+        data: z.record(z.string(), z.any()),
+        xAxisLabel: z.string().optional(),
+        yAxisLabel: z.string().optional(),
+      })
+    )
+    .optional(),
 });
 // Type for insight response
 export type InsightResponse = z.infer<typeof InsightResponseSchema>;
@@ -76,7 +86,7 @@ Provide your analysis in a structured format with:
 - Key metrics with values and trends
 - Charts that would help visualize the data (describe what they would show)
 Your insights should be specific, data-driven, and actionable for dealership management.`,
-    version: '2.0.0'
+    version: '2.0.0',
   },
   inventory_analysis: {
     text: `You are an expert automotive inventory analyst. Your task is to analyze inventory data from a car dealership and provide actionable insights.
@@ -95,8 +105,8 @@ Provide your analysis in a structured format with:
 - Key metrics with values and trends
 - Charts that would help visualize the data (describe what they would show)
 Your insights should be specific, data-driven, and actionable for inventory managers.`,
-    version: '1.5.0'
-  }
+    version: '1.5.0',
+  },
 };
 /**
  * Log insight generation run
@@ -106,9 +116,11 @@ export function logInsightRun(logData: InsightRunLogData): void {
   const timestamp = new Date().toISOString();
   const logEntry = {
     timestamp,
-    ...logData
+    ...logData,
   };
-  console.log(`[INSIGHT RUN] ${timestamp} - ${logData.platform!} - ${logData.promptIntent} - ${logData.durationMs}ms`);
+  console.log(
+    `[INSIGHT RUN] ${timestamp} - ${logData.platform!} - ${logData.promptIntent} - ${logData.durationMs}ms`
+  );
   // Create logs directory if it doesn't exist
   const logsDir = path.join(process.cwd(), 'logs');
   if (!fs.existsSync(logsDir)) {
@@ -148,8 +160,8 @@ export function saveResult(
     metadata: {
       ...metadata,
       timestamp: new Date().toISOString(),
-      platform
-    }
+      platform,
+    },
   };
   // Save to file
   const filePath = path.join(platformDir, `${filename}.json`);
@@ -185,8 +197,8 @@ export async function storeInsight(
     qualityScores: metadata.qualityScores || null,
     businessImpact: metadata.businessImpact || null,
     createdAt: new Date(),
-    updatedAt: new Date()
-      } as any) // @ts-ignore - Ensuring all required properties are provided;
+    updatedAt: new Date(),
+  } as any); // @ts-ignore - Ensuring all required properties are provided;
   console.log(`Stored insight: ${insightId}`);
   return insightId;
 }
@@ -217,23 +229,19 @@ export async function generateInsights(
   const startTime = Date.now();
   try {
     // Prepare sample data
-    const sampleData = JSON.stringify(
-      data.records.slice(0, sampleSize),
-      null,
-      2
-    );
+    const sampleData = JSON.stringify(data.records.slice(0, sampleSize), null, 2);
     // Generate insights
     const response = await openai.chat.completions.create({
       model: modelVersion,
       messages: [
         { role: 'system', content: promptInfo.text },
-        { 
-          role: 'user', 
-          content: `Here is a validated CRM export from an automotive dealership. Please analyze this data and provide insights:\n\n${sampleData}`
-        }
+        {
+          role: 'user',
+          content: `Here is a validated CRM export from an automotive dealership. Please analyze this data and provide insights:\n\n${sampleData}`,
+        },
       ],
       temperature: 0.2,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
     });
     // Calculate duration
     const endTime = Date.now();
@@ -252,7 +260,7 @@ export async function generateInsights(
       promptIntent: intent,
       promptVersion: promptInfo.version,
       durationMs,
-      outputSummary: [insightData.title]
+      outputSummary: [insightData.title],
     };
     logInsightRun(insightRunData);
     // Save result to file
@@ -262,14 +270,14 @@ export async function generateInsights(
       promptVersion: promptInfo.version,
       durationMs,
       sampleSize,
-      modelVersion
+      modelVersion,
     });
     // Store in database
     const metadata = {
       promptVersion: promptInfo.version,
       modelVersion,
       durationMs,
-      filePath: outputPath
+      filePath: outputPath,
     };
     const insightId = await storeInsight(data.id, insightData, metadata);
     return {
@@ -280,23 +288,46 @@ export async function generateInsights(
         platform,
         intent,
         sampleSize,
-        outputPath
-      }
+        outputPath,
+      },
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     // Log error
-    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     const insightRunData: InsightRunLogData = {
       platform,
       promptIntent: intent,
       promptVersion: promptInfo.version,
       durationMs: Date.now() - startTime,
       outputSummary: [],
-      error: errorMessage
+      error: errorMessage,
     };
     logInsightRun(insightRunData);
     console.error('Error generating insights:', error);
@@ -307,5 +338,5 @@ export default {
   generateInsights,
   logInsightRun,
   saveResult,
-  storeInsight
+  storeInsight,
 };

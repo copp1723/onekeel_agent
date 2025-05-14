@@ -4,25 +4,25 @@
  * Uses setInterval for basic periodic scheduling.
  */
 import { v4 as uuidv4 } from 'uuid';
-import { isError } from '../utils/errorUtils.js.js';
-import { db } from '../shared/db.js.js';
-import { schedules, workflows } from '../shared/schema.js.js';
+import { isError } from '../utils/errorUtils.js';
+import { db } from '../shared/db.js';
+import { schedules, workflows } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { runWorkflow } from './workflowService.js.js';
+import { runWorkflow } from './workflowService.js';
 // Store active schedule timers
 const activeSchedules = new Map<string, NodeJS.Timeout>();
 // Schedule type
 export interface Schedule {
   id: string;
   workflowId: string;
-  cron: string;  // DB field is 'cron', not 'cronExpression'
+  cron: string; // DB field is 'cron', not 'cronExpression'
   enabled: boolean;
   description?: string;
   tags?: string[];
   createdAt: Date;
   updatedAt: Date;
-  lastRunAt: Date | null;  // DB field is 'lastRunAt', not 'lastRun'
-  nextRunAt: Date | null;  // Used for tracking next run time
+  lastRunAt: Date | null; // DB field is 'lastRunAt', not 'lastRun'
+  nextRunAt: Date | null; // Used for tracking next run time
   userId: string;
   status: string;
   retryCount: number;
@@ -41,10 +41,7 @@ export async function initializeScheduler(): Promise<void> {
       stopSchedule(scheduleId);
     });
     // Load all enabled schedules
-    const enabledSchedules = await db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.enabled, true));
+    const enabledSchedules = await db.select().from(schedules).where(eq(schedules.enabled, true));
     console.log(`Found ${enabledSchedules.length} enabled schedules`);
     // Start each schedule
     for (const schedule of enabledSchedules) {
@@ -120,10 +117,10 @@ export async function createSchedule(
       .values({
         id,
         workflowId,
-        cron: cronExpression,  // DB field is 'cron'
+        cron: cronExpression, // DB field is 'cron'
         enabled: options.enabled !== false, // Default to true
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
       })
       .returning();
     // Start the schedule if enabled
@@ -164,13 +161,38 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
         // But we'll log it for debugging purposes
       })
       .where(eq(schedules.id, schedule.id));
-    console.log(`Started schedule ${schedule.id} with interval ${interval}ms, next run at ${nextRunAt.toISOString()}`);
+    console.log(
+      `Started schedule ${schedule.id} with interval ${interval}ms, next run at ${nextRunAt.toISOString()}`
+    );
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     console.error(`Error starting schedule ${schedule.id}:`, error);
     throw new Error(`Error starting schedule: ${errorMessage}`);
   }
@@ -235,11 +257,34 @@ export async function executeWorkflowById(workflowId: string): Promise<void> {
     // Run the workflow
     await runWorkflow(workflowId);
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     console.error(`Error executing workflow ${workflowId}:`, error);
     throw new Error(`Failed to execute workflow: ${errorMessage}`);
   }
@@ -267,7 +312,7 @@ export async function listSchedules(): Promise<Schedule[]> {
 export async function updateSchedule(
   scheduleId: string,
   updates: {
-    cronExpression?: string;  // API uses cronExpression for clarity
+    cronExpression?: string; // API uses cronExpression for clarity
     enabled?: boolean;
     description?: string;
     tags?: string[];
@@ -312,11 +357,34 @@ export async function updateSchedule(
     }
     return updatedSchedule as Schedule;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     console.error(`Error updating schedule ${scheduleId}:`, error);
     throw new Error(`Failed to update schedule: ${errorMessage}`);
   }
@@ -329,17 +397,38 @@ export async function deleteSchedule(scheduleId: string): Promise<boolean> {
     // Stop the schedule if it's running
     await stopSchedule(scheduleId);
     // Delete from the database
-    const result = await db
-      .delete(schedules)
-      .where(eq(schedules.id, scheduleId.toString()));
+    const result = await db.delete(schedules).where(eq(schedules.id, scheduleId.toString()));
     // Check if something was deleted
     return true; // If we get here, it worked
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     console.error(`Error deleting schedule ${scheduleId}:`, error);
     throw new Error(`Failed to delete schedule: ${errorMessage}`);
   }

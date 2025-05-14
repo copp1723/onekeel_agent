@@ -1,19 +1,19 @@
 /**
  * Circuit Breaker Pattern Implementation
- * 
+ *
  * Implements the circuit breaker pattern to prevent repeated calls to failing services,
  * allowing them time to recover and preventing cascading failures.
  */
 import { sql } from 'drizzle-orm';
-import { db } from '../shared/db.js.js';
-import { logger } from '../shared/logger.js.js';
-import { circuitBreakerState } from '../shared/schema.js.js';
-import logger from './logger.js.js';
+import { db } from '../shared/db.js';
+import { logger } from '../shared/logger.js';
+import { circuitBreakerState } from '../shared/schema.js';
+import logger from './logger.js';
 // Circuit breaker states
 export enum CircuitState {
-  CLOSED = 'closed',     // Normal operation, requests pass through
-  OPEN = 'open',         // Circuit is open, requests fail fast
-  HALF_OPEN = 'half-open' // Testing if the service has recovered
+  CLOSED = 'closed', // Normal operation, requests pass through
+  OPEN = 'open', // Circuit is open, requests fail fast
+  HALF_OPEN = 'half-open', // Testing if the service has recovered
 }
 /**
  * Circuit breaker options
@@ -37,13 +37,16 @@ export interface CircuitBreakerOptions {
 /**
  * In-memory circuit breaker state storage
  */
-const inMemoryCircuits = new Map<string, {
-  state: CircuitState;
-  failures: number;
-  successes: number;
-  lastFailure: number;
-  lastSuccess: number;
-}>();
+const inMemoryCircuits = new Map<
+  string,
+  {
+    state: CircuitState;
+    failures: number;
+    successes: number;
+    lastFailure: number;
+    lastSuccess: number;
+  }
+>();
 /**
  * Circuit breaker implementation
  */
@@ -53,7 +56,7 @@ export class CircuitBreaker {
   private readonly inMemory: boolean;
   /**
    * Create a new circuit breaker
-   * 
+   *
    * @param name - Unique identifier for this circuit
    * @param options - Circuit breaker configuration
    */
@@ -68,7 +71,7 @@ export class CircuitBreaker {
       timeout: options.timeout || 10000,
       isFailure: options.isFailure || (() => true),
       onStateChange: options.onStateChange || (() => {}),
-      inMemory: this.inMemory
+      inMemory: this.inMemory,
     };
     // Initialize the circuit state if using in-memory storage
     if (this.inMemory && !inMemoryCircuits.has(this.name)) {
@@ -77,13 +80,13 @@ export class CircuitBreaker {
         failures: 0,
         successes: 0,
         lastFailure: 0,
-        lastSuccess: 0
+        lastSuccess: 0,
       });
     }
   }
   /**
    * Execute a function with circuit breaker protection
-   * 
+   *
    * @param fn - The async function to execute
    * @returns The result of the function if successful
    * @throws CircuitOpenError if the circuit is open
@@ -120,7 +123,10 @@ export class CircuitBreaker {
    */
   private async executeWithTimeout<T>(fn: () => Promise<T>): Promise<T> {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`Circuit ${this.name} timed out after ${this.options.timeout}ms`)), this.options.timeout);
+      setTimeout(
+        () => reject(new Error(`Circuit ${this.name} timed out after ${this.options.timeout}ms`)),
+        this.options.timeout
+      );
     });
     return Promise.race([fn(), timeoutPromise]);
   }
@@ -140,7 +146,7 @@ export class CircuitBreaker {
       if (!result) {
         await db.insert(circuitBreakerState).values({
           name: this.name,
-          state: CircuitState.CLOSED
+          state: CircuitState.CLOSED,
         });
         return CircuitState.CLOSED;
       }
@@ -172,9 +178,9 @@ export class CircuitBreaker {
       try {
         await db
           .update(circuitBreakerState)
-          .set({ 
-            state: newState, 
-            updated_at: new Date() 
+          .set({
+            state: newState,
+            updated_at: new Date(),
           })
           .where(sql`name = ${this.name}`);
       } catch (error) {
@@ -214,7 +220,7 @@ export class CircuitBreaker {
             .update(circuitBreakerState)
             .set({
               successes: sql`successes + 1`,
-              updated_at: new Date()
+              updated_at: new Date(),
             })
             .where(sql`name = ${this.name}`);
         }
@@ -252,9 +258,9 @@ export class CircuitBreaker {
           await this.setState(CircuitState.OPEN);
           await db
             .update(circuitBreakerState)
-            .set({ 
+            .set({
               last_failure_ms: Date.now(),
-              updated_at: new Date()
+              updated_at: new Date(),
             })
             .where(sql`name = ${this.name}`);
         } else {
@@ -262,7 +268,7 @@ export class CircuitBreaker {
             .update(circuitBreakerState)
             .set({
               failures: sql`failures + 1`,
-              updated_at: new Date()
+              updated_at: new Date(),
             })
             .where(sql`name = ${this.name}`);
         }
@@ -299,7 +305,7 @@ export class CircuitBreaker {
         failures: 0,
         successes: 0,
         lastFailure: 0,
-        lastSuccess: Date.now()
+        lastSuccess: Date.now(),
       });
     } else {
       try {
@@ -310,7 +316,7 @@ export class CircuitBreaker {
             failures: 0,
             successes: 0,
             last_failure_ms: 0,
-            updated_at: new Date()
+            updated_at: new Date(),
           })
           .where(sql`name = ${this.name}`);
       } catch (error) {

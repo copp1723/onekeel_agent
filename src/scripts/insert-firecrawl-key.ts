@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { apiKeys } from '../shared/schema.js.js';
+import { apiKeys } from '../shared/schema.js';
 import crypto from 'crypto';
 import { sql } from 'drizzle-orm';
 // Load environment variables
@@ -25,23 +25,27 @@ async function insertApiKey() {
   const db = drizzle(client);
   try {
     // Check if the key already exists
-    const existingKeys = await db.select().from(apiKeys).where(sql`key_name = 'firecrawl'`);
+    const existingKeys = await db
+      .select()
+      .from(apiKeys)
+      .where(sql`key_name = 'firecrawl'`);
     if (existingKeys.length > 0) {
       // Update the existing key
       console.log('Updating existing Firecrawl API key...');
       await // @ts-ignore
-db.update(apiKeys)
+      db
+        .update(apiKeys)
         .set({ keyValue: firecrawlApiKey })
         .where(sql`key_name = 'firecrawl'`);
     } else {
       // Insert a new key
       console.log('Inserting new Firecrawl API key...');
       await // @ts-ignore
-db.insert(apiKeys).values({
+      db.insert(apiKeys).values({
         id: crypto.randomUUID(),
         keyName: 'firecrawl',
-        keyValue: firecrawlApiKey
-      } as any) // @ts-ignore - Ensuring all required properties are provided;
+        keyValue: firecrawlApiKey,
+      } as any); // @ts-ignore - Ensuring all required properties are provided;
     }
     console.log('Firecrawl API key has been saved to the database');
   } catch (error) {

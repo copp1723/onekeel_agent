@@ -1,22 +1,22 @@
 /**
  * Insight Scorer
- * 
+ *
  * This module provides functionality to evaluate the quality of generated insights
  * using an LLM-based scoring approach. This helps benchmark different prompt
  * versions and track insight quality over time.
  */
 import OpenAI from 'openai';
-import { isError } from '../utils/errorUtils.js.js';
-import { logger } from '../shared/logger.js.js';
+import { isError } from '../utils/errorUtils.js';
+import { logger } from '../shared/logger.js';
 /**
  * Structure for insight quality score and feedback
  */
 export interface InsightQualityScore {
-  score: number;          // 0-10 score
-  feedback: string;       // Detailed feedback
-  strengths: string[];    // Specific strengths
-  weaknesses: string[];   // Areas for improvement
-  timestamp: string;      // When the scoring was performed
+  score: number; // 0-10 score
+  feedback: string; // Detailed feedback
+  strengths: string[]; // Specific strengths
+  weaknesses: string[]; // Areas for improvement
+  timestamp: string; // When the scoring was performed
 }
 /**
  * System prompt for the scoring model
@@ -48,16 +48,16 @@ export async function scoreInsightQuality(insight: InsightResponse): Promise<Ins
     // Convert insight to string for evaluation
     const insightStr = JSON.stringify(insight, null, 2);
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         { role: 'system', content: SCORING_SYSTEM_PROMPT },
-        { 
-          role: 'user', 
-          content: `Please evaluate the quality of this insight:\n\n${insightStr}`
-        }
+        {
+          role: 'user',
+          content: `Please evaluate the quality of this insight:\n\n${insightStr}`,
+        },
       ],
       temperature: 0.3,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
     });
     // Parse the response
     const content = response.choices[0].message.content;
@@ -68,29 +68,53 @@ export async function scoreInsightQuality(insight: InsightResponse): Promise<Ins
     const scoreData = JSON.parse(content) as Omit<InsightQualityScore, 'timestamp'>;
     const result: InsightQualityScore = {
       ...scoreData,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
     // Validate score is in range 0-10
     result.score = Math.max(0, Math.min(10, result.score));
     // Log the scoring result
     logger.info(`Insight scored ${result.score}/10`, {
       score: result.score,
-      feedback: result.feedback
+      feedback: result.feedback,
     });
     return result;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     logger.error('Error scoring insight quality:', error);
     // Return a default score on error
     return {
       score: -1,
-      feedback: 'Error scoring insight: ' + (error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)),
+      feedback:
+        'Error scoring insight: ' +
+        (error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)),
       strengths: [],
       weaknesses: ['Could not be evaluated due to scoring error'],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }

@@ -1,7 +1,7 @@
 import pino, { Level, Logger } from 'pino';
 import path from 'path';
 import fs from 'fs';
-import { getErrorMessage, getErrorStack } from './errorUtils.js.js';
+import { getErrorMessage, getErrorStack } from './errorUtils.js';
 // Ensure log directory exists
 const logDirectory = path.resolve(process.cwd(), 'logs');
 if (!fs.existsSync(logDirectory)) {
@@ -42,10 +42,7 @@ if (process.env.NODE_ENV === 'development') {
   streams.push({ level: 'debug' as Level, stream: pretty });
 }
 // Create logger instance with multiple streams
-const logger: Logger = pino(
-  baseOptions,
-  pino.multistream(streams)
-) as Logger;
+const logger: Logger = pino(baseOptions, pino.multistream(streams)) as Logger;
 // Add error context formatter
 export function formatError(error: unknown) {
   return {

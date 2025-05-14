@@ -1,22 +1,23 @@
 // src/api/server.ts
 import express, { Request, Response } from 'express';
-import { isError } from '../utils/errorUtils.js.js';
-import { routeHandler } from '../utils/routeHandler.js.js';
-import parseTask from '../services/taskParser.js.js';
-import { getTaskLogs } from '../shared/logger.js.js';
+import { isError } from '../utils/errorUtils.js';
+import { routeHandler } from '../utils/routeHandler.js';
+import parseTask from '../services/taskParser.js';
+import { getTaskLogs } from '../shared/logger.js';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { registerAuthRoutes } from '../server/routes/index.js.js';
-import { initializeJobQueue } from '../services/jobQueue.js.js';
-import { initializeScheduler } from '../services/schedulerService.js.js';
-import { initializeMailer } from '../services/mailerService.js.js';
-import jobsRouter from '../server/routes/jobs.js.js';
-import workflowsRouter from '../server/routes/workflows.js.js';
-import { rateLimiters } from '../shared/middleware/rateLimiter.js.js';
-import { errorHandlerMiddleware } from '../shared/errorHandler.js.js';
-import { validateEnvOrExit } from '../utils/envValidator.js.js';
-import { initializeEncryption } from '../utils/encryption.js.js';
-import { logger } from '../shared/logger.js.js';
+import { registerAuthRoutes } from '../server/routes/index.js';
+import { initializeJobQueue } from '../services/jobQueue.js';
+import { initializeScheduler } from '../services/schedulerService.js';
+import { initializeMailer } from '../services/mailerService.js';
+import { startAllHealthChecks } from '../services/healthCheckScheduler.js';
+import jobsRouter from '../server/routes/jobs.js';
+import workflowsRouter from '../server/routes/workflows.js';
+import { rateLimiters } from '../shared/middleware/rateLimiter.js';
+import { errorHandlerMiddleware } from '../shared/errorHandler.js';
+import { validateEnvOrExit } from '../utils/envValidator.js';
+import { initializeEncryption } from '../utils/encryption.js';
+import { logger } from '../shared/logger.js';
 // Load environment variables
 dotenv.config();
 // Validate environment variables
@@ -25,11 +26,14 @@ validateEnvOrExit();
 // Initialize encryption with validated key
 initializeEncryption();
 // Log startup information
-logger.info({
-  event: 'server_startup',
-  environment: process.env.NODE_ENV || 'development',
-  timestamp: new Date().toISOString()
-}, 'Server starting with validated environment');
+logger.info(
+  {
+    event: 'server_startup',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+  },
+  'Server starting with validated environment'
+);
 // Initialize Express app
 const app = express();
 app.use(express.json());
@@ -46,6 +50,11 @@ app.use(rateLimiters.api);
     // Initialize the task scheduler
     await initializeScheduler();
     console.log('Task scheduler initialized');
+
+    // Start health check schedulers
+    startAllHealthChecks();
+    console.log('Health check schedulers started');
+
     // Initialize email service if SendGrid API key is available
     if (process.env.SENDGRID_API_KEY) {
       initializeMailer();
@@ -74,7 +83,7 @@ router.get(
     res.status(200).json({
       status: 'up',
       version: '1.0.0',
-      message: 'API server is running'
+      message: 'API server is running',
     });
   })
 );
@@ -93,20 +102,23 @@ router.post(
 router.get(
   '/tasks',
   routeHandler(async (_req: Request, res: Response) => {
-    const tasks = await getTaskLogs("all");
+    const tasks = await getTaskLogs('all');
     res.json(tasks);
   })
 );
 // Register API routes
 app.use('/api', router);
 // Serve the index.html file for the root route
-app.get('/', routeHandler((_req: Request, res: Response) => {
-  res.sendFile('index.html', { root: './public' });
-}));
+app.get(
+  '/',
+  routeHandler((_req: Request, res: Response) => {
+    res.sendFile('index.html', { root: './public' });
+  })
+);
 // Import job queue and database dependencies
-import { enqueueJob } from '../services/jobQueue.js.js';
-import { db } from '../shared/db.js.js';
-import { taskLogs } from '../shared/schema.js.js';
+import { enqueueJob } from '../services/jobQueue.js';
+import { db } from '../shared/db.js';
+import { taskLogs } from '../shared/schema.js';
 // API endpoint to submit a new task
 app.post('/api/tasks', rateLimiters.taskSubmission, async (req: Request, res: Response) => {
   try {
@@ -120,14 +132,14 @@ app.post('/api/tasks', rateLimiters.taskSubmission, async (req: Request, res: Re
     const taskId = crypto.randomUUID();
     // Create the task object and insert into database
     await // @ts-ignore
-db.insert(taskLogs).values({
+    db.insert(taskLogs).values({
       id: taskId,
       userId: req.user?.claims?.sub,
       taskType: parsedTask.type,
       taskText: task,
       taskData: parsedTask.parameters,
-      status: 'pending'
-      } as any) // @ts-ignore - Ensuring all required properties are provided;
+      status: 'pending',
+    } as any); // @ts-ignore - Ensuring all required properties are provided;
     // Enqueue the task for processing with job queue
     const jobId = await enqueueJob(taskId);
     console.log(`Task ${taskId} submitted and enqueued as job ${jobId}`);
@@ -135,17 +147,40 @@ db.insert(taskLogs).values({
     return res.status(201).json({
       id: taskId,
       jobId: jobId,
-      message: 'Task submitted and enqueued successfully'
+      message: 'Task submitted and enqueued successfully',
     });
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error in task submission:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : 'Unknown error'
+      message:
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : 'Unknown error',
     });
   }
 });
@@ -162,14 +197,14 @@ app.post('/submit-task', rateLimiters.taskSubmission, async (req: Request, res: 
     const taskId = crypto.randomUUID();
     // Create the task object and insert into database
     await // @ts-ignore
-db.insert(taskLogs).values({
+    db.insert(taskLogs).values({
       id: taskId,
       userId: req.user?.claims?.sub,
       taskType: parsedTask.type,
       taskText: task,
       taskData: parsedTask.parameters,
-      status: 'pending'
-      } as any) // @ts-ignore - Ensuring all required properties are provided;
+      status: 'pending',
+    } as any); // @ts-ignore - Ensuring all required properties are provided;
     // Enqueue the task with high priority (1 is highest)
     const jobId = await enqueueJob(taskId, 1);
     console.log(`Direct task ${taskId} submitted and enqueued as job ${jobId}`);
@@ -177,17 +212,40 @@ db.insert(taskLogs).values({
     return res.status(201).json({
       id: taskId,
       jobId: jobId,
-      message: 'Task submitted for immediate processing'
+      message: 'Task submitted for immediate processing',
     });
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error in direct task execution:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : 'Unknown error'
+      message:
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : 'Unknown error',
     });
   }
 });

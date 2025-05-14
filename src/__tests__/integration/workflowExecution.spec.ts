@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../shared/db.js.js';
-import { workflows, workflowSteps, workflowResults } from '../../shared/schema.js.js';
+import { db } from '../../shared/db.js';
+import { workflows, workflowSteps, workflowResults } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { executeWorkflow } from '../../services/workflowExecutor.js.js';
+import { executeWorkflow } from '../../services/workflowExecutor.js';
 // Mock any external services that we don't want to actually call during tests
 vi.mock('../../services/mailerService.js', () => ({
-  sendEmail: vi.fn().mockResolvedValue({ messageId: 'test-message-id' })
+  sendEmail: vi.fn().mockResolvedValue({ messageId: 'test-message-id' }),
 }));
 describe('Workflow Execution Integration Tests', () => {
   // Test workflow data
@@ -22,8 +22,8 @@ describe('Workflow Execution Integration Tests', () => {
       userId: testUserId,
       status: 'pending',
       createdAt: new Date(),
-      updatedAt: new Date()
-      } as any) // @ts-ignore - Ensuring all required properties are provided as any // @ts-ignore - Type issues with Drizzle insert in tests;
+      updatedAt: new Date(),
+    } as any); // @ts-ignore - Ensuring all required properties are provided as any // @ts-ignore - Type issues with Drizzle insert in tests;
     // Create workflow steps
     await db.insert(workflowSteps).values([
       {
@@ -33,12 +33,12 @@ describe('Workflow Execution Integration Tests', () => {
         type: 'data_fetch',
         config: JSON.stringify({
           source: 'test_data',
-          query: 'SELECT * FROM test_table'
+          query: 'SELECT * FROM test_table',
         }),
         order: 1,
         status: 'pending',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         id: uuidv4(),
@@ -47,12 +47,12 @@ describe('Workflow Execution Integration Tests', () => {
         type: 'data_transform',
         config: JSON.stringify({
           operation: 'filter',
-          condition: 'value > 10'
+          condition: 'value > 10',
         }),
         order: 2,
         status: 'pending',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         id: uuidv4(),
@@ -62,13 +62,13 @@ describe('Workflow Execution Integration Tests', () => {
         config: JSON.stringify({
           method: 'email',
           recipient: 'test@example.com',
-          template: 'workflow_complete'
+          template: 'workflow_complete',
         }),
         order: 3,
         status: 'pending',
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     ]);
   });
   // Clean up test data after tests
@@ -122,8 +122,8 @@ describe('Workflow Execution Integration Tests', () => {
         userId: testUserId,
         status: 'pending',
         createdAt: new Date(),
-        updatedAt: new Date()
-      } as any) // @ts-ignore - Ensuring all required properties are provided as any // @ts-ignore - Type issues with Drizzle insert in tests;
+        updatedAt: new Date(),
+      } as any); // @ts-ignore - Ensuring all required properties are provided as any // @ts-ignore - Type issues with Drizzle insert in tests;
       await db.insert(workflowSteps).values([
         {
           id: uuidv4(),
@@ -132,13 +132,13 @@ describe('Workflow Execution Integration Tests', () => {
           type: 'data_fetch',
           config: JSON.stringify({
             source: 'invalid_source',
-            query: 'INVALID QUERY'
+            query: 'INVALID QUERY',
           }),
           order: 1,
           status: 'pending',
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ]);
       // Execute the workflow
       const result = await executeWorkflow(failingWorkflowId);

@@ -9,12 +9,12 @@ import { sql } from 'drizzle-orm';
  * - Error handling and automatic retry mechanisms
  * - Status tracking and monitoring capabilities
  */
-import { db } from '../shared/db.js.js';
-import {  schedules } from '....js';
-import { emailIngestAndRunFlow } from '../agents/hybridIngestAndRunFlow.js.js';
-import { generateInsights } from '../services/enhancedInsightGenerator.js.js';
-import { distributeInsights } from '../services/insightDistributionService.js.js';
-import {   eq, and, lt, sql  } from '....js';
+import { db } from '../shared/db.js';
+import { schedules } from '....js';
+import { emailIngestAndRunFlow } from '../agents/hybridIngestAndRunFlow.js';
+import { generateInsights } from '../services/enhancedInsightGenerator.js';
+import { distributeInsights } from '../services/insightDistributionService.js';
+import { eq, and, lt, sql } from '....js';
 import { v4 as uuidv4 } from 'uuid';
 import * as cron from 'node-cron';
 import * as fs from 'fs';
@@ -38,7 +38,7 @@ interface ScheduleMetadata {
 const metadataSchema = z.object({
   vendor: z.string().optional(),
   reportType: z.string().optional(),
-  parameters: z.record(z.unknown()).optional()
+  parameters: z.record(z.unknown()).optional(),
 });
 // Schedule update payload type
 interface ScheduleUpdate {
@@ -113,10 +113,7 @@ export async function initializeScheduler(): Promise<void> {
   try {
     console.log('Initializing enhanced scheduler service...');
     // Load all active schedules
-    const activeSchedules = await db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.status, 'active'));
+    const activeSchedules = await db.select().from(schedules).where(eq(schedules.status, 'active'));
     console.log(`Found ${activeSchedules.length} active schedules`);
     // Start each schedule
     for (const schedule of activeSchedules) {
@@ -130,7 +127,14 @@ export async function initializeScheduler(): Promise<void> {
           .set({
             status: 'failed',
             updatedAt: new Date(),
-            lastError: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error) as string
+            lastError:
+              error instanceof Error
+                ? error instanceof Error
+                  ? error instanceof Error
+                    ? error.message
+                    : String(error)
+                  : String(error)
+                : (String(error) as string),
           })
           .where(eq(schedules.id, schedule.id));
       }
@@ -156,12 +160,7 @@ async function checkSchedulesForExecution(): Promise<void> {
     const dueSchedules = await db
       .select()
       .from(schedules)
-      .where(
-        and(
-          eq(schedules.status, 'active'),
-          lt(schedules.nextRunAt, now)
-        )
-      );
+      .where(and(eq(schedules.status, 'active'), lt(schedules.nextRunAt, now)));
     if (dueSchedules.length > 0) {
       console.log(`Found ${dueSchedules.length} schedules due for execution`);
       for (const schedule of dueSchedules) {
@@ -180,15 +179,13 @@ async function checkSchedulesForExecution(): Promise<void> {
 /**
  * Create a new schedule
  */
-export async function createSchedule(
-  options: {
-    userId: string;
-    intent: string;
-    platform: string;
-    cronExpression: string;
-    workflowId?: string; // Optional, for backward compatibility
-  }
-): Promise<Schedule> {
+export async function createSchedule(options: {
+  userId: string;
+  intent: string;
+  platform: string;
+  cronExpression: string;
+  workflowId?: string; // Optional, for backward compatibility
+}): Promise<Schedule> {
   try {
     // Validate the cron expression
     if (!cron.validate(options.cronExpression)) {
@@ -211,7 +208,7 @@ export async function createSchedule(
         retryCount: 0,
         enabled: true, // For backward compatibility
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
     // Start the schedule
@@ -253,7 +250,7 @@ export async function startSchedule(scheduleId: string): Promise<void> {
       .set({
         status: 'active',
         nextRunAt: getNextRunTime(schedule.cron),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(schedules.id, scheduleId.toString()));
     console.log(`Schedule ${scheduleId} started successfully`);
@@ -300,7 +297,7 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
       .set({
         lastRunAt: new Date(),
         nextRunAt: getNextRunTime(schedule.cron),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(schedules.id, scheduleId.toString()));
     // Execute the task based on platform and intent
@@ -316,16 +313,16 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
       EMAIL_PASS: process.env.EMAIL_PASS,
       EMAIL_HOST: process.env.EMAIL_HOST,
       OTP_EMAIL_USER: process.env.OTP_EMAIL_USER,
-      OTP_EMAIL_PASS: process.env.OTP_EMAIL_PASS
+      OTP_EMAIL_PASS: process.env.OTP_EMAIL_PASS,
     };
     try {
       // Use email-only ingestion to fetch the report
-      const filePath = await emailIngestAndRunFlow(schedule.platform!, envVars as Record<string, string>);
-      // Generate insights from the fetched report
-      const insights = await generateInsights(
-        filePath,
-        schedule.platform!
+      const filePath = await emailIngestAndRunFlow(
+        schedule.platform!,
+        envVars as Record<string, string>
       );
+      // Generate insights from the fetched report
+      const insights = await generateInsights(filePath, schedule.platform!);
       // Distribute insights to stakeholders
       await distributeInsights(insights, schedule.platform!);
       // Reset retry count on success
@@ -333,7 +330,7 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
         .update(schedules)
         .set({
           retryCount: 0,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(schedules.id, scheduleId.toString()));
       console.log(`Schedule ${scheduleId} executed successfully`);
@@ -348,8 +345,15 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
         .set({
           retryCount: newRetryCount,
           status,
-          lastError: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error) as string,
-          updatedAt: new Date()
+          lastError:
+            error instanceof Error
+              ? error instanceof Error
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : (String(error) as string),
+          updatedAt: new Date(),
         })
         .where(eq(schedules.id, scheduleId.toString()));
       if (status === 'failed') {
@@ -392,13 +396,15 @@ export async function getSchedule(scheduleId: string): Promise<Schedule | undefi
 /**
  * List schedules with filtering options
  */
-export async function listSchedules(options: {
-  userId?: string;
-  status?: string;
-  platform?: string;
-  intent?: string;
-  active?: boolean;
-} = {}): Promise<Schedule[]> {
+export async function listSchedules(
+  options: {
+    userId?: string;
+    status?: string;
+    platform?: string;
+    intent?: string;
+    active?: boolean;
+  } = {}
+): Promise<Schedule[]> {
   try {
     // Build query conditions
     const conditions = [];
@@ -454,7 +460,7 @@ export async function updateSchedule(
     }
     // Prepare updates
     const updateValues: any = {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
     if (updates.cronExpression) {
       // Validate the cron expression
@@ -536,7 +542,7 @@ export async function retrySchedule(scheduleId: string): Promise<Schedule | unde
         status: 'active',
         retryCount: 0,
         updatedAt: new Date(),
-        nextRunAt: new Date() // Schedule for immediate execution
+        nextRunAt: new Date(), // Schedule for immediate execution
       })
       .where(eq(schedules.id, scheduleId.toString()))
       .returning();
@@ -561,14 +567,21 @@ export async function getScheduleLogs(scheduleId: string): Promise<any[]> {
   return [];
 }
 export async function updateScheduleStatus(id: string, error: unknown): Promise<void> {
-  const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error);
+  const errorMessage =
+    error instanceof Error
+      ? error instanceof Error
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : String(error)
+      : String(error);
   await db
     .update(schedules)
     .set({
       status: 'failed',
       retryCount: sql`${schedules.retryCount} + 1`,
       lastError: errorMessage,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(schedules.id, id.toString()));
 }

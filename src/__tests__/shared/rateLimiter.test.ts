@@ -2,7 +2,7 @@
  * Tests for the rate limiting middleware
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createRateLimiter, rateLimiters } from '../../shared/middleware/rateLimiter.js.js';
+import { createRateLimiter, rateLimiters } from '../../shared/middleware/rateLimiter.js';
 import express, { Request, Response, NextFunction } from 'express';
 import request from 'supertest';
 // Mock the logger to avoid actual logging during tests
@@ -11,8 +11,8 @@ vi.mock('../../shared/logger.js', () => ({
     warn: vi.fn(),
     info: vi.fn(),
     error: vi.fn(),
-    debug: vi.fn()
-  }
+    debug: vi.fn(),
+  },
 }));
 describe('Rate Limiter Middleware', () => {
   let app: express.Express;
@@ -32,7 +32,7 @@ describe('Rate Limiter Middleware', () => {
     const limiter = createRateLimiter({
       windowMs: 1000,
       max: 5,
-      message: 'Custom message'
+      message: 'Custom message',
     });
     expect(limiter).toBeDefined();
   });
@@ -40,7 +40,7 @@ describe('Rate Limiter Middleware', () => {
     // Create a test-specific limiter with high limits
     const testLimiter = createRateLimiter({
       windowMs: 1000,
-      max: 10
+      max: 10,
     });
     // Apply the limiter to a test endpoint
     app.get('/test', testLimiter, (_req: Request, res: Response) => {
@@ -56,7 +56,7 @@ describe('Rate Limiter Middleware', () => {
     const testLimiter = createRateLimiter({
       windowMs: 1000,
       max: 1, // Only allow 1 request per second
-      message: 'Test rate limit exceeded'
+      message: 'Test rate limit exceeded',
     });
     // Apply the limiter to a test endpoint
     app.get('/test-limit', testLimiter, (_req: Request, res: Response) => {
@@ -74,7 +74,7 @@ describe('Rate Limiter Middleware', () => {
     // Create a test-specific limiter
     const testLimiter = createRateLimiter({
       windowMs: 1000,
-      max: 5
+      max: 5,
     });
     // Apply the limiter to a test endpoint
     app.get('/test-headers', testLimiter, (_req: Request, res: Response) => {

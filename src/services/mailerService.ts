@@ -2,10 +2,10 @@
  * Mailer Service
  * Handles email sending functionality using SendGrid
  */
-import {  MailService } from '....js';
-import { isError } from '../utils/errorUtils.js.js';
-import { db } from '../shared/db.js.js';
-import {  emailLogs } from '....js';
+import { MailService } from '....js';
+import { isError } from '../utils/errorUtils.js';
+import { db } from '../shared/db.js';
+import { emailLogs } from '....js';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 // Initialize SendGrid client
@@ -60,12 +60,12 @@ export async function sendEmail(options: EmailSendOptions): Promise<EmailLog> {
   let errorMessage: string | undefined;
   // Format recipients for log - convert to JSON array
   const recipients = Array.isArray(options.to)
-    ? options.to.map(r => r.email)
+    ? options.to.map((r) => r.email)
     : [options.to.email];
   try {
     // Create a log entry for this email attempt
     const [logEntry] = await // @ts-ignore
-db.insert(emailLogs).values({
+    db.insert(emailLogs).values({
       id: logId,
       workflowId: options.workflowId!,
       status: 'pending',
@@ -73,7 +73,7 @@ db.insert(emailLogs).values({
       subject: options.content.subject,
       createdAt: new Date(),
       updatedAt: new Date(),
-      } as any) // @ts-ignore - Ensuring all required properties are provided.returning();
+    } as any); // @ts-ignore - Ensuring all required properties are provided.returning();
     // Prepare email for SendGrid - we need to format according to SendGrid requirements
     // Create a message object with required fields
     const message: any = {
@@ -85,7 +85,7 @@ db.insert(emailLogs).values({
       // Include optional fields if present
       ...(options.cc ? { cc: options.cc } : {}),
       ...(options.bcc ? { bcc: options.bcc } : {}),
-      ...(options.attachments ? { attachments: options.attachments } : {})
+      ...(options.attachments ? { attachments: options.attachments } : {}),
     };
     // Add HTML content only if it exists to avoid type issues
     if (options.content.html) {
@@ -97,10 +97,10 @@ db.insert(emailLogs).values({
     status = 'sent';
     await db
       .update(emailLogs)
-      .set({ 
-        status: 'sent', 
+      .set({
+        status: 'sent',
         sentAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(emailLogs.id, logId.toString()));
     console.log(`Email sent successfully. Log ID: ${logId}`);
@@ -111,21 +111,44 @@ db.insert(emailLogs).values({
       .where(eq(emailLogs.id, logId.toString()));
     return updatedLog;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     // Handle error
     console.error('Failed to send email:', error);
     status = 'failed';
-    errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+    errorMessage =
+      error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     // Update log with failure
     await db
       .update(emailLogs)
-      .set({ 
-        status: 'failed', 
+      .set({
+        status: 'failed',
         errorMessage,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(emailLogs.id, logId.toString()));
     // Get the updated log entry

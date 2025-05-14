@@ -7,8 +7,8 @@ export function useAuth() {
   async function checkAuthStatus() {
     try {
       const response = await fetch('/api/auth/user', {
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'  // Important for sending cookies
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin', // Important for sending cookies
       });
       if (response.ok) {
         const user = await response.json();
@@ -23,7 +23,11 @@ export function useAuth() {
   }
   return {
     checkAuthStatus,
-    login: () => { window.location.href = '/api/login'; },
-    logout: () => { window.location.href = '/api/logout'; }
+    login: () => {
+      window.location.href = '/api/login';
+    },
+    logout: () => {
+      window.location.href = '/api/logout';
+    },
   };
 }

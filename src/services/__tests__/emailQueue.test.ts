@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EmailQueueService } from '../emailQueue.js.js';
-import { db } from '../../shared/db.js.js';
-import { emailQueue } from '../../shared/schema.js.js';
+import { EmailQueueService } from '../emailQueue.js';
+import { db } from '../../shared/db.js';
+import { emailQueue } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { sendEmail } from '../mailerService.js.js';
+import { sendEmail } from '../mailerService.js';
 // Mock dependencies
 vi.mock('../../shared/db.js', () => ({
   db: {
@@ -18,13 +18,13 @@ vi.mock('../../shared/db.js', () => ({
     values: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
     returning: vi.fn().mockImplementation(() => [{ id: 'test-id' }]),
-  }
+  },
 }));
 vi.mock('../mailerService.js', () => ({
-  sendEmail: vi.fn()
+  sendEmail: vi.fn(),
 }));
 vi.mock('drizzle-orm', () => ({
-  eq: vi.fn()
+  eq: vi.fn(),
 }));
 describe('EmailQueueService', () => {
   let emailQueueService: EmailQueueService;
@@ -34,7 +34,7 @@ describe('EmailQueueService', () => {
     emailQueueService = new EmailQueueService({
       maxRetries: 3,
       retryDelay: 100,
-      backoffFactor: 2
+      backoffFactor: 2,
     });
   });
   afterEach(() => {
@@ -48,20 +48,24 @@ describe('EmailQueueService', () => {
         content: {
           subject: 'Test Email',
           text: 'This is a test email',
-          html: '<p>This is a test email</p>'
-        }
+          html: '<p>This is a test email</p>',
+        },
       };
       // Mock processQueue to prevent it from being called
-      vi.spyOn(emailQueueService as any, 'processQueue').mockImplementation(() => Promise.resolve());
+      vi.spyOn(emailQueueService as any, 'processQueue').mockImplementation(() =>
+        Promise.resolve()
+      );
       const id = await emailQueueService.enqueue(emailOptions);
       expect(id).toBeDefined();
       expect(db.insert).toHaveBeenCalledWith(emailQueue);
-      expect(db.values).toHaveBeenCalledWith(expect.objectContaining({
-        recipientEmail: 'test@example.com',
-        subject: 'Test Email',
-        status: 'pending',
-        attempts: 0
-      }));
+      expect(db.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientEmail: 'test@example.com',
+          subject: 'Test Email',
+          status: 'pending',
+          attempts: 0,
+        })
+      );
     });
   });
   describe('getStatus', () => {
@@ -73,20 +77,22 @@ describe('EmailQueueService', () => {
         status: 'pending',
         lastError: null,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
       // Mock the database response
       vi.mocked(db.select).mockImplementationOnce(() => ({
         from: () => ({
-          where: () => [mockEmail]
-        })
+          where: () => [mockEmail],
+        }),
       }));
       const status = await emailQueueService.getStatus('test-id');
-      expect(status).toEqual(expect.objectContaining({
-        id: 'test-id',
-        attempts: 1,
-        status: 'pending'
-      }));
+      expect(status).toEqual(
+        expect.objectContaining({
+          id: 'test-id',
+          attempts: 1,
+          status: 'pending',
+        })
+      );
       expect(db.select).toHaveBeenCalled();
       expect(eq).toHaveBeenCalled();
     });
@@ -94,8 +100,8 @@ describe('EmailQueueService', () => {
       // Mock the database response for no results
       vi.mocked(db.select).mockImplementationOnce(() => ({
         from: () => ({
-          where: () => []
-        })
+          where: () => [],
+        }),
       }));
       const status = await emailQueueService.getStatus('non-existent-id');
       expect(status).toBeNull();
@@ -105,16 +111,18 @@ describe('EmailQueueService', () => {
     it('should handle errors when retrying a failed email', async () => {
       const mockEmail = {
         id: 'test-id',
-        status: 'failed'
+        status: 'failed',
       };
       // Mock the database response
       vi.mocked(db.select).mockImplementationOnce(() => ({
         from: () => ({
-          where: () => [mockEmail]
-        })
+          where: () => [mockEmail],
+        }),
       }));
       // Mock processQueue to prevent it from being called
-      vi.spyOn(emailQueueService as any, 'processQueue').mockImplementation(() => Promise.resolve());
+      vi.spyOn(emailQueueService as any, 'processQueue').mockImplementation(() =>
+        Promise.resolve()
+      );
       // Since our mock is incomplete and will cause an error, the method should return false
       const result = await emailQueueService.retryEmail('test-id');
       expect(result).toBe(false);
@@ -124,8 +132,8 @@ describe('EmailQueueService', () => {
       // Mock the database response for no results
       vi.mocked(db.select).mockImplementationOnce(() => ({
         from: () => ({
-          where: () => []
-        })
+          where: () => [],
+        }),
       }));
       const result = await emailQueueService.retryEmail('non-existent-id');
       expect(result).toBe(false);
@@ -133,13 +141,13 @@ describe('EmailQueueService', () => {
     it('should return false if email is not in failed status', async () => {
       const mockEmail = {
         id: 'test-id',
-        status: 'completed'
+        status: 'completed',
       };
       // Mock the database response
       vi.mocked(db.select).mockImplementationOnce(() => ({
         from: () => ({
-          where: () => [mockEmail]
-        })
+          where: () => [mockEmail],
+        }),
       }));
       const result = await emailQueueService.retryEmail('test-id');
       expect(result).toBe(false);
@@ -151,7 +159,7 @@ describe('EmailQueueService', () => {
       const testQueueService = new EmailQueueService({
         maxRetries: 3,
         retryDelay: 100,
-        backoffFactor: 2
+        backoffFactor: 2,
       });
       // Access the private method using any type assertion
       const calculateBackoff = (testQueueService as any).calculateBackoff.bind(testQueueService);

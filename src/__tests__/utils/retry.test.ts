@@ -1,18 +1,18 @@
 /**
  * Tests for the retry utility
- * 
+ *
  * These tests verify the behavior of the retry utility under various conditions,
  * including successful operations, transient failures, and permanent failures.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {  retry, retryWithResult, retryable } from '....js';
+import { retry, retryWithResult, retryable } from '....js';
 // Mock the logger to avoid console output during tests
 vi.mock('../../shared/logger.js', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn()
-  }
+    error: vi.fn(),
+  },
 }));
 describe('retry utility', () => {
   beforeEach(() => {
@@ -26,7 +26,8 @@ describe('retry utility', () => {
       expect(fn).toHaveBeenCalledTimes(1);
     });
     it('should retry the operation if it fails temporarily', async () => {
-      const fn = vi.fn()
+      const fn = vi
+        .fn()
         .mockRejectedValueOnce(new Error('temporary error'))
         .mockResolvedValueOnce('success');
       const result = await retry(fn, { retries: 1, minTimeout: 10 });
@@ -36,25 +37,32 @@ describe('retry utility', () => {
     it('should throw the last error if all retries fail', async () => {
       const error = new Error('persistent error');
       const fn = vi.fn().mockRejectedValue(error);
-      await expect(retry(fn, { retries: 2, minTimeout: 10 }))
-        .rejects.toThrow('persistent error');
+      await expect(retry(fn, { retries: 2, minTimeout: 10 })).rejects.toThrow('persistent error');
       expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
     });
     it('should respect the retryIf option', async () => {
       const retryableError = new Error('retryable');
       const nonRetryableError = new Error('non-retryable');
-      const fn = vi.fn()
+      const fn = vi
+        .fn()
         .mockRejectedValueOnce(retryableError)
         .mockRejectedValueOnce(nonRetryableError);
-      const retryIf = (error: any) => (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) === 'retryable';
-      await expect(retry(fn, { retries: 2, minTimeout: 10, retryIf }))
-        .rejects.toThrow('non-retryable');
+      const retryIf = (error: any) =>
+        (error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)) === 'retryable';
+      await expect(retry(fn, { retries: 2, minTimeout: 10, retryIf })).rejects.toThrow(
+        'non-retryable'
+      );
       expect(fn).toHaveBeenCalledTimes(2); // Initial + 1 retry (second error not retried)
     });
     it('should call onRetry for each retry attempt', async () => {
       const error1 = new Error('error 1');
       const error2 = new Error('error 2');
-      const fn = vi.fn()
+      const fn = vi
+        .fn()
         .mockRejectedValueOnce(error1)
         .mockRejectedValueOnce(error2)
         .mockResolvedValueOnce('success');
@@ -68,17 +76,18 @@ describe('retry utility', () => {
     });
     it('should respect maxRetryTime', async () => {
       vi.useFakeTimers();
-      const fn = vi.fn()
+      const fn = vi
+        .fn()
         .mockRejectedValueOnce(new Error('error 1'))
         .mockImplementationOnce(() => {
           vi.advanceTimersByTime(1000); // Advance time by 1 second
           return Promise.reject(new Error('error 2'));
         })
         .mockResolvedValueOnce('success');
-      const retryPromise = retry(fn, { 
-        retries: 3, 
-        minTimeout: 10, 
-        maxRetryTime: 500 // Only allow 500ms total retry time
+      const retryPromise = retry(fn, {
+        retries: 3,
+        minTimeout: 10,
+        maxRetryTime: 500, // Only allow 500ms total retry time
       });
       // Advance timers to allow the first retry to happen
       vi.advanceTimersByTime(10);
@@ -95,7 +104,7 @@ describe('retry utility', () => {
         result: 'success',
         attempts: 1,
         success: true,
-        totalTime: expect.any(Number)
+        totalTime: expect.any(Number),
       });
     });
     it('should return error result with metadata on failure', async () => {
@@ -106,7 +115,7 @@ describe('retry utility', () => {
         error,
         attempts: 2,
         success: false,
-        totalTime: expect.any(Number)
+        totalTime: expect.any(Number),
       });
     });
   });

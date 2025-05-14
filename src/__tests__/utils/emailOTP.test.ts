@@ -1,24 +1,26 @@
 import * as imap from 'imap-simple';
 import { simpleParser } from 'mailparser';
-import { checkEmailForOTP, verifyOTP } from '../../utils/emailOTP.js.js';
+import { checkEmailForOTP, verifyOTP } from '../../utils/emailOTP.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 // Mock the imap-simple module
-jest.mock('imap-simple', () => ({
-  connect: jest.fn(),
+vi.mock('imap-simple', () => ({
+  connect: vi.fn(),
 }));
 // Mock the mailparser module
-jest.mock('mailparser', () => ({
-  simpleParser: jest.fn(),
+vi.mock('mailparser', () => ({
+  simpleParser: vi.fn(),
 }));
 describe('emailOTP', () => {
   // Reset mocks before each test
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
   describe('checkEmailForOTP', () => {
     it('should return OTP when found in email', async () => {
       // Mock the connection
-      const mockEnd = jest.fn().mockResolvedValue(undefined);
-      const mockSearch = jest.fn().mockResolvedValue([
+      const mockEnd = vi.fn().mockResolvedValue(undefined);
+      const mockSearch = vi.fn().mockResolvedValue([
         {
           parts: [
             {
@@ -28,15 +30,15 @@ describe('emailOTP', () => {
           ],
         },
       ]);
-      const mockOpenBox = jest.fn().mockResolvedValue(undefined);
+      const mockOpenBox = vi.fn().mockResolvedValue(undefined);
       // Setup the mock implementation
-      (imap.connect as jest.Mock).mockResolvedValue({
+      (imap.connect as any).mockResolvedValue({
         openBox: mockOpenBox,
         search: mockSearch,
         end: mockEnd,
       });
       // Mock the parser to return an OTP
-      (simpleParser as jest.Mock).mockResolvedValue({
+      (simpleParser as any).mockResolvedValue({
         text: 'Your OTP is: 123456 for verification.',
       });
       // Call the function
@@ -57,11 +59,11 @@ describe('emailOTP', () => {
     });
     it('should return null when no emails are found', async () => {
       // Mock the connection
-      const mockEnd = jest.fn().mockResolvedValue(undefined);
-      const mockSearch = jest.fn().mockResolvedValue([]);
-      const mockOpenBox = jest.fn().mockResolvedValue(undefined);
+      const mockEnd = vi.fn().mockResolvedValue(undefined);
+      const mockSearch = vi.fn().mockResolvedValue([]);
+      const mockOpenBox = vi.fn().mockResolvedValue(undefined);
       // Setup the mock implementation
-      (imap.connect as jest.Mock).mockResolvedValue({
+      (imap.connect as any).mockResolvedValue({
         openBox: mockOpenBox,
         search: mockSearch,
         end: mockEnd,
@@ -84,7 +86,7 @@ describe('emailOTP', () => {
     });
     it('should return null when connection fails', async () => {
       // Mock the connection to fail
-      (imap.connect as jest.Mock).mockRejectedValue(new Error('Connection failed'));
+      (imap.connect as any).mockRejectedValue(new Error('Connection failed'));
       // Call the function
       const result = await checkEmailForOTP({
         user: 'test@example.com',
@@ -99,13 +101,13 @@ describe('emailOTP', () => {
     });
     it('should handle timeout correctly', async () => {
       // Mock the connection to take longer than timeout
-      (imap.connect as jest.Mock).mockImplementation(() => {
+      (imap.connect as any).mockImplementation(() => {
         return new Promise((resolve) => {
           setTimeout(() => {
             resolve({
-              openBox: jest.fn().mockResolvedValue(undefined),
-              search: jest.fn().mockResolvedValue([]),
-              end: jest.fn().mockResolvedValue(undefined),
+              openBox: vi.fn().mockResolvedValue(undefined),
+              search: vi.fn().mockResolvedValue([]),
+              end: vi.fn().mockResolvedValue(undefined),
             });
           }, 100); // 100ms delay
         });

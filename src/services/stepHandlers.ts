@@ -1,13 +1,13 @@
-import {  WorkflowStep } from '....js';
-import { emailIngestAndRunFlow } from '../agents/emailIngestAndRunFlow.js.js';
-import { parseByExtension } from './attachmentParsers.js.js';
-import { generateInsights } from './insightGenerator.js.js';
-import { processCrmData } from './dataProcessors.js.js';
-import { executeCustomStep } from './customStepExecutor.js.js';
-import { makeApiRequest } from './apiHandler.js.js';
-import logger from '../utils/logger.js.js';
-import { formatError } from '../utils/logger.js.js';
-import { EnvVars } from '../types.js.js';
+import { WorkflowStep } from '....js';
+import { emailIngestAndRunFlow } from '../agents/emailIngestAndRunFlow.js';
+import { parseByExtension } from './attachmentParsers.js';
+import { generateInsights } from './insightGenerator.js';
+import { processCrmData } from './dataProcessors.js';
+import { executeCustomStep } from './customStepExecutor.js';
+import { makeApiRequest } from './apiHandler.js';
+import logger from '../utils/logger.js';
+import { formatError } from '../utils/logger.js';
+import { EnvVars } from '../types.js';
 export interface StepResult {
   success: boolean;
   output: unknown;
@@ -24,7 +24,7 @@ export class StepHandlerError extends Error {
   }
 }
 export async function executeStep(
-  step: WorkflowStep, 
+  step: WorkflowStep,
   context: Record<string, unknown>,
   envVars: EnvVars
 ): Promise<StepResult> {
@@ -56,12 +56,12 @@ export async function executeStep(
       event: 'step_execution_error',
       stepType: step.type,
       stepName: step.name,
-      ...formatError(error)
+      ...formatError(error),
     });
     return {
       success: false,
       output: null,
-      error: wrappedError.message
+      error: wrappedError.message,
     };
   }
 }
@@ -74,23 +74,30 @@ async function handleEmailIngestion(
     const result = await emailIngestAndRunFlow({
       ...step.config,
       context,
-      envVars
+      envVars,
     });
     return {
       success: true,
-      output: result
+      output: result,
     };
   } catch (error) {
     logger.error({
       event: 'step_error',
       stepType: 'emailIngestion',
       stepName: step.name,
-      ...formatError(error)
+      ...formatError(error),
     });
     return {
       success: false,
       output: null,
-      error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      error:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     };
   }
 }
@@ -103,23 +110,30 @@ async function handleBrowserAction(
     const result = await parseByExtension(step.config.filePath, {
       ...step.config,
       context,
-      envVars
+      envVars,
     });
     return {
       success: true,
-      output: result
+      output: result,
     };
   } catch (error) {
     logger.error({
       event: 'step_error',
       stepType: 'browserAction',
       stepName: step.name,
-      ...formatError(error)
+      ...formatError(error),
     });
     return {
       success: false,
       output: null,
-      error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      error:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     };
   }
 }
@@ -129,29 +143,33 @@ async function handleInsightGeneration(
   envVars: EnvVars
 ): Promise<StepResult> {
   try {
-    const insights = await generateInsights(
-      step.config.data,
-      {
-        ...step.config,
-        context,
-        envVars
-      }
-    );
+    const insights = await generateInsights(step.config.data, {
+      ...step.config,
+      context,
+      envVars,
+    });
     return {
       success: true,
-      output: insights
+      output: insights,
     };
   } catch (error) {
     logger.error({
       event: 'step_error',
       stepType: 'insightGeneration',
       stepName: step.name,
-      ...formatError(error)
+      ...formatError(error),
     });
     return {
       success: false,
       output: null,
-      error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      error:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     };
   }
 }
@@ -161,29 +179,33 @@ async function handleDataProcessing(
   envVars: EnvVars
 ): Promise<StepResult> {
   try {
-    const result = await processCrmData(
-      step.config.data,
-      {
-        ...step.config,
-        context,
-        envVars
-      }
-    );
+    const result = await processCrmData(step.config.data, {
+      ...step.config,
+      context,
+      envVars,
+    });
     return {
       success: true,
-      output: result
+      output: result,
     };
   } catch (error) {
     logger.error({
       event: 'step_error',
       stepType: 'dataProcessing',
       stepName: step.name,
-      ...formatError(error)
+      ...formatError(error),
     });
     return {
       success: false,
       output: null,
-      error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      error:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     };
   }
 }
@@ -196,23 +218,30 @@ async function handleApiStep(
     const result = await makeApiRequest({
       ...step.config,
       context,
-      envVars
+      envVars,
     });
     return {
       success: true,
-      output: result
+      output: result,
     };
   } catch (error) {
     logger.error({
       event: 'step_error',
       stepType: 'api',
       stepName: step.name,
-      ...formatError(error)
+      ...formatError(error),
     });
     return {
       success: false,
       output: null,
-      error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      error:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     };
   }
 }
@@ -225,23 +254,30 @@ async function handleCustomStep(
     const result = await executeCustomStep({
       ...step.config,
       context,
-      envVars
+      envVars,
     });
     return {
       success: true,
-      output: result
+      output: result,
     };
   } catch (error) {
     logger.error({
       event: 'step_error',
       stepType: 'custom',
       stepName: step.name,
-      ...formatError(error)
+      ...formatError(error),
     });
     return {
       success: false,
       output: null,
-      error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      error:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     };
   }
 }

@@ -2,7 +2,7 @@
 
 ## Current Status: Pre-Deployment
 
-The AgentFlow project is currently in a pre-deployment state with several issues that need to be addressed before it can be successfully deployed.
+The AgentFlow project is currently in a pre-deployment state with several issues that need to be addressed before it can be successfully deployed. The project has shifted focus to file ingestion and insights generation, removing web crawling and flight status checking functionality.
 
 ## Key Components
 
@@ -136,6 +136,7 @@ The AgentFlow project is currently in a pre-deployment state with several issues
 
 ## Recent Updates
 
+- 2025-05-27: Updated README.md to reflect the new focus on file ingestion and insights generation, removing references to web crawling and flight status checking
 - 2025-05-26: Fixed unknown at-rules errors in global CSS by updating postcss.config.js and downgrading Tailwind CSS and PostCSS to compatible versions
 - 2025-05-26: Added VSCode settings and CSS configuration files to help the IDE understand Tailwind directives
 - 2025-05-25: Executed automated TypeScript error fixing script to address common TypeScript errors

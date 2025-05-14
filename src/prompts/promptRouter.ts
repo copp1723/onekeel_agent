@@ -1,11 +1,14 @@
 /**
  * Prompt Router
- * 
+ *
  * This module provides a centralized way to select the appropriate system prompt
  * based on the task intent. As more prompt types are added, they can be registered
  * here for easy selection throughout the application.
  */
-import { automotiveAnalystSystemPrompt, promptVersion as autoPromptVersion } from './automotiveAnalystPrompt.js.js';
+import {
+  automotiveAnalystSystemPrompt,
+  promptVersion as autoPromptVersion,
+} from './automotiveAnalystPrompt.js';
 /**
  * Tracks the version of the prompt router itself
  */
@@ -34,7 +37,7 @@ export function getPromptByIntent(intent: PromptIntent | string): PromptInfo {
       return {
         text: automotiveAnalystSystemPrompt,
         version: autoPromptVersion,
-        intent: 'automotive_analysis'
+        intent: 'automotive_analysis',
       };
     default:
       throw new Error(`No prompt defined for intent: ${intent}`);

@@ -1,7 +1,7 @@
-import { AppError } from '../types.js.js';
+import { AppError } from '../types.js';
 import { getErrorMessage, getErrorStack } from '../utils/errorUtils.js';
-import { getErrorMessage, getErrorStack } from '../utils/errorUtils.js.js';
-import { isError } from '../utils/errorUtils.js.js';
+import { getErrorMessage, getErrorStack } from '../utils/errorUtils.js';
+import { isError } from '../utils/errorUtils.js';
 export interface ErrorWithMessage {
   message: string;
   stack?: string;
@@ -48,15 +48,25 @@ export function isError(error: unknown): error is Error {
 }
 export function getErrorMessage(error: unknown): string {
   if (isError(error)) {
-    return (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error));
+    return error instanceof Error
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
   }
   return toErrorWithMessage(error).message;
 }
 export function getErrorStack(error: unknown): string | undefined {
   if (isError(error)) {
-    return (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined);
+    return error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined;
   }
-  return isErrorWithMessage(error) ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined;
+  return isErrorWithMessage(error)
+    ? error instanceof Error
+      ? error instanceof Error
+        ? error.stack
+        : undefined
+      : undefined
+    : undefined;
 }
 export function isCircuitOpenError(error: unknown): boolean {
   return isErrorWithMessage(error) && error.name === 'CircuitOpenError';
@@ -75,6 +85,6 @@ export function createErrorLogObject(
     errorMessage: getErrorMessage(error),
     stack: getErrorStack(error),
     timestamp: new Date().toISOString(),
-    ...context
+    ...context,
   };
 }

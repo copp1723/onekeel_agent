@@ -3,13 +3,13 @@
  * Handles API routes for workflow operations
  */
 import express, { Request, Response } from 'express';
-import { 
-  getWorkflow, 
-  getWorkflows, 
-  resetWorkflow, 
-  configureWorkflowNotifications 
-} from '../../services/workflowService.js.js';
-import { isAuthenticated } from '../replitAuth.js.js';
+import {
+  getWorkflow,
+  getWorkflows,
+  resetWorkflow,
+  configureWorkflowNotifications,
+} from '../../services/workflowService.js';
+import { isAuthenticated } from '../replitAuth.js';
 const router = express.Router();
 /**
  * Get all workflows (or filter by status)

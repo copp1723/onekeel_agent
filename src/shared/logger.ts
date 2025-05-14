@@ -1,6 +1,6 @@
 /**
  * Logger Module
- * 
+ *
  * This module provides centralized logging functionality for the application.
  * It supports different log levels and can log to both console and files.
  */
@@ -19,7 +19,7 @@ export enum LogLevel {
   DEBUG = 'DEBUG',
   INFO = 'INFO',
   WARN = 'WARN',
-  ERROR = 'ERROR'
+  ERROR = 'ERROR',
 }
 /**
  * Write to log file with timestamp
@@ -57,7 +57,7 @@ export const logger = {
   error: (message: string, meta?: any) => {
     console.error(`[ERROR] ${message}`);
     writeToLogFile(generalLogPath, LogLevel.ERROR, message, meta);
-  }
+  },
 };
 /**
  * Specialized logger for insight generation runs
@@ -80,11 +80,15 @@ export function logInsightRun(data: InsightRunLogData): void {
   // Add timestamp if not provided
   const logData = {
     ...data,
-    timestamp: data.timestamp || new Date().toISOString()
+    timestamp: data.timestamp || new Date().toISOString(),
   };
   // Log to console
-  console.info(`[INSIGHT RUN] Platform: ${logData.platform!}, Intent: ${logData.promptIntent}, Version: ${logData.promptVersion}`);
-  console.info(`[INSIGHT RUN] Duration: ${logData.durationMs}ms, File: ${logData.inputFile || 'direct content'}`);
+  console.info(
+    `[INSIGHT RUN] Platform: ${logData.platform!}, Intent: ${logData.promptIntent}, Version: ${logData.promptVersion}`
+  );
+  console.info(
+    `[INSIGHT RUN] Duration: ${logData.durationMs}ms, File: ${logData.inputFile || 'direct content'}`
+  );
   if (logData.error) {
     console.error(`[INSIGHT RUN] Error: ${logData.error}`);
   } else {

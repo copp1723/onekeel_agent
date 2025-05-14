@@ -50,7 +50,7 @@ export enum TaskType {
   WebCrawling = 'webCrawling',
   WebContentExtraction = 'webContentExtraction',
   VehicleData = 'vehicleData',
-  Unknown = 'unknown'
+  Unknown = 'unknown',
 }
 /**
  * Task type for crawler
@@ -115,7 +115,7 @@ export enum WorkflowStatus {
   RUNNING = 'running',
   COMPLETED = 'completed',
   FAILED = 'failed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 export interface WorkflowStep {
   id: string;
@@ -137,14 +137,14 @@ export enum StepType {
   DATA_PROCESSING = 'dataProcessing',
   INSIGHT_GENERATION = 'insightGeneration',
   API = 'api',
-  CUSTOM = 'custom'
+  CUSTOM = 'custom',
 }
 export enum StepStatus {
   PENDING = 'pending',
   RUNNING = 'running',
   COMPLETED = 'completed',
   FAILED = 'failed',
-  SKIPPED = 'skipped'
+  SKIPPED = 'skipped',
 }
 // Report related types
 export interface Report {
@@ -236,7 +236,7 @@ export interface UserCredential {
 export enum CircuitState {
   CLOSED = 'closed',
   OPEN = 'open',
-  HALF_OPEN = 'half-open'
+  HALF_OPEN = 'half-open',
 }
 export interface CircuitBreakerOptions {
   failureThreshold: number;
@@ -283,7 +283,7 @@ export enum FileType {
   XLSX = 'xlsx',
   PDF = 'pdf',
   JSON = 'json',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
 }
 export interface ParsedData {
   id: string;

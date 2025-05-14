@@ -18,7 +18,8 @@ export interface EkoTool {
 export function extractCleanContent(): EkoTool {
   return {
     name: 'extractCleanContent',
-    description: 'Extract clean, readable text content from a webpage by removing ads, navigation, and other non-content elements.',
+    description:
+      'Extract clean, readable text content from a webpage by removing ads, navigation, and other non-content elements.',
     parameters: {
       type: 'object',
       required: ['url'],
@@ -61,14 +62,19 @@ export function extractCleanContent(): EkoTool {
           content: parsedResult.content,
           url: url,
           extracted_at: new Date().toISOString(),
-          extracted_with: 'trafilatura'
+          extracted_with: 'trafilatura',
         };
       } catch (error: any) {
         console.error('Error in extractCleanContent tool:', error);
         return {
           success: false,
-          error: (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) || String(error),
-          url: args.url
+          error:
+            (error instanceof Error
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)) || String(error),
+          url: args.url,
         };
       }
     },

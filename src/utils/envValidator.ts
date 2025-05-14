@@ -1,21 +1,27 @@
 /**
  * Environment Variable Validator
- * 
+ *
  * Validates required environment variables and prevents startup with default
  * or missing secrets in production environments.
  */
-import { logger } from '../shared/logger.js.js';
-import { logSecurityEvent } from './encryption.js.js';
+import { logger } from '../shared/logger.js';
+import { logSecurityEvent } from './encryption.js';
 // Default values that should not be used in production
 const DEFAULT_VALUES = {
   // Encryption keys
-  ENCRYPTION_KEY: ['default-dev-key-should-change-in-production', 'default-dev-key-do-not-use-in-production-environment'],
+  ENCRYPTION_KEY: [
+    'default-dev-key-should-change-in-production',
+    'default-dev-key-do-not-use-in-production-environment',
+  ],
   // API keys
   SENDGRID_API_KEY: ['SG.your-sendgrid-api-key', 'test-sendgrid-api-key'],
   OPENAI_API_KEY: ['sk-your-openai-api-key', 'test-openai-api-key'],
   EKO_API_KEY: ['eko-your-api-key', 'test-eko-api-key'],
   // Database credentials
-  DATABASE_URL: ['postgresql://user:password@localhost:5432/dbname', 'postgresql://test:test@localhost:5432/test'],
+  DATABASE_URL: [
+    'postgresql://user:password@localhost:5432/dbname',
+    'postgresql://test:test@localhost:5432/test',
+  ],
   // Email credentials
   OTP_EMAIL_USER: ['your_email_username', 'test@example.com'],
   OTP_EMAIL_PASS: ['your_email_password', 'test-password'],
@@ -23,7 +29,7 @@ const DEFAULT_VALUES = {
   VIN_SOLUTIONS_USERNAME: ['your_vinsolutions_username'],
   VIN_SOLUTIONS_PASSWORD: ['your_vinsolutions_password'],
   VAUTO_USERNAME: ['your_vauto_username'],
-  VAUTO_PASSWORD: ['your_vauto_password']
+  VAUTO_PASSWORD: ['your_vauto_password'],
 };
 // Required environment variables by environment
 const REQUIRED_VARS = {
@@ -33,32 +39,20 @@ const REQUIRED_VARS = {
     'DATABASE_URL',
     'SENDGRID_API_KEY',
     'OTP_EMAIL_USER',
-    'OTP_EMAIL_PASS'
+    'OTP_EMAIL_PASS',
   ],
-  development: [
-    'DATABASE_URL'
-  ],
-  test: [
-    'DATABASE_URL'
-  ]
+  development: ['DATABASE_URL'],
+  test: ['DATABASE_URL'],
 };
 // Optional but recommended environment variables
 const RECOMMENDED_VARS = {
-  production: [
-    'OPENAI_API_KEY',
-    'EKO_API_KEY'
-  ],
-  development: [
-    'ENCRYPTION_KEY',
-    'SENDGRID_API_KEY',
-    'OTP_EMAIL_USER',
-    'OTP_EMAIL_PASS'
-  ],
-  test: []
+  production: ['OPENAI_API_KEY', 'EKO_API_KEY'],
+  development: ['ENCRYPTION_KEY', 'SENDGRID_API_KEY', 'OTP_EMAIL_USER', 'OTP_EMAIL_PASS'],
+  test: [],
 };
 /**
  * Check if an environment variable has a default/insecure value
- * 
+ *
  * @param key - Environment variable name
  * @param value - Environment variable value
  * @returns true if the value is a known default value
@@ -71,7 +65,7 @@ function isDefaultValue(key: string, value: string): boolean {
 }
 /**
  * Validate environment variables
- * 
+ *
  * @param env - Environment object (defaults to process.env)
  * @param nodeEnv - Environment name (production, development, test)
  * @returns Validation result with missing and default variables
@@ -85,8 +79,8 @@ export function validateEnv(
   usingDefaults: string[];
   recommendations: string[];
 } {
-  const environment = nodeEnv === 'production' ? 'production' : 
-                      nodeEnv === 'test' ? 'test' : 'development';
+  const environment =
+    nodeEnv === 'production' ? 'production' : nodeEnv === 'test' ? 'test' : 'development';
   const requiredVars = REQUIRED_VARS[environment as keyof typeof REQUIRED_VARS] || [];
   const recommendedVars = RECOMMENDED_VARS[environment as keyof typeof RECOMMENDED_VARS] || [];
   const missing: string[] = [];
@@ -109,19 +103,20 @@ export function validateEnv(
     }
   }
   // In production, using defaults is treated as missing
-  const valid = environment === 'production' 
-    ? missing.length === 0 && usingDefaults.length === 0
-    : missing.length === 0;
+  const valid =
+    environment === 'production'
+      ? missing.length === 0 && usingDefaults.length === 0
+      : missing.length === 0;
   return {
     valid,
     missing,
     usingDefaults,
-    recommendations
+    recommendations,
   };
 }
 /**
  * Validate environment variables and exit if invalid in production
- * 
+ *
  * @param env - Environment object (defaults to process.env)
  * @returns true if validation passed
  */
@@ -143,10 +138,10 @@ export function validateEnvOrExit(env = process.env): boolean {
       {
         environment: nodeEnv,
         missing: result.missing,
-        usingDefaults: result.usingDefaults
+        usingDefaults: result.usingDefaults,
       },
       'critical'
-    ).catch(err => {
+    ).catch((err) => {
       logger.error('Failed to log security event:', err);
     });
     // Exit in production
@@ -163,7 +158,7 @@ export function validateEnvOrExit(env = process.env): boolean {
 }
 /**
  * Get a validated environment variable
- * 
+ *
  * @param key - Environment variable name
  * @param required - Whether the variable is required
  * @param defaultValue - Default value if not required and not set

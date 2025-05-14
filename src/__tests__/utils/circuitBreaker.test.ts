@@ -1,23 +1,23 @@
 /**
  * Tests for the circuit breaker utility
- * 
+ *
  * These tests verify the behavior of the circuit breaker under various conditions,
  * including successful operations, transient failures, and permanent failures.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CircuitBreaker, CircuitState, CircuitOpenError } from '../../utils/circuitBreaker.js.js';
+import { CircuitBreaker, CircuitState, CircuitOpenError } from '../../utils/circuitBreaker.js';
 // Mock the database and logger
 vi.mock('../../shared/db.js', () => ({
   db: {
-    execute: vi.fn().mockResolvedValue({ rows: [] })
-  }
+    execute: vi.fn().mockResolvedValue({ rows: [] }),
+  },
 }));
 vi.mock('../../shared/logger.js', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn()
-  }
+    error: vi.fn(),
+  },
 }));
 describe('CircuitBreaker', () => {
   beforeEach(() => {
@@ -32,26 +32,25 @@ describe('CircuitBreaker', () => {
       expect(fn).toHaveBeenCalledTimes(1);
     });
     it('should throw CircuitOpenError when circuit is open', async () => {
-      const circuitBreaker = new CircuitBreaker('test-open-circuit', { 
+      const circuitBreaker = new CircuitBreaker('test-open-circuit', {
         inMemory: true,
-        failureThreshold: 1
+        failureThreshold: 1,
       });
       // Force the circuit to open
       const failingFn = vi.fn().mockRejectedValue(new Error('failure'));
       await expect(circuitBreaker.execute(failingFn)).rejects.toThrow('failure');
       // Now the circuit should be open
       const fn = vi.fn().mockResolvedValue('success');
-      await expect(circuitBreaker.execute(fn))
-        .rejects.toThrow(CircuitOpenError);
+      await expect(circuitBreaker.execute(fn)).rejects.toThrow(CircuitOpenError);
       expect(fn).not.toHaveBeenCalled();
     });
     it('should transition from open to half-open after resetTimeout', async () => {
       vi.useFakeTimers();
       const resetTimeout = 1000; // 1 second
-      const circuitBreaker = new CircuitBreaker('test-reset-circuit', { 
+      const circuitBreaker = new CircuitBreaker('test-reset-circuit', {
         inMemory: true,
         failureThreshold: 1,
-        resetTimeout
+        resetTimeout,
       });
       // Force the circuit to open
       const failingFn = vi.fn().mockRejectedValue(new Error('failure'));
@@ -67,9 +66,9 @@ describe('CircuitBreaker', () => {
       vi.useRealTimers();
     });
     it('should transition from half-open to closed after successThreshold successes', async () => {
-      const circuitBreaker = new CircuitBreaker('test-success-circuit', { 
+      const circuitBreaker = new CircuitBreaker('test-success-circuit', {
         inMemory: true,
-        successThreshold: 2
+        successThreshold: 2,
       });
       // Set the circuit to half-open state
       await circuitBreaker['transitionTo'](CircuitState.HALF_OPEN);
@@ -85,8 +84,8 @@ describe('CircuitBreaker', () => {
       expect(await circuitBreaker.getState()).toBe(CircuitState.CLOSED);
     });
     it('should transition from half-open to open on failure', async () => {
-      const circuitBreaker = new CircuitBreaker('test-half-open-failure', { 
-        inMemory: true
+      const circuitBreaker = new CircuitBreaker('test-half-open-failure', {
+        inMemory: true,
       });
       // Set the circuit to half-open state
       await circuitBreaker['transitionTo'](CircuitState.HALF_OPEN);
@@ -98,10 +97,10 @@ describe('CircuitBreaker', () => {
     });
     it('should call onStateChange when state changes', async () => {
       const onStateChange = vi.fn();
-      const circuitBreaker = new CircuitBreaker('test-state-change', { 
+      const circuitBreaker = new CircuitBreaker('test-state-change', {
         inMemory: true,
         failureThreshold: 1,
-        onStateChange
+        onStateChange,
       });
       // Force the circuit to open
       const failingFn = vi.fn().mockRejectedValue(new Error('failure'));
@@ -109,10 +108,15 @@ describe('CircuitBreaker', () => {
       expect(onStateChange).toHaveBeenCalledWith(CircuitState.CLOSED, CircuitState.OPEN);
     });
     it('should respect the isFailure option', async () => {
-      const circuitBreaker = new CircuitBreaker('test-is-failure', { 
+      const circuitBreaker = new CircuitBreaker('test-is-failure', {
         inMemory: true,
         failureThreshold: 2,
-        isFailure: (error) => (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) === 'count-me'
+        isFailure: (error) =>
+          (error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)) === 'count-me',
       });
       // This error should not count towards the failure threshold
       const ignoredFn = vi.fn().mockRejectedValue(new Error('ignore-me'));
@@ -128,9 +132,9 @@ describe('CircuitBreaker', () => {
     });
     it('should timeout if the function takes too long', async () => {
       vi.useFakeTimers();
-      const circuitBreaker = new CircuitBreaker('test-timeout', { 
+      const circuitBreaker = new CircuitBreaker('test-timeout', {
         inMemory: true,
-        timeout: 100
+        timeout: 100,
       });
       const slowFn = vi.fn().mockImplementation(() => {
         return new Promise((resolve) => {
@@ -146,9 +150,9 @@ describe('CircuitBreaker', () => {
   });
   describe('reset method', () => {
     it('should reset the circuit to closed state', async () => {
-      const circuitBreaker = new CircuitBreaker('test-reset', { 
+      const circuitBreaker = new CircuitBreaker('test-reset', {
         inMemory: true,
-        failureThreshold: 1
+        failureThreshold: 1,
       });
       // Force the circuit to open
       const failingFn = vi.fn().mockRejectedValue(new Error('failure'));

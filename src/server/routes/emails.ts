@@ -10,8 +10,8 @@ import {
   retryEmail,
   configureNotification,
   getNotificationSettings,
-  deleteNotification
-} from '../../services/workflowEmailService.js.js';
+  deleteNotification,
+} from '../../services/workflowEmailService.js';
 const router = Router();
 /**
  * Configure email notifications for a workflow
@@ -24,14 +24,14 @@ router.post('/notifications/:workflowId', async (req: Request, res: Response) =>
     const result = await configureNotification(workflowId, {
       recipientEmail,
       sendOnCompletion,
-      sendOnFailure
+      sendOnFailure,
     });
     return res.json(result);
   } catch (error) {
     console.error('Error configuring notification:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to configure notification'
+      message: 'Failed to configure notification',
     });
   }
 });
@@ -48,7 +48,7 @@ router.get('/notifications/:workflowId', async (req: Request, res: Response) => 
     console.error('Error getting notification settings:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to get notification settings'
+      message: 'Failed to get notification settings',
     });
   }
 });
@@ -65,7 +65,7 @@ router.delete('/notifications/:workflowId', async (req: Request, res: Response) 
     console.error('Error deleting notification:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to delete notification'
+      message: 'Failed to delete notification',
     });
   }
 });
@@ -82,7 +82,7 @@ router.get('/logs/:workflowId', async (req: Request, res: Response) => {
     console.error('Error getting email logs:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to get email logs'
+      message: 'Failed to get email logs',
     });
   }
 });
@@ -99,7 +99,7 @@ router.post('/retry/:emailLogId', async (req: Request, res: Response) => {
     console.error('Error retrying email:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retry email'
+      message: 'Failed to retry email',
     });
   }
 });

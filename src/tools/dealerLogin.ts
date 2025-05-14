@@ -1,7 +1,7 @@
-import { storage } from '../server/storage.js.js';
+import { storage } from '../server/storage.js';
 // axios import is commented out as it's not currently used
 // import axios from 'axios';
-import { EkoTool } from './extractCleanContent.js.js';
+import { EkoTool } from './extractCleanContent.js';
 interface DealerLoginArgs {
   dealerId: string;
   siteUrl?: string;
@@ -20,48 +20,50 @@ export interface DealerLoginResult {
   sessionId?: string; // Optional session identifier for maintaining state
 }
 // Map of common dealer systems to their friendly names and endpoints
-const DEALER_SYSTEMS: Record<string, { name: string, endpoint: string }> = {
-  'dealersocket': { 
-    name: 'DealerSocket', 
-    endpoint: 'https://login.dealersocket.com/api/auth' 
+const DEALER_SYSTEMS: Record<string, { name: string; endpoint: string }> = {
+  dealersocket: {
+    name: 'DealerSocket',
+    endpoint: 'https://login.dealersocket.com/api/auth',
   },
-  'dealertrack': { 
-    name: 'Dealertrack', 
-    endpoint: 'https://auth.dealertrack.com/login'
+  dealertrack: {
+    name: 'Dealertrack',
+    endpoint: 'https://auth.dealertrack.com/login',
   },
-  'cdkglobal': { 
-    name: 'CDK Global', 
-    endpoint: 'https://auth.cdkglobal.com/login'
+  cdkglobal: {
+    name: 'CDK Global',
+    endpoint: 'https://auth.cdkglobal.com/login',
   },
-  'reynolds': { 
-    name: 'Reynolds & Reynolds', 
-    endpoint: 'https://login.reyrey.com/authentication'
+  reynolds: {
+    name: 'Reynolds & Reynolds',
+    endpoint: 'https://login.reyrey.com/authentication',
   },
-  'automate': { 
-    name: 'AutoMate', 
-    endpoint: 'https://api.automate.com/v1/auth'
+  automate: {
+    name: 'AutoMate',
+    endpoint: 'https://api.automate.com/v1/auth',
   },
-  'elead': { 
-    name: 'eLead', 
-    endpoint: 'https://login.elead-crm.com/api/auth'
-  }
+  elead: {
+    name: 'eLead',
+    endpoint: 'https://login.elead-crm.com/api/auth',
+  },
 };
 /**
  * Attempts to identify the dealer system based on the dealer ID
  * @param dealerId The ID of the dealer to identify
  * @returns The system information if identified, or null if not found
  */
-function identifyDealerSystem(dealerId: string): { key: string, name: string, endpoint: string } | null {
+function identifyDealerSystem(
+  dealerId: string
+): { key: string; name: string; endpoint: string } | null {
   const lowercaseId = dealerId.toLowerCase();
   // Check if the dealer ID contains a known system name
-  const matchedSystem = Object.keys(DEALER_SYSTEMS).find(system => 
+  const matchedSystem = Object.keys(DEALER_SYSTEMS).find((system) =>
     lowercaseId.includes(system.toLowerCase())
   );
   if (matchedSystem) {
     return {
       key: matchedSystem,
       name: DEALER_SYSTEMS[matchedSystem].name,
-      endpoint: DEALER_SYSTEMS[matchedSystem].endpoint
+      endpoint: DEALER_SYSTEMS[matchedSystem].endpoint,
     };
   }
   return null;
@@ -80,18 +82,18 @@ export function dealerLogin(): EkoTool {
       properties: {
         dealerId: {
           type: 'string',
-          description: 'The unique identifier for the dealer'
+          description: 'The unique identifier for the dealer',
         },
         siteUrl: {
           type: 'string',
-          description: 'Optional URL of the dealer website'
+          description: 'Optional URL of the dealer website',
         },
         userId: {
           type: 'string',
-          description: 'Optional user ID for credential lookup'
-        }
+          description: 'Optional user ID for credential lookup',
+        },
       },
-      required: ['dealerId']
+      required: ['dealerId'],
     },
     handler: async (args: DealerLoginArgs): Promise<DealerLoginResult> => {
       try {
@@ -105,7 +107,7 @@ export function dealerLogin(): EkoTool {
             dealerId,
             dealerName: systemInfo?.name,
             message: `Authentication required: Please log in to access ${dealerName}`,
-            error: 'No user ID provided for credential lookup'
+            error: 'No user ID provided for credential lookup',
           };
         }
         // Format site key for credential lookup:
@@ -127,7 +129,7 @@ export function dealerLogin(): EkoTool {
               dealerId,
               dealerName: systemInfo?.name,
               message: `No stored credentials found for ${dealerName}`,
-              error: 'Credentials not found. Please store your dealer credentials first.'
+              error: 'Credentials not found. Please store your dealer credentials first.',
             };
           }
           console.log(`Found credentials using fallback key: ${dealerId}`);
@@ -156,13 +158,15 @@ export function dealerLogin(): EkoTool {
           }
         }
         // Log the login attempt with sensitive details masked
-        console.log(`Attempting login for dealer ${dealerId} with user ${userCredentials.username.substring(0, 2)}***`);
+        console.log(
+          `Attempting login for dealer ${dealerId} with user ${userCredentials.username.substring(0, 2)}***`
+        );
         try {
           // In a production system, this would be a real API call
           // Here we'll simulate the network request with a timeout
           // to mimic a realistic login flow
           // Simulate network latency
-          await new Promise(resolve => setTimeout(resolve, 800));
+          await new Promise((resolve) => setTimeout(resolve, 800));
           // For now, we just simulate a successful login
           // In a real implementation, we would perform the actual login request:
           /*
@@ -184,7 +188,9 @@ export function dealerLogin(): EkoTool {
           // Generate a simulated token (in production this would come from the API)
           const simulatedToken = `${Buffer.from(dealerId).toString('base64')}.${Date.now()}`;
           const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
-          console.log(`Successfully logged in to dealer ${dealerId} using credentials for user ${userId}`);
+          console.log(
+            `Successfully logged in to dealer ${dealerId} using credentials for user ${userId}`
+          );
           // Create a session ID for tracking this login session
           const sessionId = `${dealerId}-${Date.now()}`;
           return {
@@ -195,23 +201,31 @@ export function dealerLogin(): EkoTool {
             token: simulatedToken,
             expiresAt,
             apiEndpoint, // Include the endpoint used for reference
-            sessionId // Include a session ID for tracking
+            sessionId, // Include a session ID for tracking
           };
         } catch (loginError: unknown) {
           console.error(`Login error for dealer ${dealerId}:`, loginError);
-          const errorMessage = loginError instanceof Error ? loginError.message : String(loginError);
+          const errorMessage =
+            loginError instanceof Error ? loginError.message : String(loginError);
           return {
             success: false,
             dealerId,
             dealerName,
             message: `Authentication failed with ${dealerName || 'dealer system'}`,
             error: errorMessage,
-            apiEndpoint
+            apiEndpoint,
           };
         }
       } catch (error: unknown) {
         console.error('Error in dealer login:', error);
-        const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error);
+        const errorMessage =
+          error instanceof Error
+            ? error instanceof Error
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error);
         // For catastrophic errors, create a generic response
         const dealerId = args.dealerId!;
         const systemInfo = identifyDealerSystem(dealerId);
@@ -221,9 +235,9 @@ export function dealerLogin(): EkoTool {
           dealerId,
           dealerName,
           message: `Failed to authenticate with ${dealerName}`,
-          error: errorMessage
+          error: errorMessage,
         };
       }
-    }
+    },
   };
 }

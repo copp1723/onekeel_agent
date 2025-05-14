@@ -6,8 +6,8 @@
 import sgMail from '@sendgrid/mail';
 // @ts-ignore - Add declaration for nodemailer
 import nodemailer from 'nodemailer';
-import { emailLogs } from '../shared/schema.js.js';
-import { db } from '../shared/db.js.js';
+import { emailLogs } from '../shared/schema.js';
+import { db } from '../shared/db.js';
 import { eq } from 'drizzle-orm';
 // Track if SendGrid is initialized
 let isMailerInitialized = false;
@@ -63,7 +63,7 @@ export async function sendEmail(
   text: string,
   html: string,
   from: string = 'workflow-system@example.com'
-): Promise<{ success: boolean; messageId?: string; error?: any; }> {
+): Promise<{ success: boolean; messageId?: string; error?: any }> {
   try {
     if (!isMailerInitialized) {
       throw new Error('Mailer service not initialized. Call initializeMailer first.');
@@ -82,7 +82,7 @@ export async function sendEmail(
       // Try sending with SendGrid first
       const response = await sgMail.send(message);
       // Extract message ID from response (if available)
-      const messageId = response && response[0] && (response[0] as any).messageId || undefined;
+      const messageId = (response && response[0] && (response[0] as any).messageId) || undefined;
       // Log success
       await updateemailLogsSuccess(emailLogId, messageId);
       return {
@@ -90,7 +90,10 @@ export async function sendEmail(
         messageId,
       };
     } catch (sendGridError: any) {
-      console.warn('SendGrid email error, trying fallback method:', sendGridError?.response?.body?.errors || sendGridError);
+      console.warn(
+        'SendGrid email error, trying fallback method:',
+        sendGridError?.response?.body?.errors || sendGridError
+      );
       // If it's a sender verification error, try with nodemailer fallback
       if (sendGridError?.response?.body?.errors?.[0]?.field === 'from') {
         // Initialize nodemailer if not already done
@@ -122,7 +125,7 @@ export async function sendEmail(
             await updateemailLogsFailure(
               emailLogId,
               `SendGrid: ${sendGridError?.response?.body?.errors?.[0]?.message || sendGridError.message}, ` +
-              `Nodemailer: ${(nodeMailerError as Error).message}`
+                `Nodemailer: ${(nodeMailerError as Error).message}`
             );
             return {
               success: false,
@@ -152,10 +155,7 @@ export async function sendEmail(
 /**
  * Log an email sending attempt
  */
-async function logEmailAttempt(
-  to: string | string[],
-  subject: string
-): Promise<string> {
+async function logEmailAttempt(to: string | string[], subject: string): Promise<string> {
   try {
     const recipients = Array.isArray(to) ? to.join(', ') : to;
     const [emailLog] = await db
@@ -200,10 +200,7 @@ async function updateemailLogsSuccess(
 /**
  * Update email log with failure status
  */
-async function updateemailLogsFailure(
-  id: string,
-  errorMessage: string
-): Promise<void> {
+async function updateemailLogsFailure(id: string, errorMessage: string): Promise<void> {
   try {
     if (id === 'logging-failed') return;
     await db

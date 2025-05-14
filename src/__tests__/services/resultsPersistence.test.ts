@@ -3,46 +3,46 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { 
+import {
   createResultsDirectory,
   storeResultsToFile,
   checkForDuplicateReport,
   storeReportSource,
   storeReportData,
-  storeResults
-} from '../../services/resultsPersistence.js.js';
-import { db } from '../../db/index.js.js';
-import { reports, reportSources } from '../../shared/report-schema.js.js';
-import { FileType } from '../../services/attachmentParsers.js.js';
+  storeResults,
+} from '../../services/resultsPersistence.js';
+import { db } from '../../db/index.js';
+import { reports, reportSources } from '../../shared/report-schema.js';
+import { FileType } from '../../services/attachmentParsers.js';
 // Mock fs module
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(false),
   mkdirSync: jest.fn(),
-  writeFileSync: jest.fn()
+  writeFileSync: jest.fn(),
 }));
 // Mock path module
 jest.mock('path', () => ({
   join: jest.fn((...args) => args.join('/')),
-  basename: jest.fn((filePath) => filePath.split('/').pop())
+  basename: jest.fn((filePath) => filePath.split('/').pop()),
 }));
 // Mock db
 jest.mock('../../db/index', () => ({
   db: {
     insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockResolvedValue({ insertId: 1 })
+      values: jest.fn().mockResolvedValue({ insertId: 1 }),
     }),
     select: jest.fn().mockReturnValue({
       from: jest.fn().mockReturnValue({
         where: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([])
-        })
-      })
-    })
-  }
+          where: jest.fn().mockResolvedValue([]),
+        }),
+      }),
+    }),
+  },
 }));
 // Mock uuid
 jest.mock('uuid', () => ({
-  v4: jest.fn().mockReturnValue('test-uuid')
+  v4: jest.fn().mockReturnValue('test-uuid'),
 }));
 describe('Results Persistence Service', () => {
   beforeEach(() => {
@@ -82,8 +82,8 @@ describe('Results Persistence Service', () => {
         metadata: {
           fileType: FileType.CSV,
           fileName: 'test.csv',
-          parseDate: '2023-01-01T00:00:00.000Z'
-        }
+          parseDate: '2023-01-01T00:00:00.000Z',
+        },
       };
       const reportId = 'test-report-id';
       // Act
@@ -117,13 +117,13 @@ describe('Results Persistence Service', () => {
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             where: jest.fn().mockResolvedValue([
-              { 
+              {
                 id: 'existing-report-id',
-                metadata: { fileName: 'test.csv' }
-              }
-            ])
-          })
-        })
+                metadata: { fileName: 'test.csv' },
+              },
+            ]),
+          }),
+        }),
       });
       // Act
       const result = await checkForDuplicateReport(vendor, recordCount, metadata);
@@ -141,7 +141,7 @@ describe('Results Persistence Service', () => {
         emailFrom: 'test@example.com',
         emailDate: new Date(),
         filePath: 'test.csv',
-        metadata: { test: true }
+        metadata: { test: true },
       };
       // Act
       const result = await storeReportSource(sourceInfo);
@@ -162,15 +162,15 @@ describe('Results Persistence Service', () => {
           metadata: {
             fileType: FileType.CSV,
             fileName: 'test.csv',
-            parseDate: '2023-01-01T00:00:00.000Z'
-          }
+            parseDate: '2023-01-01T00:00:00.000Z',
+          },
         },
         recordCount: 1,
         vendor: 'TestVendor',
         reportDate: new Date(),
         reportType: 'sales_report',
         status: 'pending_analysis' as const,
-        metadata: { test: true }
+        metadata: { test: true },
       };
       // Act
       const result = await storeReportData(reportData);
@@ -189,15 +189,15 @@ describe('Results Persistence Service', () => {
           metadata: {
             fileType: FileType.CSV,
             fileName: 'test.csv',
-            parseDate: '2023-01-01T00:00:00.000Z'
-          }
+            parseDate: '2023-01-01T00:00:00.000Z',
+          },
         },
         recordCount: 1,
         vendor: 'TestVendor',
         reportDate: new Date(),
         reportType: 'sales_report',
         status: 'pending_analysis' as const,
-        metadata: { fileName: 'test.csv' }
+        metadata: { fileName: 'test.csv' },
       };
       // Mock checkForDuplicateReport to return an ID
       jest.spyOn(global, 'checkForDuplicateReport' as any).mockResolvedValue('existing-report-id');
@@ -220,8 +220,8 @@ describe('Results Persistence Service', () => {
           fileType: FileType.CSV,
           fileName: 'test.csv',
           parseDate: '2023-01-01T00:00:00.000Z',
-          reportType: 'sales_report'
-        }
+          reportType: 'sales_report',
+        },
       };
       const sourceInfo = {
         sourceType: 'email',
@@ -229,7 +229,7 @@ describe('Results Persistence Service', () => {
         emailFrom: 'test@example.com',
         emailDate: new Date(),
         filePath: 'test.csv',
-        metadata: { test: true }
+        metadata: { test: true },
       };
       // Mock storeResultsToFile
       jest.spyOn(global, 'storeResultsToFile' as any).mockReturnValue('test/path.json');
@@ -252,8 +252,8 @@ describe('Results Persistence Service', () => {
         metadata: expect.objectContaining({
           fileType: FileType.CSV,
           fileName: 'test.csv',
-          sourceInfo: { test: true }
-        })
+          sourceInfo: { test: true },
+        }),
       });
     });
   });

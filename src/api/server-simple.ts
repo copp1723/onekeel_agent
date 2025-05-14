@@ -1,25 +1,28 @@
 import express from 'express';
-import { isError } from '../utils/errorUtils.js.js';
+import { isError } from '../utils/errorUtils.js';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { logTask, getTaskLogs } from '../shared/logger.js.js';
-import { TaskType } from '../types.js.js';
+import { logTask, getTaskLogs } from '../shared/logger.js';
+import { TaskType } from '../types.js';
 // Load environment variables
 dotenv.config();
 // Initialize Express app
 const app = express();
 app.use(express.json());
 // Simple in-memory task storage as fallback
-const taskLogs: Record<string, {
-  id: string;
-  task: string;
-  taskType: TaskType | string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  result?: any;
-  error?: string;
-  createdAt: string;
-  completedAt?: string;
-}> = {};
+const taskLogs: Record<
+  string,
+  {
+    id: string;
+    task: string;
+    taskType: TaskType | string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    result?: any;
+    error?: string;
+    createdAt: string;
+    completedAt?: string;
+  }
+> = {};
 // API endpoint for submitting new tasks (Phase 2)
 app.post('/api/tasks', async (req: Request, res: Response) => {
   try {
@@ -33,10 +36,13 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
     taskLogs[taskId] = {
       id: taskId,
       task,
-      taskType: task.toLowerCase().includes('crawl') ? TaskType.WebCrawling : 
-               task.toLowerCase().includes('flight') ? TaskType.FlightStatus : TaskType.Unknown,
+      taskType: task.toLowerCase().includes('crawl')
+        ? TaskType.WebCrawling
+        : task.toLowerCase().includes('flight')
+          ? TaskType.FlightStatus
+          : TaskType.Unknown,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     // Return the task ID immediately so client can poll for status
     res.status(202).json({ taskId, message: 'Task accepted and processing' });
@@ -46,8 +52,8 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
       taskLogs[taskId].status = 'completed';
       taskLogs[taskId].result = {
         simulatedResult: true,
-        message: "This is a simulated result. API key required for actual processing.",
-        task: task
+        message: 'This is a simulated result. API key required for actual processing.',
+        task: task,
       };
       taskLogs[taskId].completedAt = new Date().toISOString();
       // Log to our persistent store as well
@@ -56,8 +62,8 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
         tool: String(taskLogs[taskId].taskType),
         status: 'success',
         output: taskLogs[taskId].result,
-        userId: undefined
-      }).catch(err => console.error('Failed to log completion to database:', err));
+        userId: undefined,
+      }).catch((err) => console.error('Failed to log completion to database:', err));
     }, 2000);
   } catch (error) {
     console.error('Error submitting task:', error);
@@ -97,18 +103,22 @@ app.post('/submit-task', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Task is required and must be a string' });
     }
     // Determine task type
-    const taskType = task.toLowerCase().includes('crawl') ? 'web_crawling' : 
-                    task.toLowerCase().includes('flight') ? 'flight_status' : 'unknown';
+    const taskType = task.toLowerCase().includes('crawl')
+      ? 'web_crawling'
+      : task.toLowerCase().includes('flight')
+        ? 'flight_status'
+        : 'unknown';
     // Log task attempt
     await logTask({
       userInput: task,
       tool: String(taskType),
       status: 'success', // Let's be optimistic
-      output: { 
+      output: {
         simulatedResult: true,
-        message: "This is a simulated result for direct execution (Phase 3). API key required for actual processing."
+        message:
+          'This is a simulated result for direct execution (Phase 3). API key required for actual processing.',
       },
-      userId: undefined
+      userId: undefined,
     });
     // Return a simulated response
     return res.status(200).json({
@@ -116,44 +126,67 @@ app.post('/submit-task', async (req: Request, res: Response) => {
       result: {
         taskType,
         timestamp: new Date().toISOString(),
-        message: "Task logged successfully. This is a simulated response since no valid API key is available.",
-        data: task.toLowerCase().includes('crawl') ? {
-          "top_posts": [
-            {
-              "title": "Example Post 1",
-              "url": "https://example.com/post1",
-              "score": 42
-            },
-            {
-              "title": "Example Post 2",
-              "url": "https://example.com/post2",
-              "score": 36
+        message:
+          'Task logged successfully. This is a simulated response since no valid API key is available.',
+        data: task.toLowerCase().includes('crawl')
+          ? {
+              top_posts: [
+                {
+                  title: 'Example Post 1',
+                  url: 'https://example.com/post1',
+                  score: 42,
+                },
+                {
+                  title: 'Example Post 2',
+                  url: 'https://example.com/post2',
+                  score: 36,
+                },
+              ],
             }
-          ]
-        } : {
-          "status": "simulated",
-          "message": "This would contain real data with a valid API key"
-        }
-      }
+          : {
+              status: 'simulated',
+              message: 'This would contain real data with a valid API key',
+            },
+      },
     });
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error in submit-task endpoint:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) || 'Internal server error' 
+    return res.status(500).json({
+      success: false,
+      error: isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error) || 'Internal server error',
     });
   }
 });
 // API health check endpoint
 app.get('/health', (_req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     status: 'up',
     version: '1.0.0',
-    message: 'API server is running'
+    message: 'API server is running',
   });
 });
 // Start the server

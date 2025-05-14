@@ -9,31 +9,43 @@
  * - Provides detailed error handling and diagnostics
  */
 import path from 'path';
-import { isError } from '../utils/errorUtils.js.js';
+import { isError } from '../utils/errorUtils.js';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { tryFetchReportFromEmail } from './ingestScheduledReport.js.js';
-import { parseByExtension } from '../services/attachmentParsers.js.js';
-import { storeResults } from '../services/resultsPersistence.js.js';
-import { generateInsights } from '../services/insightGenerator.js.js';
-import { EnvVars } from '../types.js.js';
-import logger from '../utils/logger.js.js';
+import { tryFetchReportFromEmail } from './ingestScheduledReport.js';
+import { parseByExtension } from '../services/attachmentParsers.js';
+import { storeResults } from '../services/resultsPersistence.js';
+import { generateInsights } from '../services/insightGenerator.js';
+import { EnvVars } from '../types.js';
+import logger from '../utils/logger.js';
 // Simple console logger delegating to structured logger
 export const consoleLogger = {
   info: (message: string, meta?: Record<string, any>) => {
-    logger.info({ event: 'email_flow_info', message, ...meta, timestamp: new Date().toISOString() }, message);
+    logger.info(
+      { event: 'email_flow_info', message, ...meta, timestamp: new Date().toISOString() },
+      message
+    );
   },
   error: (message: string, meta?: Record<string, any>) => {
-    logger.error({ event: 'email_flow_error', message, ...meta, timestamp: new Date().toISOString() }, message);
+    logger.error(
+      { event: 'email_flow_error', message, ...meta, timestamp: new Date().toISOString() },
+      message
+    );
   },
   warn: (message: string, meta?: Record<string, any>) => {
-    logger.warn({ event: 'email_flow_warn', message, ...meta, timestamp: new Date().toISOString() }, message);
+    logger.warn(
+      { event: 'email_flow_warn', message, ...meta, timestamp: new Date().toISOString() },
+      message
+    );
   },
   debug: (message: string, meta?: Record<string, any>) => {
     if (process.env.DEBUG) {
-      logger.debug({ event: 'email_flow_debug', message, ...meta, timestamp: new Date().toISOString() }, message);
+      logger.debug(
+        { event: 'email_flow_debug', message, ...meta, timestamp: new Date().toISOString() },
+        message
+      );
     }
-  }
+  },
 };
 // Logger interface
 export interface Logger {
@@ -44,7 +56,7 @@ export interface Logger {
 }
 /**
  * Complete email ingestion, parsing, storage, and insight generation flow
- * 
+ *
  * @param platform - The CRM platform (e.g., 'VinSolutions', 'VAUTO')
  * @param envVars - Environment variables needed for configuration
  * @param logger - Optional logger for diagnostic information
@@ -80,50 +92,42 @@ export async function emailIngestAndRunFlow(
     const emailMetadata = {
       subject: envVars.LAST_EMAIL_SUBJECT || undefined,
       from: envVars.LAST_EMAIL_FROM || undefined,
-      date: envVars.LAST_EMAIL_DATE ? new Date(envVars.LAST_EMAIL_DATE) : undefined
+      date: envVars.LAST_EMAIL_DATE ? new Date(envVars.LAST_EMAIL_DATE) : undefined,
     };
     // Step 2: Parse the attachment
     logger.info(`Parsing attachment: ${path.basename(reportPath)}`);
     const parsedData = await parseByExtension(reportPath, {
       vendor: platform,
-      reportType: options.intent! || 'sales_report'
+      reportType: options.intent! || 'sales_report',
     });
     logger.info(`Successfully parsed ${parsedData.recordCount} records`);
     // Step 3: Store results
     logger.info(`Storing results for ${platform}`);
-    const storageResult = await storeResults(
-      platform,
-      parsedData,
-      {
-        sourceType: 'email',
-        emailSubject: emailMetadata.subject,
-        emailFrom: emailMetadata.from,
-        emailDate: emailMetadata.date,
-        filePath: reportPath,
-        metadata: {
-          emailMetadata,
-          parseTime: Date.now() - startTime
-        }
-      }
-    );
+    const storageResult = await storeResults(platform, parsedData, {
+      sourceType: 'email',
+      emailSubject: emailMetadata.subject,
+      emailFrom: emailMetadata.from,
+      emailDate: emailMetadata.date,
+      filePath: reportPath,
+      metadata: {
+        emailMetadata,
+        parseTime: Date.now() - startTime,
+      },
+    });
     logger.info(`Successfully stored results`, {
       reportId: storageResult.id,
       jsonPath: storageResult.jsonPath,
-      recordCount: storageResult.recordCount
+      recordCount: storageResult.recordCount,
     });
     // Step 4: Generate insights (if not skipped)
     if (!options.skipInsights) {
       logger.info(`Generating insights for ${platform}`);
-      const insightResult = await generateInsights(
-        parsedData,
-        platform,
-        {
-          intent: options.intent! || 'automotive_analysis'
-        }
-      );
+      const insightResult = await generateInsights(parsedData, platform, {
+        intent: options.intent! || 'automotive_analysis',
+      });
       logger.info(`Successfully generated insights`, {
         insightId: insightResult.insightId,
-        title: insightResult.insight.title
+        title: insightResult.insight.title,
       });
       // Return complete result
       return {
@@ -131,29 +135,59 @@ export async function emailIngestAndRunFlow(
         reportPath,
         jsonPath: storageResult.jsonPath,
         insightId: insightResult.insightId,
-        insightPath: insightResult.metadata.outputPath
+        insightPath: insightResult.metadata.outputPath,
       };
     }
     // Return result without insights
     return {
       reportId: storageResult.id,
       reportPath,
-      jsonPath: storageResult.jsonPath
+      jsonPath: storageResult.jsonPath,
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     logger.error(`Error in data flow: ${errorMessage}`);
     // Create error report for tracking
     const errorReport = {
       timestamp: new Date().toISOString(),
       platform,
       error: errorMessage,
-      stack: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined,
-      duration: Date.now() - startTime
+      stack:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.stack
+              : undefined
+            : undefined
+          : undefined,
+      duration: Date.now() - startTime,
     };
     // Save error report
     const errorDir = path.join(process.cwd(), 'logs', 'errors');
@@ -167,7 +201,7 @@ export async function emailIngestAndRunFlow(
 }
 /**
  * Create a sample report for testing
- * 
+ *
  * @param platform - CRM platform name
  * @returns Path to the created sample report
  */
@@ -188,12 +222,15 @@ export async function createSampleReport(platform: string): Promise<string> {
 2025-05-13,Customer D,Chevrolet Tahoe LT,Purchased,$55300,Referral,Rep 1,30
 2025-05-13,Customer E,Nissan Altima S,New Lead,$26400,Website,Rep 4,12`;
   fs.writeFileSync(reportPath, sampleData);
-  logger.info({ event: 'sample_report_created', platform, reportPath, timestamp: new Date().toISOString() }, 'Created sample report');
+  logger.info(
+    { event: 'sample_report_created', platform, reportPath, timestamp: new Date().toISOString() },
+    'Created sample report'
+  );
   return reportPath;
 }
 /**
  * Run the complete data flow with a sample report (for testing)
- * 
+ *
  * @param platform - The CRM platform (e.g., 'VinSolutions', 'VAUTO')
  * @param options - Optional configuration options
  * @returns Object containing report and insight information
@@ -220,41 +257,33 @@ export async function runSampleDataFlow(
     logger.info(`Parsing sample attachment: ${path.basename(reportPath)}`);
     const parsedData = await parseByExtension(reportPath, {
       vendor: platform,
-      reportType: options.intent! || 'sales_report'
+      reportType: options.intent! || 'sales_report',
     });
     logger.info(`Successfully parsed ${parsedData.recordCount} records`);
     // Store results
     logger.info(`Storing sample results for ${platform}`);
-    const storageResult = await storeResults(
-      platform,
-      parsedData,
-      {
-        sourceType: 'sample',
-        filePath: reportPath,
-        metadata: {
-          sample: true,
-          createdAt: new Date().toISOString()
-        }
-      }
-    );
+    const storageResult = await storeResults(platform, parsedData, {
+      sourceType: 'sample',
+      filePath: reportPath,
+      metadata: {
+        sample: true,
+        createdAt: new Date().toISOString(),
+      },
+    });
     logger.info(`Successfully stored sample results`, {
       reportId: storageResult.id,
       jsonPath: storageResult.jsonPath,
-      recordCount: storageResult.recordCount
+      recordCount: storageResult.recordCount,
     });
     // Generate insights (if not skipped)
     if (!options.skipInsights) {
       logger.info(`Generating insights for sample data`);
-      const insightResult = await generateInsights(
-        parsedData,
-        platform,
-        {
-          intent: options.intent! || 'automotive_analysis'
-        }
-      );
+      const insightResult = await generateInsights(parsedData, platform, {
+        intent: options.intent! || 'automotive_analysis',
+      });
       logger.info(`Successfully generated insights for sample data`, {
         insightId: insightResult.insightId,
-        title: insightResult.insight.title
+        title: insightResult.insight.title,
       });
       // Return complete result
       return {
@@ -262,21 +291,44 @@ export async function runSampleDataFlow(
         reportPath,
         jsonPath: storageResult.jsonPath,
         insightId: insightResult.insightId,
-        insightPath: insightResult.metadata.outputPath
+        insightPath: insightResult.metadata.outputPath,
       };
     }
     // Return result without insights
     return {
       reportId: storageResult.id,
       reportPath,
-      jsonPath: storageResult.jsonPath
+      jsonPath: storageResult.jsonPath,
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     logger.error(`Error in sample data flow: ${errorMessage}`);
     throw error;
   }

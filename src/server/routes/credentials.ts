@@ -3,14 +3,14 @@
  * Handles CRUD operations for user credentials with authentication
  */
 import express from 'express';
-import { isAuthenticated } from '../replitAuth.js.js';
-import { 
-  addCredential, 
-  getCredentials, 
+import { isAuthenticated } from '../replitAuth.js';
+import {
+  addCredential,
+  getCredentials,
   getCredentialById,
   updateCredential,
-  deleteCredential
-} from '../../services/credentialVault.js.js';
+  deleteCredential,
+} from '../../services/credentialVault.js';
 const router = express.Router();
 // All routes require authentication
 router.use(isAuthenticated);
@@ -31,7 +31,7 @@ router.get('/', async (req: any, res) => {
       created: credential.createdAt,
       updated: credential.updatedAt,
       hasRefreshToken: !!credential.refreshToken,
-      data
+      data,
     }));
     res.json(response);
   } catch (error) {
@@ -54,10 +54,17 @@ router.get('/:id', async (req: any, res) => {
       created: credential.createdAt,
       updated: credential.updatedAt,
       hasRefreshToken: !!credential.refreshToken,
-      data
+      data,
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : 'Unknown error';
+    const errorMessage =
+      error instanceof Error
+        ? error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : 'Unknown error';
     if (errorMessage.includes('not found') || errorMessage.includes('access denied')) {
       res.status(404).json({ error: 'Credential not found' });
     } else {
@@ -78,21 +85,16 @@ router.post('/', async (req: any, res) => {
       return res.status(400).json({ error: 'Platform and credential data are required' });
     }
     // Create credential
-    const credential = await addCredential(
-      userId,
-      platform,
-      data as CredentialData,
-      {
-        label,
-        refreshToken,
-        refreshTokenExpiry: refreshTokenExpiry ? new Date(refreshTokenExpiry) : undefined
-      }
-    );
+    const credential = await addCredential(userId, platform, data as CredentialData, {
+      label,
+      refreshToken,
+      refreshTokenExpiry: refreshTokenExpiry ? new Date(refreshTokenExpiry) : undefined,
+    });
     res.status(201).json({
       id: credential.id,
       platform: credential.platform!,
       label: credential.label,
-      created: credential.createdAt
+      created: credential.createdAt,
     });
   } catch (error) {
     console.error('Error creating credential:', error);
@@ -116,17 +118,24 @@ router.put('/:id', async (req: any, res) => {
         label,
         refreshToken,
         refreshTokenExpiry: refreshTokenExpiry ? new Date(refreshTokenExpiry) : undefined,
-        active
+        active,
       }
     );
     res.json({
       id: credential.id,
       platform: credential.platform!,
       label: credential.label,
-      updated: credential.updatedAt
+      updated: credential.updatedAt,
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : 'Unknown error';
+    const errorMessage =
+      error instanceof Error
+        ? error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : 'Unknown error';
     if (errorMessage.includes('not found') || errorMessage.includes('access denied')) {
       res.status(404).json({ error: 'Credential not found' });
     } else {

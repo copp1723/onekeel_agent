@@ -5,11 +5,12 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 // Parse DATABASE_URL if available, otherwise use the explicit Supabase URL
-const databaseUrl = process.env.DATABASE_URL || 
-                   'postgresql://postgres:[YOUR-PASSWORD]@db.cliddlnoxqnkcwjumeil.supabase.co:5432/postgres';
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  'postgresql://postgres:[YOUR-PASSWORD]@db.cliddlnoxqnkcwjumeil.supabase.co:5432/postgres';
 // Replace [YOUR-PASSWORD] with the actual password if it's still in the string
-const cleanedUrl = databaseUrl.includes('[YOUR-PASSWORD]') 
-  ? databaseUrl.replace('[YOUR-PASSWORD]', 'YOUR_ACTUAL_PASSWORD_HERE') 
+const cleanedUrl = databaseUrl.includes('[YOUR-PASSWORD]')
+  ? databaseUrl.replace('[YOUR-PASSWORD]', 'YOUR_ACTUAL_PASSWORD_HERE')
   : databaseUrl;
 console.log('Connecting to database with fixed connection settings');
 // Configure the postgres client with better timeout settings

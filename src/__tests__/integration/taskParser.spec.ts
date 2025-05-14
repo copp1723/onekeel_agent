@@ -1,9 +1,9 @@
-import {  describe, it, expect, afterAll  } from '....js';
-import parseTask from '../../services/taskParser.js.js';
-import { db } from '../../shared/db.js.js';
-import { tasks } from '../../shared/schema.js.js';
+import { describe, it, expect, afterAll } from '....js';
+import parseTask from '../../services/taskParser.js';
+import { db } from '../../shared/db.js';
+import { tasks } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { EmailRequest, TaskResult } from '../../types.js.js';
+import { EmailRequest, TaskResult } from '../../types.js';
 describe('Task Parser Integration Tests', () => {
   // Test data
   const testTasks = [
@@ -13,9 +13,9 @@ describe('Task Parser Integration Tests', () => {
         type: 'report',
         parameters: {
           period: 'Q1',
-          metric: 'sales'
-        }
-      }
+          metric: 'sales',
+        },
+      },
     },
     {
       input: 'Send weekly newsletter to marketing team',
@@ -24,9 +24,9 @@ describe('Task Parser Integration Tests', () => {
         parameters: {
           frequency: 'weekly',
           template: 'newsletter',
-          recipients: 'marketing team'
-        }
-      }
+          recipients: 'marketing team',
+        },
+      },
     },
     {
       input: 'Schedule a meeting with the product team on Friday at 2pm',
@@ -35,10 +35,10 @@ describe('Task Parser Integration Tests', () => {
         parameters: {
           attendees: 'product team',
           day: 'Friday',
-          time: '2pm'
-        }
-      }
-    }
+          time: '2pm',
+        },
+      },
+    },
   ];
   // Clean up test data after tests
   afterAll(async () => {
@@ -55,10 +55,7 @@ describe('Task Parser Integration Tests', () => {
         expect(result.id).toBeDefined();
         expect(result.description).toBe(task.input);
         // Check that the task was saved to the database
-        const [savedTask] = await db
-          .select()
-          .from(tasks)
-          .where(eq(tasks.id, result.id));
+        const [savedTask] = await db.select().from(tasks).where(eq(tasks.id, result.id));
         expect(savedTask).toBeDefined();
         expect(savedTask.description).toBe(task.input);
         // Check that the parsed data matches the expected structure
@@ -71,16 +68,14 @@ describe('Task Parser Integration Tests', () => {
       }
     });
     it('should handle complex tasks with multiple parameters', async () => {
-      const complexTask = 'Generate a monthly sales report for the East region comparing Q1 2023 vs Q1 2022 and send it to the sales team';
+      const complexTask =
+        'Generate a monthly sales report for the East region comparing Q1 2023 vs Q1 2022 and send it to the sales team';
       const result = await parseTask(complexTask);
       // Check that the task was parsed correctly
       expect(result).toBeDefined();
       expect(result.description).toBe(complexTask);
       // Check that the task was saved to the database
-      const [savedTask] = await db
-        .select()
-        .from(tasks)
-        .where(eq(tasks.id, result.id));
+      const [savedTask] = await db.select().from(tasks).where(eq(tasks.id, result.id));
       expect(savedTask).toBeDefined();
       // Check that the parsed data has the expected structure
       const parsedData = JSON.parse(savedTask.parsedData);
@@ -100,10 +95,7 @@ describe('Task Parser Integration Tests', () => {
       expect(result).toBeDefined();
       expect(result.description).toBe(ambiguousTask);
       // Check that the task was saved to the database
-      const [savedTask] = await db
-        .select()
-        .from(tasks)
-        .where(eq(tasks.id, result.id));
+      const [savedTask] = await db.select().from(tasks).where(eq(tasks.id, result.id));
       expect(savedTask).toBeDefined();
       // Check that the parsed data has at least a type
       const parsedData = JSON.parse(savedTask.parsedData);
@@ -122,14 +114,14 @@ describe('taskParser', () => {
       to: 'system@example.com',
       text: 'Please generate an inventory report',
       date: new Date(),
-      attachments: []
+      attachments: [],
     };
     const result: TaskResult = parseTask(emailRequest);
     expect(result).toMatchObject({
       type: 'report',
       intent: 'inventory',
       source: 'email',
-      metadata: expect.any(Object)
+      metadata: expect.any(Object),
     });
   });
   it('should extract metadata from complex tasks', () => {
@@ -139,7 +131,7 @@ describe('taskParser', () => {
       to: 'system@example.com',
       text: 'Generate inventory aging report with 90+ day focus',
       date: new Date(),
-      attachments: []
+      attachments: [],
     };
     const result: TaskResult = parseTask(emailRequest);
     expect(result).toMatchObject({
@@ -148,8 +140,8 @@ describe('taskParser', () => {
       source: 'email',
       metadata: {
         focus: '90+',
-        frequency: 'weekly'
-      }
+        frequency: 'weekly',
+      },
     });
   });
   it('should handle invalid or malformed requests', () => {
@@ -159,7 +151,7 @@ describe('taskParser', () => {
       to: 'system@example.com',
       text: '',
       date: new Date(),
-      attachments: []
+      attachments: [],
     };
     expect(() => parseTask(emailRequest)).toThrow('Invalid task request');
   });

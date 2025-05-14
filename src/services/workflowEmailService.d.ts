@@ -62,7 +62,7 @@ export interface EmailRetryResult {
  * @returns Result of the email sending operation
  */
 export function sendWorkflowCompletionEmail(
-  workflowId: string, 
+  workflowId: string,
   recipientOverride?: string | string[]
 ): Promise<EmailSendResult>;
 /**
@@ -73,7 +73,7 @@ export function sendWorkflowCompletionEmail(
  * @returns The notification configuration
  */
 export function configureEmailNotifications(
-  workflowId: string, 
+  workflowId: string,
   recipientEmail: string,
   options?: {
     sendOnCompletion?: boolean;
@@ -85,30 +85,22 @@ export function configureEmailNotifications(
  * @param workflowId The ID of the workflow
  * @returns The notification settings or null if not found
  */
-export function getEmailNotificationSettings(
-  workflowId: string
-): Promise<EmailNotification | null>;
+export function getEmailNotificationSettings(workflowId: string): Promise<EmailNotification | null>;
 /**
  * Delete email notification settings for a workflow
  * @param workflowId The ID of the workflow
  * @returns True if successful
  */
-export function deleteEmailNotificationSettings(
-  workflowId: string
-): Promise<boolean>;
+export function deleteEmailNotificationSettings(workflowId: string): Promise<boolean>;
 /**
  * Get email logs for a workflow
  * @param workflowId The ID of the workflow
  * @returns Array of email logs
  */
-export function getEmailLogs(
-  workflowId: string
-): Promise<EmailLog[]>;
+export function getEmailLogs(workflowId: string): Promise<EmailLog[]>;
 /**
  * Retry failed email for a workflow
  * @param emailLogId The ID of the email log
  * @returns Result of the retry operation
  */
-export function retryFailedEmail(
-  emailLogId: string
-): Promise<EmailRetryResult>;
+export function retryFailedEmail(emailLogId: string): Promise<EmailRetryResult>;

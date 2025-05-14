@@ -1,7 +1,7 @@
 import { Eko } from '@eko-ai/eko';
 // Import ExecutionPlan as a type only since we're not using the class constructor
-import type {  ExecutionPlan  } from '../agent/executePlan.js.js.js';
-import { logger } from '../shared/logger.js.js';
+import type { ExecutionPlan } from '../agent/executePlan.js.js';
+import { logger } from '../shared/logger.js';
 import { v4 as uuidv4 } from 'uuid';
 export interface ParsedTask {
   id: string;
@@ -34,7 +34,7 @@ export class TaskParser {
       info: console.log,
       error: console.error,
       warn: console.warn,
-      debug: console.log
+      debug: console.log,
     };
   }
   async parseUserRequest(userInput: string): Promise<ParserResult> {
@@ -58,7 +58,7 @@ export class TaskParser {
         status: 'pending',
         createdAt: new Date(),
         metadata: taskInfo.metadata || {},
-        context: { userInput }
+        context: { userInput },
       };
       // Check if we need to create an execution plan
       let executionPlan = undefined;
@@ -69,7 +69,7 @@ export class TaskParser {
           executionPlan = {
             id: planId.toString(),
             task: parsedTask,
-            steps: parsedTask.steps || []
+            steps: parsedTask.steps || [],
           };
           parsedTask.planId = planId.toString();
         } catch (planError) {
@@ -77,14 +77,17 @@ export class TaskParser {
           // Continue without execution plan but record the error
           parsedTask.metadata = {
             ...parsedTask.metadata,
-            planError: planError instanceof Error ? planError.message : 'Unknown plan error'
+            planError: planError instanceof Error ? planError.message : 'Unknown plan error',
           };
         }
       }
-      this.logger.info('Successfully parsed task', { taskId: parsedTask.id, taskType: parsedTask.type });
+      this.logger.info('Successfully parsed task', {
+        taskId: parsedTask.id,
+        taskType: parsedTask.type,
+      });
       return {
         task: parsedTask,
-        executionPlan
+        executionPlan,
       };
     } catch (error) {
       this.logger.error('Failed to parse user request', { error });
@@ -99,14 +102,28 @@ export class TaskParser {
         status: 'failed',
         createdAt: new Date(),
         metadata: {
-          parsingError: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : 'Unknown parsing error',
-          originalInput: userInput.substring(0, 500) + (userInput.length > 500 ? '...' : '')
+          parsingError:
+            error instanceof Error
+              ? error instanceof Error
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : 'Unknown parsing error',
+          originalInput: userInput.substring(0, 500) + (userInput.length > 500 ? '...' : ''),
         },
-        context: { userInput }
+        context: { userInput },
       };
       return {
         task: fallbackTask,
-        error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : 'Unknown parsing error'
+        error:
+          error instanceof Error
+            ? error instanceof Error
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : 'Unknown parsing error',
       };
     }
   }
@@ -127,15 +144,15 @@ Extract the following information:
 6. Any metadata that might be useful
 Respond with valid JSON only, with these fields: {type, title, description, steps, priority, metadata}.
 For "steps", provide an array of string instructions that would logically complete the task.
-`
+`,
           },
           {
             role: 'user',
-            content: userInput
-          }
+            content: userInput,
+          },
         ],
         temperature: 0.1,
-        model: 'gpt-4o' // or a different model if preferred
+        model: 'gpt-4o', // or a different model if preferred
       });
       // Parse the response to extract the JSON
       const jsonMatch = response.match(/({[\s\S]*})/);
@@ -161,15 +178,16 @@ For "steps", provide an array of string instructions that would logically comple
         messages: [
           {
             role: 'system',
-            content: 'Parse this request into a simple JSON with {type, title, description} only. Type should be "simple", "complex", or "query".'
+            content:
+              'Parse this request into a simple JSON with {type, title, description} only. Type should be "simple", "complex", or "query".',
           },
           {
             role: 'user',
-            content: userInput
-          }
+            content: userInput,
+          },
         ],
         temperature: 0.1,
-        model: 'gpt-3.5-turbo' // Using a faster model for fallback
+        model: 'gpt-3.5-turbo', // Using a faster model for fallback
       });
       // Extract JSON from the response
       const jsonMatch = response.match(/({[\s\S]*})/);
@@ -183,7 +201,7 @@ For "steps", provide an array of string instructions that would logically comple
       return {
         type: 'simple',
         title: 'Untitled Task',
-        description: userInput.substring(0, 100) + '...'
+        description: userInput.substring(0, 100) + '...',
       };
     }
   }

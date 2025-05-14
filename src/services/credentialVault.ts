@@ -3,9 +3,9 @@
  * Securely stores and manages user credentials with encryption
  */
 import { eq, and } from 'drizzle-orm';
-import { db } from '../shared/db.js.js';
-import {    credentials } from '....js';
-import { encryptData, decryptData, isEncryptionConfigured } from '../utils/encryption.js.js';
+import { db } from '../shared/db.js';
+import { credentials } from '....js';
+import { encryptData, decryptData, isEncryptionConfigured } from '../utils/encryption.js';
 /**
  * Add a new credential to the vault
  * @param userId - User ID who owns this credential
@@ -43,9 +43,7 @@ export async function addCredential(
   };
   // Insert into database
   const [createdCredential] = await // @ts-ignore
-db.insert(credentials)
-    .values(credential)
-    .returning();
+  db.insert(credentials).values(credential).returning();
   return createdCredential;
 }
 /**
@@ -59,12 +57,10 @@ export async function getCredentialById(
   userId: string
 ): Promise<{ credential: Credential; data: CredentialData }> {
   // Query with user ID for security
-  const [credential] = await db.select()
+  const [credential] = await db
+    .select()
     .from(credentials)
-    .where(and(
-      eq(credentials.id, id.toString()),
-      eq(credentials.userId!, userId)
-    ));
+    .where(and(eq(credentials.id, id.toString()), eq(credentials.userId!, userId)));
   if (!credential) {
     throw new Error('Credential not found or access denied');
   }
@@ -72,12 +68,12 @@ export async function getCredentialById(
   const data = decryptData(credential.encryptedData, credential.iv) as CredentialData;
   return {
     credential,
-    data
+    data,
   };
 }
 /**
  * Get credentials for a user and platform
- * @param userId - User ID 
+ * @param userId - User ID
  * @param platform - Platform name (optional)
  * @returns Array of credentials with decrypted data
  */
@@ -86,21 +82,19 @@ export async function getCredentials(
   platform?: string
 ): Promise<Array<{ credential: Credential; data: CredentialData }>> {
   // Build query conditions
-  const conditions = [
-    eq(credentials.userId!, userId),
-    eq(credentials.active, true)
-  ];
+  const conditions = [eq(credentials.userId!, userId), eq(credentials.active, true)];
   if (platform) {
     conditions.push(eq(credentials.platform!, platform));
   }
   // Query active credentials
-  const results = await db.select()
+  const results = await db
+    .select()
     .from(credentials)
     .where(and(...conditions));
   // Decrypt all credential data
-  return results.map(credential => ({
+  return results.map((credential) => ({
     credential,
-    data: decryptData(credential.encryptedData, credential.iv) as CredentialData
+    data: decryptData(credential.encryptedData, credential.iv) as CredentialData,
   }));
 }
 /**
@@ -123,18 +117,16 @@ export async function updateCredential(
   }
 ): Promise<Credential> {
   // First verify the credential exists and belongs to this user
-  const [existingCredential] = await db.select()
+  const [existingCredential] = await db
+    .select()
     .from(credentials)
-    .where(and(
-      eq(credentials.id, id.toString()),
-      eq(credentials.userId!, userId)
-    ));
+    .where(and(eq(credentials.id, id.toString()), eq(credentials.userId!, userId)));
   if (!existingCredential) {
     throw new Error('Credential not found or access denied');
   }
   // Build update object
   const updates: Partial<UpsertCredential> = {
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
   // If data is provided, encrypt it
   if (data) {
@@ -149,12 +141,10 @@ export async function updateCredential(
   if (options?.active !== undefined) updates.active = options.active;
   // Update in database
   const [updatedCredential] = await // @ts-ignore
-db.update(credentials)
+  db
+    .update(credentials)
     .set(updates)
-    .where(and(
-      eq(credentials.id, id.toString()),
-      eq(credentials.userId!, userId)
-    ))
+    .where(and(eq(credentials.id, id.toString()), eq(credentials.userId!, userId)))
     .returning();
   return updatedCredential;
 }
@@ -164,21 +154,16 @@ db.update(credentials)
  * @param userId - User ID for security verification
  * @returns Success flag
  */
-export async function deleteCredential(
-  id: string,
-  userId: string
-): Promise<boolean> {
+export async function deleteCredential(id: string, userId: string): Promise<boolean> {
   // Mark as inactive rather than deleting
   const [updated] = await // @ts-ignore
-db.update(credentials)
-    .set({ 
+  db
+    .update(credentials)
+    .set({
       active: false,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
-    .where(and(
-      eq(credentials.id, id.toString()),
-      eq(credentials.userId!, userId)
-    ))
+    .where(and(eq(credentials.id, id.toString()), eq(credentials.userId!, userId)))
     .returning();
   return !!updated;
 }
@@ -188,17 +173,12 @@ db.update(credentials)
  * @param userId - User ID for security verification
  * @returns Success flag
  */
-export async function hardDeleteCredential(
-  id: string,
-  userId: string
-): Promise<boolean> {
+export async function hardDeleteCredential(id: string, userId: string): Promise<boolean> {
   try {
     const result = await // @ts-ignore
-db.delete(credentials)
-      .where(and(
-        eq(credentials.id, id.toString()),
-        eq(credentials.userId!, userId)
-      ));
+    db
+      .delete(credentials)
+      .where(and(eq(credentials.id, id.toString()), eq(credentials.userId!, userId)));
     // Drizzle doesn't provide rowCount directly, so use a different approach
     return true; // If no error was thrown, assume success
   } catch (error) {
@@ -237,24 +217,24 @@ export async function refreshOAuthToken(
     // Update in database with 1 hour expiry
     const refreshExpiry = new Date();
     refreshExpiry.setHours(refreshExpiry.getHours() + 1);
-    const updatedCredential = await updateCredential(
-      id,
-      userId,
-      updatedData,
-      {
-        refreshTokenExpiry: refreshExpiry
-      }
-    );
+    const updatedCredential = await updateCredential(id, userId, updatedData, {
+      refreshTokenExpiry: refreshExpiry,
+    });
     return {
       credential: updatedCredential,
-      data: updatedData
+      data: updatedData,
     };
   } catch (error: unknown) {
     console.error('Failed to refresh token:', error);
     // Handle different error types safely
-    const errorMessage = error instanceof Error 
-      ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) 
-      : 'Unknown error during token refresh';
+    const errorMessage =
+      error instanceof Error
+        ? error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : 'Unknown error during token refresh';
     throw new Error(`Token refresh failed: ${errorMessage}`);
   }
 }

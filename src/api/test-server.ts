@@ -4,10 +4,10 @@ const app = express();
 app.use(express.json());
 // Health check endpoint
 app.get('/health', (_req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     status: 'up',
     version: '1.0.0',
-    message: 'Test API server is running'
+    message: 'Test API server is running',
   });
 });
 // Test parser endpoint
@@ -15,7 +15,7 @@ app.post('/test-parser', (req, res) => {
   const result = {
     received: req.body,
     status: 'parsed',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
   res.status(200).json(result);
 });

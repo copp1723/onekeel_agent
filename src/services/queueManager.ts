@@ -1,26 +1,26 @@
 /**
  * Queue Manager Service
- * 
+ *
  * Manages job queues and provides a unified interface for enqueueing jobs
  * Handles job scheduling, tracking, and persistence
  */
-import {  Queue, JobsOptions  } from '....js';
-import {  getErrorMessage } from '...';
-import {  getErrorMessage } from '....js';
-import { isError } from '../utils/errorUtils.js.js';
+import { Queue, JobsOptions } from '....js';
+import { getErrorMessage } from '...';
+import { getErrorMessage } from '....js';
+import { isError } from '../utils/errorUtils.js';
 import { v4 as uuidv4 } from 'uuid';
-import logger from '../utils/logger.js.js';
-import { db } from '../shared/db.js.js';
-import { jobs } from '../shared/schema.js.js';
+import logger from '../utils/logger.js';
+import { db } from '../shared/db.js';
+import { jobs } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { 
-  initializeRedis, 
-  createQueue, 
-  createScheduler, 
-  QUEUE_NAMES, 
+import {
+  initializeRedis,
+  createQueue,
+  createScheduler,
+  QUEUE_NAMES,
   JOB_TYPES,
-  defaultJobOptions
-} from './bullmqService.js.js';
+  defaultJobOptions,
+} from './bullmqService.js';
 // Queue instances
 let ingestionQueue: Queue | null = null;
 let processingQueue: Queue | null = null;
@@ -62,28 +62,54 @@ export async function initializeQueueManager(): Promise<void> {
       createScheduler(QUEUE_NAMES.PROCESSING);
       createScheduler(QUEUE_NAMES.EMAIL);
       createScheduler(QUEUE_NAMES.INSIGHT);
-      logger.info({ 
-        event: 'queue_manager_initialized', 
-        timestamp: new Date().toISOString() 
-      }, 'Queue manager initialized with Redis');
+      logger.info(
+        {
+          event: 'queue_manager_initialized',
+          timestamp: new Date().toISOString(),
+        },
+        'Queue manager initialized with Redis'
+      );
     } else {
       // Set up in-memory job processing
       setInterval(processInMemoryJobs, 5000);
-      logger.info({ 
-        event: 'in_memory_queue_manager_initialized', 
-        timestamp: new Date().toISOString() 
-      }, 'Queue manager initialized in in-memory mode');
+      logger.info(
+        {
+          event: 'in_memory_queue_manager_initialized',
+          timestamp: new Date().toISOString(),
+        },
+        'Queue manager initialized in in-memory mode'
+      );
     }
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ 
-      event: 'queue_manager_init_error', 
-      errorMessage: error instanceof Error ? isError(error) ? getErrorMessage(error) : String(error) : String(error), 
-      timestamp: new Date().toISOString() 
-    }, `Error initializing queue manager: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'queue_manager_init_error',
+        errorMessage:
+          error instanceof Error
+            ? isError(error)
+              ? getErrorMessage(error)
+              : String(error)
+            : String(error),
+        timestamp: new Date().toISOString(),
+      },
+      `Error initializing queue manager: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+    );
     // Fall back to in-memory mode
     inMemoryMode = true;
     setInterval(processInMemoryJobs, 5000);
@@ -95,7 +121,7 @@ export async function initializeQueueManager(): Promise<void> {
 async function processInMemoryJobs(): Promise<void> {
   const now = new Date();
   const pendingJobs = inMemoryJobs.filter(
-    job => job.status === 'pending' && job.nextRunAt <= now
+    (job) => job.status === 'pending' && job.nextRunAt <= now
   );
   for (const job of pendingJobs) {
     try {
@@ -111,17 +137,40 @@ async function processInMemoryJobs(): Promise<void> {
         .set({
           status: 'completed',
           lastRunAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(jobs.id, job.id));
     } catch (error) {
       // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      const errorMessage = isError(error)
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : String(error);
       // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      const errorMessage = isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
       job.attempts += 1;
       job.updatedAt = new Date();
-      const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error);
+      const errorMessage =
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error);
       if (job.attempts >= job.maxAttempts) {
         job.status = 'failed';
         // Update job status in database
@@ -131,7 +180,7 @@ async function processInMemoryJobs(): Promise<void> {
             status: 'failed',
             attempts: job.attempts,
             lastError: errorMessage,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(jobs.id, job.id));
       } else {
@@ -147,7 +196,7 @@ async function processInMemoryJobs(): Promise<void> {
             attempts: job.attempts,
             lastError: errorMessage,
             nextRunAt: job.nextRunAt,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(jobs.id, job.id));
       }
@@ -160,15 +209,18 @@ async function processInMemoryJobs(): Promise<void> {
 async function processInMemoryJob(job: any): Promise<void> {
   // This is a placeholder for actual job processing
   // In a real implementation, this would dispatch to the appropriate handler
-  logger.info({ 
-    event: 'in_memory_job_processing', 
-    jobId: job.id, 
-    queueName: job.queueName, 
-    jobName: job.jobName, 
-    timestamp: new Date().toISOString() 
-  }, `Processing in-memory job ${job.id} (${job.jobName}) in queue ${job.queueName}`);
+  logger.info(
+    {
+      event: 'in_memory_job_processing',
+      jobId: job.id,
+      queueName: job.queueName,
+      jobName: job.jobName,
+      timestamp: new Date().toISOString(),
+    },
+    `Processing in-memory job ${job.id} (${job.jobName}) in queue ${job.queueName}`
+  );
   // Simulate job processing
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 }
 /**
  * Add a job to a queue
@@ -186,7 +238,7 @@ export async function addJob(
     const jobOptions: JobsOptions = {
       ...defaultJobOptions,
       ...options,
-      jobId
+      jobId,
     };
     // Add job to queue
     if (!inMemoryMode) {
@@ -211,13 +263,16 @@ export async function addJob(
       }
       // Add job to queue
       await queue.add(jobName, data, jobOptions);
-      logger.info({ 
-        event: 'job_added', 
-        jobId, 
-        queueName, 
-        jobName, 
-        timestamp: new Date().toISOString() 
-      }, `Added job ${jobId} (${jobName}) to queue ${queueName}`);
+      logger.info(
+        {
+          event: 'job_added',
+          jobId,
+          queueName,
+          jobName,
+          timestamp: new Date().toISOString(),
+        },
+        `Added job ${jobId} (${jobName}) to queue ${queueName}`
+      );
     } else {
       // Add job to in-memory queue
       inMemoryJobs.push({
@@ -231,15 +286,18 @@ export async function addJob(
         maxAttempts: jobOptions.attempts || 3,
         createdAt: new Date(),
         updatedAt: new Date(),
-        nextRunAt: new Date()
+        nextRunAt: new Date(),
       });
-      logger.info({ 
-        event: 'in_memory_job_added', 
-        jobId, 
-        queueName, 
-        jobName, 
-        timestamp: new Date().toISOString() 
-      }, `Added in-memory job ${jobId} (${jobName}) to queue ${queueName}`);
+      logger.info(
+        {
+          event: 'in_memory_job_added',
+          jobId,
+          queueName,
+          jobName,
+          timestamp: new Date().toISOString(),
+        },
+        `Added in-memory job ${jobId} (${jobName}) to queue ${queueName}`
+      );
     }
     // Store job in database
     await db.insert(jobs).values({
@@ -250,21 +308,41 @@ export async function addJob(
       maxAttempts: jobOptions.attempts || 3,
       nextRunAt: new Date(),
       createdAt: new Date(),
-      updatedAt: new Date()
-      } as any) // @ts-ignore - Ensuring all required properties are provided;
+      updatedAt: new Date(),
+    } as any); // @ts-ignore - Ensuring all required properties are provided;
     return jobId;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ 
-      event: 'add_job_error', 
-      queueName, 
-      jobName, 
-      errorMessage: error instanceof Error ? isError(error) ? getErrorMessage(error) : String(error) : String(error), 
-      timestamp: new Date().toISOString() 
-    }, `Error adding job to queue ${queueName}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'add_job_error',
+        queueName,
+        jobName,
+        errorMessage:
+          error instanceof Error
+            ? isError(error)
+              ? getErrorMessage(error)
+              : String(error)
+            : String(error),
+        timestamp: new Date().toISOString(),
+      },
+      `Error adding job to queue ${queueName}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+    );
     throw error;
   }
 }
@@ -287,8 +365,8 @@ export async function addRepeatedJob(
       ...options,
       jobId,
       repeat: {
-        pattern
-      }
+        pattern,
+      },
     };
     // Add job to queue
     if (!inMemoryMode) {
@@ -313,14 +391,17 @@ export async function addRepeatedJob(
       }
       // Add repeatable job to queue
       await queue.add(jobName, data, jobOptions);
-      logger.info({ 
-        event: 'repeated_job_added', 
-        jobId, 
-        queueName, 
-        jobName, 
-        pattern, 
-        timestamp: new Date().toISOString() 
-      }, `Added repeatable job ${jobId} (${jobName}) to queue ${queueName} with pattern ${pattern}`);
+      logger.info(
+        {
+          event: 'repeated_job_added',
+          jobId,
+          queueName,
+          jobName,
+          pattern,
+          timestamp: new Date().toISOString(),
+        },
+        `Added repeatable job ${jobId} (${jobName}) to queue ${queueName} with pattern ${pattern}`
+      );
     } else {
       // Add job to in-memory queue
       // Note: In-memory mode doesn't fully support repeatable jobs
@@ -335,16 +416,19 @@ export async function addRepeatedJob(
         maxAttempts: jobOptions.attempts || 3,
         createdAt: new Date(),
         updatedAt: new Date(),
-        nextRunAt: new Date()
+        nextRunAt: new Date(),
       });
-      logger.info({ 
-        event: 'in_memory_repeated_job_added', 
-        jobId, 
-        queueName, 
-        jobName, 
-        pattern, 
-        timestamp: new Date().toISOString() 
-      }, `Added in-memory repeatable job ${jobId} (${jobName}) to queue ${queueName} with pattern ${pattern}`);
+      logger.info(
+        {
+          event: 'in_memory_repeated_job_added',
+          jobId,
+          queueName,
+          jobName,
+          pattern,
+          timestamp: new Date().toISOString(),
+        },
+        `Added in-memory repeatable job ${jobId} (${jobName}) to queue ${queueName} with pattern ${pattern}`
+      );
     }
     // Store job in database
     await db.insert(jobs).values({
@@ -355,22 +439,42 @@ export async function addRepeatedJob(
       maxAttempts: jobOptions.attempts || 3,
       nextRunAt: new Date(),
       createdAt: new Date(),
-      updatedAt: new Date()
-      } as any) // @ts-ignore - Ensuring all required properties are provided;
+      updatedAt: new Date(),
+    } as any); // @ts-ignore - Ensuring all required properties are provided;
     return jobId;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ 
-      event: 'add_repeated_job_error', 
-      queueName, 
-      jobName, 
-      pattern, 
-      errorMessage: error instanceof Error ? isError(error) ? getErrorMessage(error) : String(error) : String(error), 
-      timestamp: new Date().toISOString() 
-    }, `Error adding repeatable job to queue ${queueName}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'add_repeated_job_error',
+        queueName,
+        jobName,
+        pattern,
+        errorMessage:
+          error instanceof Error
+            ? isError(error)
+              ? getErrorMessage(error)
+              : String(error)
+            : String(error),
+        timestamp: new Date().toISOString(),
+      },
+      `Error adding repeatable job to queue ${queueName}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+    );
     throw error;
   }
 }

@@ -1,27 +1,27 @@
 /**
  * Attachment Parser Service
- * 
+ *
  * Provides functions for parsing different types of attachments (CSV, XLSX, PDF)
  * with validation and normalization using Zod schemas.
  */
 import fs from 'fs';
-import {  getErrorMessage } from '...';
-import {  getErrorMessage } from '....js';
-import { isError } from '../utils/errorUtils.js.js';
+import { getErrorMessage } from '...';
+import { getErrorMessage } from '....js';
+import { isError } from '../utils/errorUtils.js';
 import path from 'path';
 import { parse as csvParse } from 'csv-parse/sync';
 import ExcelJS from 'exceljs';
 import pdfParse from 'pdf-parse';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import logger from '../utils/logger.js.js';
+import logger from '../utils/logger.js';
 // Define file types
 export enum FileType {
   CSV = 'csv',
   XLSX = 'xlsx',
   XLS = 'xls',
   PDF = 'pdf',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
 }
 // Base schema for parsed data
 export const BaseRecordSchema = z.record(z.string(), z.any());
@@ -64,7 +64,7 @@ export async function parseCSV(
     const csvOptions = {
       columns: true,
       skip_empty_lines: true,
-      trim: true
+      trim: true,
     };
     const rawRecords = csvParse(content, csvOptions);
     // Validate with schema if provided
@@ -73,7 +73,15 @@ export async function parseCSV(
       const arraySchema = z.array(options.schema);
       records = arraySchema.parse(rawRecords);
     }
-    logger.info({ event: 'parsed_csv_records', file: path.basename(filePath), recordsCount: records.length, timestamp: new Date().toISOString() }, 'Parsed CSV records');
+    logger.info(
+      {
+        event: 'parsed_csv_records',
+        file: path.basename(filePath),
+        recordsCount: records.length,
+        timestamp: new Date().toISOString(),
+      },
+      'Parsed CSV records'
+    );
     return {
       id: uuidv4(),
       records,
@@ -83,23 +91,54 @@ export async function parseCSV(
         fileName: path.basename(filePath),
         parseDate: new Date().toISOString(),
         vendor: options.vendor,
-        reportType: options.reportType
-      }
+        reportType: options.reportType,
+      },
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const message = isError(error) ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : 'Unknown error parsing CSV file';
-    const stack = isError(error) ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined;
-    logger.error({ 
-      event: 'error_parsing_csv', 
-      file: filePath, 
-      errorMessage: message, 
-      stack, 
-      timestamp: new Date().toISOString() 
-    }, 'Error parsing CSV file');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const message = isError(error)
+      ? isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error)
+      : 'Unknown error parsing CSV file';
+    const stack = isError(error)
+      ? error instanceof Error
+        ? error instanceof Error
+          ? error.stack
+          : undefined
+        : undefined
+      : undefined;
+    logger.error(
+      {
+        event: 'error_parsing_csv',
+        file: filePath,
+        errorMessage: message,
+        stack,
+        timestamp: new Date().toISOString(),
+      },
+      'Error parsing CSV file'
+    );
     throw error;
   }
 }
@@ -129,7 +168,7 @@ export async function parseXLSX(
       sheetsToProcess = options.sheetNames;
     } else {
       // Use all sheets
-      workbook.eachSheet(sheet => {
+      workbook.eachSheet((sheet) => {
         sheetsToProcess.push(sheet.name);
       });
     }
@@ -142,7 +181,7 @@ export async function parseXLSX(
       }
       // Get headers from the first row
       const headers: string[] = [];
-      worksheet.getRow(1).eachCell(cell => {
+      worksheet.getRow(1).eachCell((cell) => {
         headers.push(cell.value?.toString() || '');
       });
       // Process rows
@@ -180,7 +219,15 @@ export async function parseXLSX(
       const arraySchema = z.array(options.schema);
       records = arraySchema.parse(allRecords);
     }
-    logger.info({ event: 'parsed_excel_records', file: path.basename(filePath), recordsCount: records.length, timestamp: new Date().toISOString() }, 'Parsed Excel records');
+    logger.info(
+      {
+        event: 'parsed_excel_records',
+        file: path.basename(filePath),
+        recordsCount: records.length,
+        timestamp: new Date().toISOString(),
+      },
+      'Parsed Excel records'
+    );
     return {
       id: uuidv4(),
       records,
@@ -191,23 +238,54 @@ export async function parseXLSX(
         parseDate: new Date().toISOString(),
         vendor: options.vendor,
         reportType: options.reportType,
-        sheets: sheetsToProcess
-      }
+        sheets: sheetsToProcess,
+      },
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const message = isError(error) ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : 'Unknown error parsing Excel file';
-    const stack = isError(error) ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined;
-    logger.error({ 
-      event: 'error_parsing_excel', 
-      file: filePath, 
-      errorMessage: message, 
-      stack, 
-      timestamp: new Date().toISOString() 
-    }, 'Error parsing Excel file');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const message = isError(error)
+      ? isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error)
+      : 'Unknown error parsing Excel file';
+    const stack = isError(error)
+      ? error instanceof Error
+        ? error instanceof Error
+          ? error.stack
+          : undefined
+        : undefined
+      : undefined;
+    logger.error(
+      {
+        event: 'error_parsing_excel',
+        file: filePath,
+        errorMessage: message,
+        stack,
+        timestamp: new Date().toISOString(),
+      },
+      'Error parsing Excel file'
+    );
     throw error;
   }
 }
@@ -231,7 +309,15 @@ export async function parsePDF(
     const pdfData = await pdfParse(dataBuffer);
     // Extract text content
     const text = pdfData.text;
-    logger.info({ event: 'extracted_pdf_text', file: path.basename(filePath), charCount: text.length, timestamp: new Date().toISOString() }, 'Extracted PDF text');
+    logger.info(
+      {
+        event: 'extracted_pdf_text',
+        file: path.basename(filePath),
+        charCount: text.length,
+        timestamp: new Date().toISOString(),
+      },
+      'Extracted PDF text'
+    );
     // Extract tabular data (simplified implementation)
     const rawRecords = extractTabularDataFromPDF(text);
     // Validate with schema if provided
@@ -240,7 +326,15 @@ export async function parsePDF(
       const arraySchema = z.array(options.schema);
       records = arraySchema.parse(rawRecords);
     }
-    logger.info({ event: 'parsed_pdf_records', source: 'pdfContent', recordsCount: records.length, timestamp: new Date().toISOString() }, 'Parsed PDF records');
+    logger.info(
+      {
+        event: 'parsed_pdf_records',
+        source: 'pdfContent',
+        recordsCount: records.length,
+        timestamp: new Date().toISOString(),
+      },
+      'Parsed PDF records'
+    );
     return {
       id: uuidv4(),
       records,
@@ -251,23 +345,54 @@ export async function parsePDF(
         parseDate: new Date().toISOString(),
         vendor: options.vendor,
         reportType: options.reportType,
-        pageCount: pdfData.numpages
-      }
+        pageCount: pdfData.numpages,
+      },
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    const message = isError(error) ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : 'Unknown error parsing PDF file';
-    const stack = isError(error) ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined;
-    logger.error({ 
-      event: 'error_parsing_pdf', 
-      file: filePath, 
-      errorMessage: message, 
-      stack, 
-      timestamp: new Date().toISOString() 
-    }, 'Error parsing PDF file');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    const message = isError(error)
+      ? isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error)
+      : 'Unknown error parsing PDF file';
+    const stack = isError(error)
+      ? error instanceof Error
+        ? error instanceof Error
+          ? error.stack
+          : undefined
+        : undefined
+      : undefined;
+    logger.error(
+      {
+        event: 'error_parsing_pdf',
+        file: filePath,
+        errorMessage: message,
+        stack,
+        timestamp: new Date().toISOString(),
+      },
+      'Error parsing PDF file'
+    );
     throw error;
   }
 }
@@ -278,13 +403,13 @@ export async function parsePDF(
 function extractTabularDataFromPDF(text: string): Record<string, any>[] {
   try {
     // Split text into lines
-    const lines = text.split('\n').filter(line => line.trim().length > 0);
+    const lines = text.split('\n').filter((line) => line.trim().length > 0);
     // Try to identify header row (this is a simple heuristic)
     let headerLine = -1;
     for (let i = 0; i < Math.min(10, lines.length); i++) {
       // Check if line has multiple words with capital letters
       const words = lines[i].split(/\s+/);
-      if (words.length >= 3 && words.filter(w => /^[A-Z]/.test(w)).length >= 3) {
+      if (words.length >= 3 && words.filter((w) => /^[A-Z]/.test(w)).length >= 3) {
         headerLine = i;
         break;
       }
@@ -296,8 +421,8 @@ function extractTabularDataFromPDF(text: string): Record<string, any>[] {
     // Extract headers
     const headers = lines[headerLine]
       .split(/\s{2,}/)
-      .map(h => h.trim())
-      .filter(h => h.length > 0);
+      .map((h) => h.trim())
+      .filter((h) => h.length > 0);
     // Extract data rows
     const records: Record<string, any>[] = [];
     for (let i = headerLine + 1; i < lines.length; i++) {
@@ -305,7 +430,10 @@ function extractTabularDataFromPDF(text: string): Record<string, any>[] {
       // Skip lines that are too short
       if (line.length < 10) continue;
       // Try to extract values
-      const values = line.split(/\s{2,}/).map(v => v.trim()).filter(v => v.length > 0);
+      const values = line
+        .split(/\s{2,}/)
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0);
       // Only process lines that might be data rows
       if (values.length >= 3) {
         const record: Record<string, any> = {};
@@ -319,14 +447,43 @@ function extractTabularDataFromPDF(text: string): Record<string, any>[] {
         }
       }
     }
-    logger.info({ event: 'parsed_pdf_records', source: 'pdfContent', recordsCount: records.length, timestamp: new Date().toISOString() }, 'Parsed PDF records');
+    logger.info(
+      {
+        event: 'parsed_pdf_records',
+        source: 'pdfContent',
+        recordsCount: records.length,
+        timestamp: new Date().toISOString(),
+      },
+      'Parsed PDF records'
+    );
     return records;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'error_extracting_pdf_table', errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error extracting tabular data from PDF');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'error_extracting_pdf_table',
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error extracting tabular data from PDF'
+    );
     return [];
   }
 }
@@ -383,5 +540,5 @@ export default {
   parseXLSX,
   parsePDF,
   parseByExtension,
-  detectFileType
+  detectFileType,
 };

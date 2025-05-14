@@ -3,9 +3,9 @@
  * Handles CRUD operations for schedules and schedule execution
  */
 import express from 'express';
-import { isError } from '../utils/errorUtils.js.js';
+import { isError } from '../utils/errorUtils.js';
 import { z } from 'zod';
-import { isAuthenticated } from '../auth.js.js';
+import { isAuthenticated } from '../auth.js';
 import {
   createSchedule,
   getSchedule,
@@ -13,24 +13,28 @@ import {
   updateSchedule,
   deleteSchedule,
   retrySchedule,
-  getScheduleLogs
-} from '../../services/scheduler.js.js';
+  getScheduleLogs,
+} from '../../services/scheduler.js';
 const router = express.Router();
 // Validation schemas
 const createScheduleSchema = z.object({
   intent: z.string().min(1).max(100),
   platform: z.string().min(1).max(50),
   cronExpression: z.string().min(1),
-  workflowId: z.string().uuid().optional()
+  workflowId: z.string().uuid().optional(),
 });
 const updateScheduleSchema = z.object({
   cronExpression: z.string().min(1).optional(),
   status: z.enum(['active', 'paused', 'failed']).optional(),
   intent: z.string().min(1).max(100).optional(),
-  platform: z.string().min(1).max(50).optional()
+  platform: z.string().min(1).max(50).optional(),
 });
 // Middleware to validate schedule ID
-const validateScheduleId = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+const validateScheduleId = (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
   const { id } = req.params;
   if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     return res.status(400).json({ error: 'Invalid schedule ID format' });
@@ -45,7 +49,7 @@ router.post('/', isAuthenticated, async (req: any, res) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Invalid request data',
-        details: validationResult.error.format()
+        details: validationResult.error.format(),
       });
     }
     const { intent, platform, cronExpression, workflowId } = validationResult.data;
@@ -55,18 +59,41 @@ router.post('/', isAuthenticated, async (req: any, res) => {
       intent,
       platform,
       cronExpression,
-      workflowId
+      workflowId,
     });
     res.status(201).json(schedule);
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error creating schedule:', error);
     res.status(500).json({
       error: 'Failed to create schedule',
-      message: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)
+      message:
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
@@ -82,18 +109,41 @@ router.get('/', isAuthenticated, async (req: any, res) => {
       userId: req.user.claims.sub,
       status,
       platform,
-      intent
+      intent,
     });
     res.json(schedulesList);
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error listing schedules:', error);
     res.status(500).json({
       error: 'Failed to list schedules',
-      message: error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)
+      message:
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
@@ -113,7 +163,14 @@ router.get('/:id', isAuthenticated, validateScheduleId, async (req: any, res) =>
     console.error(`Error getting schedule ${req.params.id}:`, error);
     res.status(500).json({
       error: 'Failed to get schedule',
-      message: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      message:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
@@ -134,20 +191,24 @@ router.put('/:id', isAuthenticated, validateScheduleId, async (req: any, res) =>
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Invalid request data',
-        details: validationResult.error.format()
+        details: validationResult.error.format(),
       });
     }
     // Update the schedule
-    const updatedSchedule = await updateSchedule(
-      req.params.id,
-      validationResult.data
-    );
+    const updatedSchedule = await updateSchedule(req.params.id, validationResult.data);
     res.json(updatedSchedule);
   } catch (error) {
     console.error(`Error updating schedule ${req.params.id}:`, error);
     res.status(500).json({
       error: 'Failed to update schedule',
-      message: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      message:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
@@ -174,7 +235,14 @@ router.delete('/:id', isAuthenticated, validateScheduleId, async (req: any, res)
     console.error(`Error deleting schedule ${req.params.id}:`, error);
     res.status(500).json({
       error: 'Failed to delete schedule',
-      message: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      message:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
@@ -201,7 +269,14 @@ router.post('/:id/retry', isAuthenticated, validateScheduleId, async (req: any, 
     console.error(`Error retrying schedule ${req.params.id}:`, error);
     res.status(500).json({
       error: 'Failed to retry schedule',
-      message: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      message:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
@@ -224,7 +299,14 @@ router.get('/:id/logs', isAuthenticated, validateScheduleId, async (req: any, re
     console.error(`Error getting logs for schedule ${req.params.id}:`, error);
     res.status(500).json({
       error: 'Failed to get schedule logs',
-      message: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)
+      message:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });

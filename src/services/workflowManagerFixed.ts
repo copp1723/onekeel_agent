@@ -1,12 +1,17 @@
 /**
  * Fixed Workflow Manager Service
- * 
+ *
  * This service provides workflow execution functionality without database dependencies
  * for testing purposes. This is a simplified version that works in memory.
  */
 import { v4 as uuidv4 } from 'uuid';
 import { isError } from '../utils/errorUtils.js';
-import { Workflow, WorkflowConfig, WorkflowExecutionResult, StepExecutionResult } from '../types/workflow.js';
+import {
+  Workflow,
+  WorkflowConfig,
+  WorkflowExecutionResult,
+  StepExecutionResult,
+} from '../types/workflow.js';
 import logger from '../utils/logger.js';
 // In-memory storage for workflows
 const workflows = new Map<string, Workflow>();
@@ -22,13 +27,13 @@ class WorkflowManager {
    */
   async registerWorkflow(workflowConfig: WorkflowConfig): Promise<string> {
     const id = uuidv4();
-    workflows.set(id, { 
+    workflows.set(id, {
       ...workflowConfig,
       id,
       currentStep: 0,
       status: 'pending',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
     return id;
   }
@@ -47,7 +52,11 @@ class WorkflowManager {
    * @param context - Context data for execution
    * @returns Step execution result
    */
-  async executeWorkflowStep(id: string, stepIndex: number, context: Record<string, any> = {}): Promise<StepExecutionResult> {
+  async executeWorkflowStep(
+    id: string,
+    stepIndex: number,
+    context: Record<string, any> = {}
+  ): Promise<StepExecutionResult> {
     const workflow = workflows.get(id);
     if (!workflow) {
       throw new Error(`Workflow not found: ${id}`);
@@ -67,21 +76,36 @@ class WorkflowManager {
       workflows.set(id, workflow);
       return {
         success: true,
-        ...result
+        ...result,
       };
     } catch (error) {
       // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      const errorMessage = error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : 'Unknown error';
-      const stack = error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined;
-      logger.error({ 
-        event: 'workflow_step_error', 
-        workflowId: id, 
-        stepIndex, 
-        errorMessage, 
-        stack, 
-        timestamp: new Date().toISOString() 
-      }, 'Error executing workflow step');
+      const errorMessage = isError(error)
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : String(error);
+      const errorMessage =
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : 'Unknown error';
+      const stack =
+        error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined;
+      logger.error(
+        {
+          event: 'workflow_step_error',
+          workflowId: id,
+          stepIndex,
+          errorMessage,
+          stack,
+          timestamp: new Date().toISOString(),
+        },
+        'Error executing workflow step'
+      );
       // Update workflow status to error
       workflow.status = 'error';
       workflow.error = errorMessage;
@@ -90,7 +114,7 @@ class WorkflowManager {
       workflows.set(id, workflow);
       return {
         success: false,
-        error: errorMessage
+        error: errorMessage,
       };
     }
   }
@@ -100,7 +124,10 @@ class WorkflowManager {
    * @param initialContext - Initial context data
    * @returns Final workflow context
    */
-  async executeWorkflow(id: string, initialContext: Record<string, any> = {}): Promise<WorkflowExecutionResult> {
+  async executeWorkflow(
+    id: string,
+    initialContext: Record<string, any> = {}
+  ): Promise<WorkflowExecutionResult> {
     const workflow = workflows.get(id);
     if (!workflow) {
       throw new Error(`Workflow not found: ${id}`);
@@ -112,19 +139,19 @@ class WorkflowManager {
         return {
           success: false,
           error: result.error,
-          completedSteps: i
+          completedSteps: i,
         };
       }
       // Update context with step result
       context = {
         ...context,
         [`${workflow.steps[i].id}`]: result,
-        __lastStepResult: result
+        __lastStepResult: result,
       };
     }
     return {
       success: true,
-      context
+      context,
     };
   }
   /**
@@ -158,7 +185,7 @@ class WorkflowManager {
     workflows.set(id, workflow);
     return {
       currentStep: workflow.currentStep,
-      status: workflow.status
+      status: workflow.status,
     };
   }
 }

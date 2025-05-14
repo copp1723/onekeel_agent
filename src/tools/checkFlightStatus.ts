@@ -22,16 +22,17 @@ export function checkFlightStatus() {
           properties: {
             flightNumber: {
               type: 'string',
-              description: 'The flight number to check (e.g., "UA123")'
+              description: 'The flight number to check (e.g., "UA123")',
             },
             date: {
               type: 'string',
-              description: 'The date of the flight in YYYY-MM-DD format (optional, defaults to today)'
-            }
+              description:
+                'The date of the flight in YYYY-MM-DD format (optional, defaults to today)',
+            },
           },
-          required: ['flightNumber']
-        }
-      }
+          required: ['flightNumber'],
+        },
+      },
     },
     handler: async (args: CheckFlightStatusArgs) => {
       try {
@@ -41,7 +42,7 @@ export function checkFlightStatus() {
         // This is a mock implementation for demonstration
         // In a real application, you would call an actual flight status API
         // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         // Mock response based on flight number
         const mockStatuses = ['on time', 'delayed', 'boarding', 'in air', 'landed'];
         const randomStatus = mockStatuses[Math.floor(Math.random() * mockStatuses.length)];
@@ -54,12 +55,12 @@ export function checkFlightStatus() {
           departureTime: '08:30',
           arrivalTime: '11:45',
           terminal: flightNumber.length % 2 === 0 ? 'A' : 'B',
-          gate: `G${Math.floor(Math.random() * 30) + 1}`
+          gate: `G${Math.floor(Math.random() * 30) + 1}`,
         };
       } catch (error) {
         console.error(`Failed to check flight status: ${(error as Error).message}`);
         throw new Error(`Failed to check flight status: ${(error as Error).message}`);
       }
-    }
+    },
   };
 }

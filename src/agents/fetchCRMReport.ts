@@ -4,8 +4,8 @@
  * Fetches reports from scheduled emails with enhanced error handling
  */
 import * as fs from 'fs';
-import { CRMPlatform, CRMReportOptions, EnvVars } from '../types.js.js';
-import { emailIngestAndRunFlow } from './hybridIngestAndRunFlow.js.js';
+import { CRMPlatform, CRMReportOptions, EnvVars } from '../types.js';
+import { emailIngestAndRunFlow } from './hybridIngestAndRunFlow.js';
 /**
  * Fetches a CRM report from the specified platform
  * @param options - Options for fetching the report
@@ -17,7 +17,9 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
   // Validate platform is supported
   const supportedPlatforms = ['vinsolutions', 'vauto'];
   if (!platform || !supportedPlatforms.includes(platform.toLowerCase())) {
-    throw new Error(`Unsupported CRM platform: ${platform}. Supported platforms: VinSolutions, VAUTO`);
+    throw new Error(
+      `Unsupported CRM platform: ${platform}. Supported platforms: VinSolutions, VAUTO`
+    );
   }
   // Validate dealer ID
   if (!dealerId) {
@@ -29,8 +31,8 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
     // Import dynamically to avoid circular dependencies
     const { createSampleReportFile } = await import('./sampleData.js');
     const platformMap: Record<string, CRMPlatform> = {
-      'vinsolutions': 'VinSolutions',
-      'vauto': 'VAUTO'
+      vinsolutions: 'VinSolutions',
+      vauto: 'VAUTO',
     };
     const normalizedPlatform = platformMap[platform.toLowerCase()];
     return await createSampleReportFile(dealerId, normalizedPlatform);
@@ -38,16 +40,16 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
   try {
     // Normalize platform name for configuration lookup
     const platformMap: Record<string, CRMPlatform> = {
-      'vinsolutions': 'VinSolutions',
-      'vauto': 'VAUTO'
+      vinsolutions: 'VinSolutions',
+      vauto: 'VAUTO',
     };
     const normalizedPlatform = platformMap[platform.toLowerCase()];
     // Get environment variables based on platform
     const envVars: EnvVars = {};
     // Define required environment variables for email configuration
     const requiredEnvVars: Record<CRMPlatform, string[]> = {
-      'VinSolutions': ['EMAIL_USER', 'EMAIL_PASS', 'EMAIL_HOST'],
-      'VAUTO': ['EMAIL_USER', 'EMAIL_PASS', 'EMAIL_HOST']
+      VinSolutions: ['EMAIL_USER', 'EMAIL_PASS', 'EMAIL_HOST'],
+      VAUTO: ['EMAIL_USER', 'EMAIL_PASS', 'EMAIL_HOST'],
     };
     // Check for required environment variables
     const requiredVars = requiredEnvVars[normalizedPlatform] || [];
@@ -63,7 +65,14 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
     return filePath;
   } catch (error: unknown) {
     console.error(`Error fetching CRM report from ${platform}:`, error);
-    const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error);
     throw new Error(`Failed to fetch CRM report: ${errorMessage}`);
   }
 }
@@ -100,15 +109,15 @@ export async function parseCRMReport(filePath: string): Promise<CRMReport> {
     const fileContent = await fs.promises.readFile(filePath, 'utf-8');
     // Parse CSV content - using a simple parser for demo
     // In production code, a robust CSV parser library would be used
-    const lines = fileContent.split('\n').filter(line => line.trim());
+    const lines = fileContent.split('\n').filter((line) => line.trim());
     if (lines.length === 0) {
       throw new Error('CSV file is empty');
     }
-    const headers = lines[0].split(',').map(header => header.trim());
+    const headers = lines[0].split(',').map((header) => header.trim());
     const data: Record<string, string>[] = [];
     // Process each data row
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(value => value.trim());
+      const values = lines[i].split(',').map((value) => value.trim());
       // Skip rows with insufficient values
       if (values.length < headers.length / 2) continue;
       const row: Record<string, string> = {};
@@ -121,11 +130,18 @@ export async function parseCRMReport(filePath: string): Promise<CRMReport> {
     return {
       totalRecords: data.length,
       headers,
-      data
+      data,
     };
   } catch (error: unknown) {
     console.error(`Error parsing CRM report:`, error);
-    const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error);
     throw new Error(`Failed to parse CRM report: ${errorMessage}`);
   }
 }

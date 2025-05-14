@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-// Mock API responses
-test.beforeEach(async ({ page }) => {
+// Create a test group
+const userJourneyTest = test.describe('User Journey Tests', () => {
+  // Mock API responses for all tests in this group
+  test.beforeEach(async ({ page }) => {
   // Mock credentials list API
   await page.route('**/api/credentials', async route => {
     await route.fulfill({
@@ -15,7 +17,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/credentials', async route => {
     if (route.request().method() === 'POST') {
       const requestBody = JSON.parse(await route.request().postData() || '{}');
-      
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -40,7 +42,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/tasks', async route => {
     if (route.request().method() === 'POST') {
       const requestBody = JSON.parse(await route.request().postData() || '{}');
-      
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -110,23 +112,24 @@ test('full user journey - add credential, submit task, view results', async ({ p
 
   // Step 4: Verify redirection to results page
   await expect(page).toHaveURL(/\/results\/mock-task-id$/);
-  
+
   // Check for loading state first
   await expect(page.getByText('Processing your request')).toBeVisible();
-  
+
   // Mock the task completion by reloading (in a real test, we'd wait for the polling to complete)
   await page.reload();
-  
+
   // Step 5: Verify results are displayed
   await expect(page.getByText('Inventory Aging Analysis')).toBeVisible();
   await expect(page.getByText('Average days in inventory: 45 days')).toBeVisible();
   await expect(page.getByText('Consider price reductions for inventory over 60 days')).toBeVisible();
-  
+
   // Step 6: Navigate back to all results
   await page.getByRole('link', { name: 'All Results' }).click();
   await expect(page).toHaveURL(/\/results$/);
-  
+
   // Step 7: Navigate back to homepage
   await page.getByRole('link', { name: /Back to Dashboard/ }).click();
   await expect(page).toHaveURL(/\/$/);
+  });
 });

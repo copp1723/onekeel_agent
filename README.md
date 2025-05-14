@@ -1,23 +1,23 @@
 # AgentFlow - AI Agent Backend using Eko
 
-A flexible AI agent backend using Fellou Eko that executes various tasks including web crawling, flight status checking, and dealer interactions. The agent accepts natural language input and returns structured data as JSON. It's specifically designed for automotive dealerships to analyze CRM reports, generate insights, and distribute them via email to different stakeholders.
+A flexible AI agent backend using Fellou Eko that focuses on file ingestion, data processing, and insight generation. The agent accepts natural language input and returns structured data as JSON. It's specifically designed for automotive dealerships to analyze CRM reports, generate insights, and distribute them via email to different stakeholders.
 
 ## Features
 
 ### Core Features
 - ✅ Accepts natural language tasks for multiple use cases
 - ✅ Uses Eko as the agent runtime
-- ✅ Implements a crawlWebsite tool that uses Firecrawl
+- ✅ Processes and analyzes file attachments from various sources
 - ✅ Stores API keys and credentials securely in Supabase
 - ✅ Returns structured data in JSON format
 
 ### Extended Features (Phase 2)
-- ✅ Multiple tools (crawlWebsite, checkFlightStatus)
+- ✅ Multiple file processing tools and parsers
 - ✅ Secure credential storage with dealerCredentials
 - ✅ LLM-powered task parsing and intent recognition
 - ✅ REST API endpoint for task submission and tracking
 - ✅ Task logging and status tracking
-- ✅ Multi-step task execution (extract-then-summarize)
+- ✅ Multi-step task execution (parse-then-analyze)
 
 ### Automotive Dealership Features
 - ✅ CRM report ingestion via email-only approach (VinSolutions, VAUTO, DealerTrack)
@@ -96,7 +96,7 @@ A flexible AI agent backend using Fellou Eko that executes various tasks includi
 - Node.js and npm installed
 - Supabase account with a project set up
 - Eko API key from [Fellou Eko](https://eko.fellou.ai/)
-- Firecrawl API key for web crawling
+- Email account for receiving file attachments
 
 ## Setup
 
@@ -121,7 +121,6 @@ npm install
    **Important API Key Information:**
    - `EKO_API_KEY`: Required for the AI agent to function. This should be a valid OpenAI API key that can access models like `gpt-4o-mini`.
    - `DATABASE_URL`: Required for storing and retrieving credentials.
-   - Firecrawl API key: This should be added to the database using the provided utility script.
 
    **Environment Variables:**
 
@@ -164,22 +163,15 @@ npm install
    - Add your Firecrawl API key to the database using the provided script:
 
 ```bash
-# From the command line:
-npm run setup-key YOUR_FIRECRAWL_API_KEY
-
-# Or manually through SQL in the Supabase SQL Editor:
+# Set up the database tables
 CREATE TABLE IF NOT EXISTS api_keys (
   id TEXT PRIMARY KEY NOT NULL,
   key_name VARCHAR(255) NOT NULL UNIQUE,
   key_value TEXT NOT NULL
 );
-
--- Insert your Firecrawl API key
-INSERT INTO api_keys (id, key_name, key_value)
-VALUES ('1', 'firecrawl', 'your_firecrawl_api_key_here');
 ```
 
-5. Build and run the project:
+4. Build and run the project:
 
 ```bash
 # Build and run the main agent
@@ -227,45 +219,46 @@ This version provides all the same API endpoints but stores data in memory inste
 ## Usage
 
 ### Basic Usage (Phase 1)
-The application takes a natural language task description and uses it to crawl websites. By default, it crawls Hacker News to extract data from the top posts, but you can modify the task in `src/index.ts` to crawl any website.
+The application takes a natural language task description and uses it to process and analyze files. It can ingest files from email attachments, process them, and generate insights.
 
 Example task:
 
 ```
-"Crawl https://news.ycombinator.com and extract the title, url, and score of the top 5 posts"
+"Process the latest VinSolutions report and generate insights"
 ```
 
 ### Extended Usage (Phase 2)
 With the Phase 2 extensions, the agent supports multiple tools and task types:
 
-1. **Web Crawling Tasks**:
+1. **File Processing Tasks**:
    ```
-   "Crawl https://example.com and extract all product information"
-   ```
-
-2. **Web Content Extraction**:
-   ```
-   "Extract clean content from https://example.com"
-   "Get the article text from https://news.example.com/article"
+   "Process the CSV report from VinSolutions and extract sales data"
    ```
 
-3. **Flight Status Checks**:
+2. **Data Analysis**:
    ```
-   "Check the status of flight UA123 for today"
+   "Analyze the latest VAUTO inventory report and identify trends"
+   "Generate insights from the DealerTrack F&I report"
+   ```
+
+3. **Insight Generation**:
+   ```
+   "Create a summary of the monthly sales performance"
    ```
 
 4. **Dealer Credential Management**:
    ```
-   "Login to the dealer portal for dealer ABC123"
+   "Update credentials for dealer ABC123"
    ```
 
 5. **Multi-Step Tasks** (New):
    ```
-   "Summarize the content from https://example.com"
+   "Process the latest sales report and generate executive insights"
    ```
    This will automatically:
-   - Extract clean content from the URL
-   - Summarize the extracted content using property path access
+   - Parse the file attachments from email
+   - Analyze the data for trends and patterns
+   - Generate executive-level insights with recommendations
 
    The multi-step execution engine supports:
    - Sequential execution of multiple tools
@@ -288,9 +281,9 @@ You can also use the REST API to submit tasks and retrieve results. Start the AP
 - `POST /submit-task` - Submit a task and wait for completion (returns the result or error)
 
 #### Multi-Step Demo API (v3)
-- `POST http://localhost:3000/summarize` - Extract and summarize content from a URL
-  - Request body: `{ "url": "https://example.com" }`
-  - Returns: Clean extracted content and its summary with statistics
+- `POST http://localhost:3000/process-report` - Process a report and generate insights
+  - Request body: `{ "reportId": "vin-solutions-2023-10-15" }`
+  - Returns: Processed report data and generated insights
 - `GET http://localhost:3000/health` - Health check endpoint
 
 #### Rate Limiting
@@ -314,7 +307,7 @@ Example POST request to /submit-task:
 ```bash
 curl -X POST http://localhost:5000/submit-task \
   -H "Content-Type: application/json" \
-  -d '{"task": "Crawl https://example.com and summarize"}'
+  -d '{"task": "Process the latest VinSolutions report and generate insights"}'
 ```
 
 Example response:
@@ -323,20 +316,30 @@ Example response:
 {
   "success": true,
   "result": {
-    "summary": "Example.com is a domain used for illustrative examples in documents...",
-    "links": [
-      "https://www.iana.org/domains/example"
+    "reportType": "VinSolutions",
+    "processedDate": "2023-10-15T14:30:00Z",
+    "insights": [
+      {
+        "title": "Sales Performance Trend",
+        "description": "Sales have increased by 15% compared to last month...",
+        "priority": "high"
+      },
+      {
+        "title": "Inventory Optimization",
+        "description": "Current inventory levels suggest restocking these models...",
+        "priority": "medium"
+      }
     ]
   }
 }
 ```
 
-Example POST request to the multi-step summarize endpoint:
+Example POST request to the multi-step process-report endpoint:
 
 ```bash
-curl -X POST http://localhost:3000/summarize \
+curl -X POST http://localhost:3000/process-report \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com"}'
+  -d '{"reportId": "vin-solutions-2023-10-15"}'
 ```
 
 Example response:
@@ -345,17 +348,24 @@ Example response:
 {
   "success": true,
   "result": {
-    "url": "https://example.com",
-    "originalContent": "This domain is for use in illustrative examples in documents...",
-    "summary": "This domain is used for illustrative examples in documentation...",
-    "stats": {
-      "originalLength": 172,
-      "summaryLength": 146,
-      "compressionRatio": "85%"
+    "reportId": "vin-solutions-2023-10-15",
+    "reportType": "VinSolutions",
+    "processedData": {
+      "salesCount": 42,
+      "leadCount": 156,
+      "conversionRate": "26.9%"
     },
+    "insights": [
+      {
+        "title": "Sales Performance Analysis",
+        "description": "Sales performance has improved by 12% compared to previous month...",
+        "recommendations": ["Focus on high-performing models", "Adjust pricing strategy"]
+      }
+    ],
     "steps": [
-      {"name": "extract", "status": "success"},
-      {"name": "summarize", "status": "success"}
+      {"name": "parse", "status": "success"},
+      {"name": "analyze", "status": "success"},
+      {"name": "generate-insights", "status": "success"}
     ]
   }
 }
@@ -371,20 +381,20 @@ All task executions are logged to the database with the following information:
 
 ### Core Components (Phase 1)
 - `src/index.ts` - Main entry point
-- `src/tools/crawlWebsite.ts` - Web crawling tool using Firecrawl
+- `src/tools/fileProcessor.ts` - File processing and parsing tools
 - `src/services/supabase.ts` - Service for interacting with Supabase
 - `src/shared/schema.ts` - Database schema definitions
 - `src/scripts/setup-db.ts` - Database setup script
 
 ### Extended Components (Phase 2)
-- `src/tools/checkFlightStatus.ts` - Flight status checking tool
-- `src/tools/extractCleanContent.ts` - Clean content extraction using trafilatura
-- `src/tools/summarizeText.ts` - Text summarization using LLM
+- `src/tools/attachmentParser.ts` - Email attachment parsing tools
+- `src/tools/dataAnalyzer.ts` - Data analysis and processing tools
+- `src/tools/insightGenerator.ts` - Insight generation using LLM
 - `src/services/taskParser.ts` - Task parsing and intent recognition
 - `src/api/server.ts` - REST API for task submission and management
-- `src/scripts/insert-firecrawl-key.ts` - Utility to add Firecrawl API key
+- `src/scripts/setup-database.ts` - Database setup and configuration utility
 - `src/agent/executePlan.ts` - Multi-step execution engine
-- `src/summaryExtractor.js` - Extract and summarize workflow
+- `src/reportProcessor.js` - Report processing workflow
 - `src/multistep-demo.js` - Dedicated multi-step demo endpoint
 
 ### Logging & Database Components (Phase 3)
@@ -458,7 +468,6 @@ All task executions are logged to the database with the following information:
 ## Technologies Used
 
 - [Eko AI](https://eko.fellou.ai/) - AI agent framework
-- [Firecrawl](https://firecrawl.dev/) - Web scraping API
 - [Supabase](https://supabase.com/) - Database for storing API keys
 - [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
 - [Drizzle ORM](https://orm.drizzle.team/) - Database ORM
@@ -510,6 +519,25 @@ The project uses strict TypeScript settings for improved type safety and code qu
    - Unused import errors (removing unused imports)
 
 4. Always add proper type definitions for new code in `src/types.ts`
+
+## Documentation
+
+The project includes comprehensive documentation to help developers understand and extend the system:
+
+### Architecture and Design
+
+- [Architecture Documentation](docs/ARCHITECTURE.md) - System components, data flow, and integration points
+- [Database Schema](docs/SCHEMA.md) - Complete table definitions, relationships, and sample queries
+- [Configuration Guide](docs/CONFIGURATION.md) - Detailed information about environment variables and configuration options
+- [Testing Guide](docs/TESTING.md) - Test structure, running tests, and writing new tests
+
+### Component-Specific Documentation
+
+- [Email Templates](src/docs/EMAIL_TEMPLATES.md) - Email template system documentation
+- [Database Optimization](src/docs/DATABASE_OPTIMIZATION.md) - Database optimization patterns
+- [Retry and Circuit Breaker](src/docs/RETRY_AND_CIRCUIT_BREAKER.md) - Reliability patterns
+- [Error Handling](src/docs/ERROR_HANDLING.md) - Error handling patterns
+- [CI Process](src/docs/CI_PROCESS.md) - Continuous integration process
 
 ## Deployment Instructions
 
@@ -563,7 +591,7 @@ The CI pipeline performs the following checks:
 2. **Test**: Runs unit and integration tests
 3. **Build**: Builds the application
 
-To view the CI configuration, see `.github/workflows/ci.yml`. For more information about the CI process, see `src/docs/CI_PROCESS.md`.
+For more information about the CI process, see [CI Process Documentation](src/docs/CI_PROCESS.md).
 
 To run the CI checks locally:
 
@@ -586,7 +614,7 @@ npm run build
 
 ### Production Deployment
 
-1. Set up environment variables on your production server
+1. Set up environment variables on your production server (see [Configuration Guide](docs/CONFIGURATION.md))
 2. Clone the repository on your production server
 3. Install dependencies: `npm install`
 4. Build the application: `npm run build`
@@ -599,7 +627,7 @@ npm run build
 ### Database Setup
 
 1. Create a Supabase account and project
-2. Set up the required tables using the SQL scripts in the repository
+2. Set up the required tables using the SQL scripts in the repository (see [Database Schema](docs/SCHEMA.md))
 3. Update the .env file with your Supabase credentials
 
 ### Troubleshooting Deployment
@@ -620,6 +648,8 @@ If you encounter issues during deployment:
    ```bash
    tail -f logs/insight_runs.log
    ```
+
+4. Refer to the [Testing Guide](docs/TESTING.md) for running tests to verify functionality
 
 ## License
 

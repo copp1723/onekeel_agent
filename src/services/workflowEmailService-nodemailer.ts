@@ -4,9 +4,9 @@
  * This version uses nodemailer for testing purposes
  */
 import nodemailer from 'nodemailer';
-import {  workflows, emailNotifications, Workflow } from '....js';
-import { db } from '../shared/db.js.js';
-import { generateWorkflowSummaryHtml } from './emailTemplates.js.js';
+import { workflows, emailNotifications, Workflow } from '....js';
+import { db } from '../shared/db.js';
+import { generateWorkflowSummaryHtml } from './emailTemplates.js';
 import { eq } from 'drizzle-orm';
 // Keep track of the NodeMailer test account
 let testAccount: any = null;
@@ -42,7 +42,7 @@ export async function initializeEmailService(): Promise<boolean> {
  * Includes details about the workflow status and results
  */
 export async function sendWorkflowSummaryEmail(
-  workflowId: string, 
+  workflowId: string,
   recipientEmail: string = 'test@example.com'
 ): Promise<boolean> {
   try {
@@ -51,7 +51,10 @@ export async function sendWorkflowSummaryEmail(
       await initializeEmailService();
     }
     // Get the workflow
-    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, workflowId.toString()));
+    const [workflow] = await db
+      .select()
+      .from(workflows)
+      .where(eq(workflows.id, workflowId.toString()));
     if (!workflow) {
       console.error(`Cannot send email for workflow ${workflowId}: Workflow not found`);
       return false;
@@ -68,13 +71,14 @@ export async function sendWorkflowSummaryEmail(
       createdAt: workflow.createdAt,
       completedAt: workflow.updatedAt,
       // Include other properties from the workflow as needed
-      summary: typeof workflow.context === 'object' && workflow.context
-        ? JSON.stringify(workflow.context).substring(0, 200) + '...'
-        : 'Workflow completed',
+      summary:
+        typeof workflow.context === 'object' && workflow.context
+          ? JSON.stringify(workflow.context).substring(0, 200) + '...'
+          : 'Workflow completed',
     };
-    const { subject, html } = { 
+    const { subject, html } = {
       subject: `Workflow Summary: ${workflow.id} (${workflow.status})`,
-      html: generateWorkflowSummaryHtml(templateData)
+      html: generateWorkflowSummaryHtml(templateData),
     };
     const text = `Workflow ${workflow.id} is ${workflow.status}. Created: ${workflow.createdAt}`;
     // Send the email
@@ -89,9 +93,10 @@ export async function sendWorkflowSummaryEmail(
     console.log(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
     // Update the workflow
     await // @ts-ignore
-db.update(workflows)
+    db
+      .update(workflows)
       .set({
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(workflows.id, workflowId.toString()));
     return true;
@@ -106,13 +111,17 @@ db.update(workflows)
 export async function sendWorkflowNotifications(workflowId: string): Promise<boolean> {
   try {
     // Get the workflow
-    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, workflowId.toString()));
+    const [workflow] = await db
+      .select()
+      .from(workflows)
+      .where(eq(workflows.id, workflowId.toString()));
     if (!workflow) {
       console.error(`Cannot send notifications for workflow ${workflowId}: Workflow not found`);
       return false;
     }
     // Get notification settings
-    const notifications = await db.select()
+    const notifications = await db
+      .select()
       .from(emailNotifications)
       .where(eq(emailNotifications.workflowId!, workflowId));
     if (!notifications || notifications.length === 0) {
@@ -123,8 +132,10 @@ export async function sendWorkflowNotifications(workflowId: string): Promise<boo
     let success = true;
     for (const notification of notifications) {
       // Only send if appropriate for workflow status
-      if ((workflow.status === 'completed' && notification.sendOnCompletion) ||
-          (workflow.status === 'failed' && notification.sendOnFailure)) {
+      if (
+        (workflow.status === 'completed' && notification.sendOnCompletion) ||
+        (workflow.status === 'failed' && notification.sendOnFailure)
+      ) {
         const result = await sendWorkflowSummaryEmail(workflowId, notification.recipientEmail);
         if (!result) success = false;
       }

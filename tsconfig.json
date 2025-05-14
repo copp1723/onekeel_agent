@@ -23,7 +23,7 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node", "jest"],
+    "types": ["node", "jest", "vitest/globals"],
     "paths": {
       "@/*": ["./src/*"]
     }

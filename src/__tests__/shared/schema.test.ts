@@ -1,4 +1,5 @@
-import * as schema from '../../shared/schema.js.js';
+import * as schema from '../../shared/schema.js';
+import { describe, it, expect } from 'vitest';
 describe('Database Schema', () => {
   it('should export all required tables', () => {
     // Check that all expected tables are exported

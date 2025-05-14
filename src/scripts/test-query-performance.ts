@@ -1,25 +1,22 @@
 /**
  * Query Performance Testing Script
- * 
+ *
  * This script tests the performance of database queries before and after optimization.
  */
-import { db } from '../shared/db.js.js';
+import { db } from '../shared/db.js';
 import { sql } from 'drizzle-orm';
-import {  
-  taskLogs, 
-  workflows, 
-  emailQueue } from '....js';
+import { taskLogs, workflows, emailQueue } from '....js';
 import { eq, desc, asc } from 'drizzle-orm';
-import { 
-  getRecentTaskLogs, 
-  getTaskLogsByStatus, 
-  getActiveWorkflows, 
-  getPendingEmails 
-} from '../services/queryOptimizer.js.js';
-import { clearCache } from '../services/dbOptimizationService.js.js';
+import {
+  getRecentTaskLogs,
+  getTaskLogsByStatus,
+  getActiveWorkflows,
+  getPendingEmails,
+} from '../services/queryOptimizer.js';
+import { clearCache } from '../services/dbOptimizationService.js';
 /**
  * Measure the execution time of a function
- * 
+ *
  * @param fn - Function to measure
  * @param label - Label for the measurement
  * @returns Result of the function
@@ -41,36 +38,48 @@ async function testQueryPerformance() {
     // Test unoptimized queries
     console.log('\n--- Unoptimized Queries ---');
     // Recent task logs
-    await measureExecutionTime(async () => {
-      return await db.select()
-        .from(taskLogs)
-        .orderBy(desc(taskLogs.createdAt))
-        .limit(100);
-    }, { direction: 'Unoptimized: Recent task logs' });
+    await measureExecutionTime(
+      async () => {
+        return await db.select().from(taskLogs).orderBy(desc(taskLogs.createdAt)).limit(100);
+      },
+      { direction: 'Unoptimized: Recent task logs' }
+    );
     // Task logs by status
-    await measureExecutionTime(async () => {
-      return await db.select()
-        .from(taskLogs)
-        .where(eq(taskLogs.status, 'completed'))
-        .orderBy(desc(taskLogs.createdAt))
-        .limit(100);
-    }, { direction: 'Unoptimized: Task logs by status' });
+    await measureExecutionTime(
+      async () => {
+        return await db
+          .select()
+          .from(taskLogs)
+          .where(eq(taskLogs.status, 'completed'))
+          .orderBy(desc(taskLogs.createdAt))
+          .limit(100);
+      },
+      { direction: 'Unoptimized: Task logs by status' }
+    );
     // Active workflows
-    await measureExecutionTime(async () => {
-      return await db.select()
-        .from(workflows)
-        .where(eq(workflows.status, 'running'))
-        .orderBy(desc(workflows.createdAt))
-        .limit(100);
-    }, { direction: 'Unoptimized: Active workflows' });
+    await measureExecutionTime(
+      async () => {
+        return await db
+          .select()
+          .from(workflows)
+          .where(eq(workflows.status, 'running'))
+          .orderBy(desc(workflows.createdAt))
+          .limit(100);
+      },
+      { direction: 'Unoptimized: Active workflows' }
+    );
     // Pending emails
-    await measureExecutionTime(async () => {
-      return await db.select()
-        .from(emailQueue)
-        .where(eq(emailQueue.status, 'pending'))
-        .orderBy(asc(emailQueue.createdAt))
-        .limit(100);
-    }, { direction: 'Unoptimized: Pending emails' });
+    await measureExecutionTime(
+      async () => {
+        return await db
+          .select()
+          .from(emailQueue)
+          .where(eq(emailQueue.status, 'pending'))
+          .orderBy(asc(emailQueue.createdAt))
+          .limit(100);
+      },
+      { direction: 'Unoptimized: Pending emails' }
+    );
     // Test optimized queries
     console.log('\n--- Optimized Queries (First Run) ---');
     // Recent task logs

@@ -1,19 +1,19 @@
 import { sql } from 'drizzle-orm';
 /**
  * Simple Credential Vault Implementation for Eko AI Agent
- * 
+ *
  * This is a simplified version of the credential vault that avoids some
  * of the more complex TypeScript issues in the main implementation.
- * 
+ *
  * Features:
  * - AES-256-GCM encryption for credentials
  * - User isolation with Row-Level Security
  * - CRUD operations for credential management
  */
 import crypto from 'crypto';
-import { db } from './shared/db.js.js';
-import { credentials } from './shared/schema.js.js';
-import {  eq, and , sql } from 'drizzle-orm';
+import { db } from './shared/db.js';
+import { credentials } from './shared/schema.js';
+import { eq, and, sql } from 'drizzle-orm';
 // Key length for AES-256
 const KEY_LENGTH = 32;
 // IV length for AES-GCM
@@ -38,7 +38,9 @@ export function initializeEncryption(key?: string): void {
     if (envKey) {
       encryptionKey = Buffer.from(envKey, 'hex');
       if (encryptionKey.length !== KEY_LENGTH) {
-        console.warn('Warning: Environment ENCRYPTION_KEY has incorrect length, generating temporary key');
+        console.warn(
+          'Warning: Environment ENCRYPTION_KEY has incorrect length, generating temporary key'
+        );
         encryptionKey = crypto.randomBytes(KEY_LENGTH);
       }
     } else {
@@ -56,7 +58,7 @@ export function isEncryptionConfigured(): boolean {
 /**
  * Encrypt data with AES-256-GCM
  */
-export function encryptData(data: any): { encryptedData: string, iv: string } {
+export function encryptData(data: any): { encryptedData: string; iv: string } {
   if (!isEncryptionConfigured()) {
     initializeEncryption();
   }
@@ -72,13 +74,12 @@ export function encryptData(data: any): { encryptedData: string, iv: string } {
   // Get authentication tag
   const authTag = cipher.getAuthTag();
   // Combine encrypted data and auth tag
-  const encryptedWithTag = Buffer.concat([
-    Buffer.from(encrypted, 'base64'),
-    authTag
-  ]).toString('base64');
+  const encryptedWithTag = Buffer.concat([Buffer.from(encrypted, 'base64'), authTag]).toString(
+    'base64'
+  );
   return {
     encryptedData: encryptedWithTag,
-    iv: iv.toString('base64')
+    iv: iv.toString('base64'),
   };
 }
 /**
@@ -109,7 +110,14 @@ export function decryptData(encryptedData: string, iv: string): any {
       return decrypted.toString('utf8');
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : 'Unknown error';
+    const errorMessage =
+      error instanceof Error
+        ? error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : 'Unknown error';
     throw new Error(`Decryption failed: ${errorMessage}`);
   }
 }
@@ -162,16 +170,19 @@ export async function addCredential(
   const { encryptedData, iv } = encryptData(data);
   // Insert the credential into the database
   const [credential] = await // @ts-ignore
-db.insert(credentials).values({
-    userId,
-    platform,
-    label: options?.label || null,
-    encryptedData,
-    iv,
-    refreshToken: options?.refreshToken || null,
-    refreshTokenExpiry: options?.refreshTokenExpiry || null,
-    active: true,
-  }).returning();
+  db
+    .insert(credentials)
+    .values({
+      userId,
+      platform,
+      label: options?.label || null,
+      encryptedData,
+      iv,
+      refreshToken: options?.refreshToken || null,
+      refreshTokenExpiry: options?.refreshTokenExpiry || null,
+      active: true,
+    })
+    .returning();
   return credential;
 }
 /**
@@ -180,15 +191,18 @@ db.insert(credentials).values({
 export async function getCredentialById(
   id: string,
   userId: string
-): Promise<{ credential: any, data: CredentialData }> {
+): Promise<{ credential: any; data: CredentialData }> {
   // Query the credential by ID ensuring it belongs to the user
-  const [credential] = await db.select()
+  const [credential] = await db
+    .select()
     .from(credentials)
-    .where(and(
-      eq(credentials.id, id.toString()),
-      eq(credentials.userId!, userId),
-      eq(credentials.active, true)
-    ));
+    .where(
+      and(
+        eq(credentials.id, id.toString()),
+        eq(credentials.userId!, userId),
+        eq(credentials.active, true)
+      )
+    );
   if (!credential) {
     throw new Error(`Credential not found: ${id}`);
   }
@@ -202,14 +216,12 @@ export async function getCredentialById(
 export async function getCredentials(
   userId: string,
   platformFilter?: string
-): Promise<Array<{ credential: any, data: CredentialData }>> {
+): Promise<Array<{ credential: any; data: CredentialData }>> {
   // Build query conditions
-  let query = db.select()
+  let query = db
+    .select()
     .from(credentials)
-    .where(and(
-      eq(credentials.userId!, userId),
-      eq(credentials.active, true)
-    ));
+    .where(and(eq(credentials.userId!, userId), eq(credentials.active, true)));
   // Add platform filter if provided
   if (platformFilter) {
     // Cast to any to bypass TypeScript error
@@ -218,9 +230,9 @@ export async function getCredentials(
   // Execute query
   const results = await query;
   // Decrypt all credentials
-  return results.map(credential => ({
+  return results.map((credential) => ({
     credential,
-    data: decryptData(credential.encryptedData, credential.iv)
+    data: decryptData(credential.encryptedData, credential.iv),
   }));
 }
 /**
@@ -238,12 +250,10 @@ export async function updateCredential(
   }
 ): Promise<any> {
   // First verify the credential exists and belongs to this user
-  const [existingCredential] = await db.select()
+  const [existingCredential] = await db
+    .select()
     .from(credentials)
-    .where(and(
-      eq(credentials.id, id.toString()),
-      eq(credentials.userId!, userId)
-    ));
+    .where(and(eq(credentials.id, id.toString()), eq(credentials.userId!, userId)));
   if (!existingCredential) {
     throw new Error(`Credential not found: ${id}`);
   }
@@ -258,28 +268,24 @@ export async function updateCredential(
   // Add optional fields if provided
   if (options?.label !== undefined) updateData.label = options.label;
   if (options?.refreshToken !== undefined) updateData.refreshToken = options.refreshToken;
-  if (options?.refreshTokenExpiry !== undefined) updateData.refreshTokenExpiry = options.refreshTokenExpiry;
+  if (options?.refreshTokenExpiry !== undefined)
+    updateData.refreshTokenExpiry = options.refreshTokenExpiry;
   if (options?.active !== undefined) updateData.active = options.active;
   // Always update the timestamp
   updateData.updatedAt = new Date();
   // Update the credential
   const [updated] = await // @ts-ignore
-db.update(credentials)
+  db
+    .update(credentials)
     .set(updateData)
-    .where(and(
-      eq(credentials.id, id.toString()),
-      eq(credentials.userId!, userId)
-    ))
+    .where(and(eq(credentials.id, id.toString()), eq(credentials.userId!, userId)))
     .returning();
   return updated;
 }
 /**
  * Soft delete a credential (mark as inactive)
  */
-export async function deleteCredential(
-  id: string,
-  userId: string
-): Promise<boolean> {
+export async function deleteCredential(id: string, userId: string): Promise<boolean> {
   try {
     const result = await updateCredential(id, userId, undefined, { active: false });
     return !!result;
@@ -291,18 +297,13 @@ export async function deleteCredential(
 /**
  * Hard delete a credential (remove from database)
  */
-export async function hardDeleteCredential(
-  id: string,
-  userId: string
-): Promise<boolean> {
+export async function hardDeleteCredential(id: string, userId: string): Promise<boolean> {
   try {
     const result = await // @ts-ignore
-db.delete(credentials)
-      .where(and(
-        eq(credentials.id, id.toString()),
-        eq(credentials.userId!, userId)
-      ))
-      .returning({ id: sql`${credentials.id }`});
+    db
+      .delete(credentials)
+      .where(and(eq(credentials.id, id.toString()), eq(credentials.userId!, userId)))
+      .returning({ id: sql`${credentials.id}` });
     return result.length > 0;
   } catch (error) {
     console.error('Error hard-deleting credential:', error);

@@ -1,16 +1,16 @@
 /**
  * Generate Insights from CSV
- * 
+ *
  * This module provides functionality to analyze automotive dealership data
  * and generate business insights using LLM-based analysis.
  */
 import OpenAI from 'openai';
-import { isError } from '../utils/errorUtils.js.js';
+import { isError } from '../utils/errorUtils.js';
 import * as fs from 'fs';
 import path from 'path';
-import { getPromptByIntent } from '../prompts/promptRouter.js.js';
-import {  logInsightRun } from '....js';
-import { saveResult } from '../shared/outputStorage.js.js';
+import { getPromptByIntent } from '../prompts/promptRouter.js';
+import { logInsightRun } from '....js';
+import { saveResult } from '../shared/outputStorage.js';
 // Define the insight response structure
 export interface InsightResponse {
   title: string;
@@ -34,8 +34,11 @@ export async function generateInsightsFromCSV(
   }
   // Extract platform from file path
   const filename = path.basename(csvFilePath);
-  const platform = filename.includes('VinSolutions') ? 'VinSolutions' : 
-                  filename.includes('VAUTO') ? 'VAUTO' : 'Unknown';
+  const platform = filename.includes('VinSolutions')
+    ? 'VinSolutions'
+    : filename.includes('VAUTO')
+      ? 'VAUTO'
+      : 'Unknown';
   // Timing data
   const startTime = Date.now();
   // Read CSV file content
@@ -55,16 +58,16 @@ export async function generateInsightsFromCSV(
     console.log(`Using prompt version: ${promptInfo.version}`);
     console.log(`Using sample of ${sampleSize} rows from CSV`);
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         { role: 'system', content: promptInfo.text },
-        { 
-          role: 'user', 
-          content: `Here is a validated CRM export from an automotive dealership. Please analyze this data and provide insights:\n\n${sampleData}`
-        }
+        {
+          role: 'user',
+          content: `Here is a validated CRM export from an automotive dealership. Please analyze this data and provide insights:\n\n${sampleData}`,
+        },
       ],
       temperature: 0.2,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
     });
     // Calculate duration
     const endTime = Date.now();
@@ -87,7 +90,7 @@ export async function generateInsightsFromCSV(
       promptIntent: intent,
       promptVersion: promptInfo.version,
       durationMs,
-      outputSummary: [insightData.title]
+      outputSummary: [insightData.title],
     };
     logInsightRun(insightRunData);
     // Save result to structured directory
@@ -97,22 +100,42 @@ export async function generateInsightsFromCSV(
       promptVersion: promptInfo.version,
       durationMs,
       inputFile: csvFilePath,
-      sampleSize
+      sampleSize,
     });
     console.log(`Insight saved to: ${outputPath}`);
     return insightData;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     // Calculate duration on error
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     // Prepare error message
     let errorMessage: string;
     if (error instanceof Error) {
-      errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      errorMessage = isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     } else {
       errorMessage = 'Unknown error';
     }
@@ -124,7 +147,7 @@ export async function generateInsightsFromCSV(
       promptVersion: 'error',
       durationMs,
       outputSummary: [],
-      error: errorMessage
+      error: errorMessage,
     };
     logInsightRun(insightRunData);
     console.error('Error generating insights:', error);
@@ -134,11 +157,13 @@ export async function generateInsightsFromCSV(
       promptIntent: intent,
       inputFile: csvFilePath,
       durationMs,
-      status: 'error'
+      status: 'error',
     });
     // Re-throw with meaningful message
     if (error instanceof Error) {
-      throw new Error(`Failed to generate insights: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
+      throw new Error(
+        `Failed to generate insights: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+      );
     } else {
       throw new Error(`Failed to generate insights: Unknown error`);
     }
@@ -155,8 +180,11 @@ export async function generateInsightsFromCSVContent(
   intent: string = 'automotive_analysis'
 ): Promise<InsightResponse> {
   // Identify platform from content if possible
-  const platform = csvContent.includes('VinSolutions') ? 'VinSolutions' : 
-                  csvContent.includes('VAUTO') ? 'VAUTO' : 'Unknown';
+  const platform = csvContent.includes('VinSolutions')
+    ? 'VinSolutions'
+    : csvContent.includes('VAUTO')
+      ? 'VAUTO'
+      : 'Unknown';
   // Timing data
   const startTime = Date.now();
   try {
@@ -174,16 +202,16 @@ export async function generateInsightsFromCSVContent(
     console.log(`Using prompt version: ${promptInfo.version}`);
     console.log(`Using sample of ${sampleSize} rows from CSV content`);
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         { role: 'system', content: promptInfo.text },
-        { 
-          role: 'user', 
-          content: `Here is a validated CRM export from an automotive dealership. Please analyze this data and provide insights:\n\n${sampleData}`
-        }
+        {
+          role: 'user',
+          content: `Here is a validated CRM export from an automotive dealership. Please analyze this data and provide insights:\n\n${sampleData}`,
+        },
       ],
       temperature: 0.2,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
     });
     // Calculate duration
     const endTime = Date.now();
@@ -205,7 +233,7 @@ export async function generateInsightsFromCSVContent(
       promptIntent: intent,
       promptVersion: promptInfo.version,
       durationMs,
-      outputSummary: [insightData.title]
+      outputSummary: [insightData.title],
     };
     logInsightRun(insightRunData);
     // Save result to structured directory
@@ -214,22 +242,42 @@ export async function generateInsightsFromCSVContent(
       promptIntent: intent,
       promptVersion: promptInfo.version,
       durationMs,
-      sampleSize
+      sampleSize,
     });
     console.log(`Insight saved to: ${outputPath}`);
     return insightData;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     // Calculate duration on error
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     // Prepare error message
     let errorMessage: string;
     if (error instanceof Error) {
-      errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      errorMessage = isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
     } else {
       errorMessage = 'Unknown error';
     }
@@ -240,7 +288,7 @@ export async function generateInsightsFromCSVContent(
       promptVersion: 'error',
       durationMs,
       outputSummary: [],
-      error: errorMessage
+      error: errorMessage,
     };
     logInsightRun(insightRunData);
     console.error('Error generating insights:', error);
@@ -249,11 +297,13 @@ export async function generateInsightsFromCSVContent(
     saveResult(platform, { error: errorMessage }, errorFilename, {
       promptIntent: intent,
       durationMs,
-      status: 'error'
+      status: 'error',
     });
     // Re-throw with meaningful message
     if (error instanceof Error) {
-      throw new Error(`Failed to generate insights: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
+      throw new Error(
+        `Failed to generate insights: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+      );
     } else {
       throw new Error(`Failed to generate insights: Unknown error`);
     }

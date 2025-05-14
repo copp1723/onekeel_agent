@@ -8,10 +8,7 @@ import { simpleParser } from 'mailparser';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
-import {
-  EmailConfig,
-  EmailSearchCriteria,
-} from '../types/email.js';
+import { EmailConfig, EmailSearchCriteria } from '../types/email.js';
 
 // Convert fs.mkdir to promise-based
 const mkdir = promisify(fs.mkdir);
@@ -49,8 +46,8 @@ export function getEmailConfig(): EmailConfig {
     keepalive: {
       interval: 5000,
       idleInterval: 5000,
-      forceNoop: true
-    }
+      forceNoop: true,
+    },
   };
 }
 
@@ -59,29 +56,18 @@ export function getEmailConfig(): EmailConfig {
  */
 export function getSearchCriteria(platform: string): EmailSearchCriteria {
   // Default search criteria - last 7 days
-  const defaultCriteria = [
-    ['UNSEEN'],
-    ['SINCE', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)]
-  ];
+  const defaultCriteria = [['UNSEEN'], ['SINCE', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)]];
 
   // Platform-specific search criteria
   const platformCriteria: Record<string, EmailSearchCriteria> = {
-    'VinSolutions': {
-      criteria: [
-        ['UNSEEN'],
-        ['FROM', 'reports@vinsolutions.com'],
-        ['SUBJECT', 'Report Export']
-      ],
-      filePattern: /\.csv$/i
+    VinSolutions: {
+      criteria: [['UNSEEN'], ['FROM', 'reports@vinsolutions.com'], ['SUBJECT', 'Report Export']],
+      filePattern: /\.csv$/i,
     },
-    'VAUTO': {
-      criteria: [
-        ['UNSEEN'],
-        ['FROM', 'noreply@vauto.com'],
-        ['SUBJECT', 'Your vAuto Report']
-      ],
-      filePattern: /\.csv$/i
-    }
+    VAUTO: {
+      criteria: [['UNSEEN'], ['FROM', 'noreply@vauto.com'], ['SUBJECT', 'Your vAuto Report']],
+      filePattern: /\.csv$/i,
+    },
   };
 
   return platformCriteria[platform] || { criteria: defaultCriteria, filePattern: /\.csv$/i };
@@ -106,7 +92,7 @@ export async function ingestScheduledReport(
     // Connect to mailbox
     console.log(`Connecting to ${config.host}:${config.port} as ${config.user}...`);
     connection = await imaps.connect({
-      imap: config
+      imap: config,
     });
 
     // Open inbox
@@ -118,7 +104,7 @@ export async function ingestScheduledReport(
 
     const results = await connection.search(searchCriteria.criteria, {
       bodies: ['HEADER', 'TEXT', ''],
-      markSeen: false
+      markSeen: false,
     });
 
     console.log(`Found ${results.length} matching emails`);
@@ -130,7 +116,7 @@ export async function ingestScheduledReport(
     // Process each email
     for (const email of results) {
       // Get email message
-      const all = email.parts.find(part => part.which === '');
+      const all = email.parts.find((part) => part.which === '');
       if (!all) continue;
 
       const id = email.attributes.uid;
@@ -145,8 +131,8 @@ export async function ingestScheduledReport(
       }
 
       // Find matching attachment
-      const attachment = parsed.attachments.find(att =>
-        att.filename && searchCriteria.filePattern.test(att.filename)
+      const attachment = parsed.attachments.find(
+        (att) => att.filename && searchCriteria.filePattern.test(att.filename)
       );
 
       if (!attachment || !attachment.filename) {
@@ -172,7 +158,6 @@ export async function ingestScheduledReport(
 
     // If we get here, no matching attachments were found
     throw new ReportNotFoundError(`No attachments found matching pattern for ${platform}`);
-
   } catch (error) {
     // Ensure connection is closed on error
     if (connection) {

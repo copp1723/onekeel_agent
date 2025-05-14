@@ -5,7 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { db } from '../shared/db.js.js';
+import { db } from '../shared/db.js';
 // Get directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,8 +85,9 @@ export async function applyMigrations(): Promise<void> {
   try {
     await setupMigrationsTable();
     // Get all SQL files in migrations directory
-    const files = fs.readdirSync(__dirname)
-      .filter(file => file.endsWith('.sql'))
+    const files = fs
+      .readdirSync(__dirname)
+      .filter((file) => file.endsWith('.sql'))
       .sort(); // Apply in alphabetical order
     console.log(`Found ${files.length} migration files`);
     // Apply each migration if not already applied
@@ -111,7 +112,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       console.log('Migrations completed successfully');
       process.exit(0);
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('Migration failed:', error);
       process.exit(1);
     });

@@ -1,5 +1,5 @@
 // Summarize text tool implementation
-import { EkoTool } from './extractCleanContent.js.js';
+import { EkoTool } from './extractCleanContent.js';
 import OpenAI from 'openai';
 interface SummarizeTextArgs {
   text: string;
@@ -19,14 +19,14 @@ export function summarizeText(_unused: string): EkoTool {
       properties: {
         text: {
           type: 'string',
-          description: 'The text content to summarize'
+          description: 'The text content to summarize',
         },
         maxLength: {
           type: 'number',
-          description: 'Maximum length of the summary in words (approximate)'
-        }
+          description: 'Maximum length of the summary in words (approximate)',
+        },
       },
-      required: ['text']
+      required: ['text'],
     },
     handler: async (args: SummarizeTextArgs) => {
       try {
@@ -39,7 +39,9 @@ export function summarizeText(_unused: string): EkoTool {
         const openaiApiKey = process.env.OPENAI_API_KEY;
         if (!openaiApiKey) {
           console.error('❌ OpenAI API key not found in environment variables');
-          throw new Error('OpenAI API key not configured. Please set the OPENAI_API_KEY environment variable.');
+          throw new Error(
+            'OpenAI API key not configured. Please set the OPENAI_API_KEY environment variable.'
+          );
         }
         // Initialize OpenAI client with proper API key
         const openai = new OpenAI({ apiKey: openaiApiKey });
@@ -47,15 +49,15 @@ export function summarizeText(_unused: string): EkoTool {
         const response = await openai.chat.completions.create({
           model: 'gpt-4o-mini', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
           messages: [
-            { 
-              role: 'system', 
+            {
+              role: 'system',
               content: `You are a summarization expert. Create a concise summary of about ${maxLength} words 
-                        that captures the key points of the provided text.` 
+                        that captures the key points of the provided text.`,
             },
-            { 
-              role: 'user', 
-              content: text 
-            }
+            {
+              role: 'user',
+              content: text,
+            },
           ],
           temperature: 0.5,
           max_tokens: 350,
@@ -65,19 +67,28 @@ export function summarizeText(_unused: string): EkoTool {
           summary: summary,
           originalLength: text.length,
           summaryLength: summary.length,
-          compressionRatio: `${Math.round((summary.length / text.length) * 100)}%`
+          compressionRatio: `${Math.round((summary.length / text.length) * 100)}%`,
         };
       } catch (error: any) {
-        console.error('❌ Error summarizing text:', (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)));
+        console.error(
+          '❌ Error summarizing text:',
+          error instanceof Error
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : String(error)
+        );
         // Provide a more descriptive error for debugging
         if (error.response) {
           console.error('OpenAI API error details:', {
             status: error.response.status,
-            data: error.response.data
+            data: error.response.data,
           });
         }
-        throw new Error(`Failed to summarize text: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
+        throw new Error(
+          `Failed to summarize text: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+        );
       }
-    }
+    },
   };
 }

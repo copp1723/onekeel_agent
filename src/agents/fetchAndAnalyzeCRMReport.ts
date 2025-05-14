@@ -1,13 +1,13 @@
 /**
  * Fetch and Analyze CRM Report
- * 
+ *
  * This module combines the report fetching functionality with
  * the insight generation to provide a complete end-to-end flow.
  */
-import { fetchCRMReport, parseCRMReport } from './fetchCRMReport.js.js';
-import { isError } from '../utils/errorUtils.js.js';
-import { generateInsightsFromCSV, InsightResponse } from './generateInsightsFromCSV.js.js';
-import { CRMReportOptions } from '../types.js.js';
+import { fetchCRMReport, parseCRMReport } from './fetchCRMReport.js';
+import { isError } from '../utils/errorUtils.js';
+import { generateInsightsFromCSV, InsightResponse } from './generateInsightsFromCSV.js';
+import { CRMReportOptions } from '../types.js';
 /**
  * Combined result including both the report data and generated insights
  */
@@ -52,16 +52,30 @@ export async function fetchAndAnalyzeCRMReport(
         totalRecords: reportData.totalRecords,
         headers: reportData.headers,
       },
-      insights
+      insights,
     };
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error in fetchAndAnalyzeCRMReport:', error);
     if (error instanceof Error) {
-      throw new Error(`Failed to fetch and analyze CRM report: ${isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)}`);
+      throw new Error(
+        `Failed to fetch and analyze CRM report: ${isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
+      );
     } else {
       throw new Error(`Failed to fetch and analyze CRM report: Unknown error`);
     }

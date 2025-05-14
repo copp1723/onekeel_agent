@@ -2,17 +2,17 @@
  * Scheduler Service
  * Manages and executes scheduled workflows based on cron expressions
  */
-import { db } from '../shared/db.js.js';
-import {  getErrorMessage } from '...';
-import {  getErrorMessage } from '....js';
-import { isError } from '../utils/errorUtils.js.js';
-import {  schedules, taskLogs } from '....js';
-import { runWorkflow, getWorkflow } from './workflowService.js.js';
-import {  eq, and } from '....js';
+import { db } from '../shared/db.js';
+import { getErrorMessage } from '...';
+import { getErrorMessage } from '....js';
+import { isError } from '../utils/errorUtils.js';
+import { schedules, taskLogs } from '....js';
+import { runWorkflow, getWorkflow } from './workflowService.js';
+import { eq, and } from '....js';
 import { v4 as uuidv4 } from 'uuid';
 import cron from 'node-cron';
-import { enqueueJob } from './jobQueue.js.js';
-import logger from '../utils/logger.js.js';
+import { enqueueJob } from './jobQueue.js';
+import logger from '../utils/logger.js';
 // Map to keep track of active schedules and their node-cron tasks
 const activeSchedules = new Map<string, ReturnType<typeof cron.schedule>>();
 /**
@@ -21,26 +21,41 @@ const activeSchedules = new Map<string, ReturnType<typeof cron.schedule>>();
  */
 export async function initializeScheduler(): Promise<void> {
   try {
-    logger.info({ event: 'scheduler_service_init', timestamp: new Date().toISOString() }, 'Initializing scheduler service');
+    logger.info(
+      { event: 'scheduler_service_init', timestamp: new Date().toISOString() },
+      'Initializing scheduler service'
+    );
     // Load all enabled schedules
-    const enabledSchedules = await db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.enabled, true));
-    logger.info({ event: 'scheduler_service_enabled_count', count: enabledSchedules.length, timestamp: new Date().toISOString() }, 'Found enabled schedules count');
+    const enabledSchedules = await db.select().from(schedules).where(eq(schedules.enabled, true));
+    logger.info(
+      {
+        event: 'scheduler_service_enabled_count',
+        count: enabledSchedules.length,
+        timestamp: new Date().toISOString(),
+      },
+      'Found enabled schedules count'
+    );
     // Start each schedule with proper error handling
     const startupErrors = [];
     for (const schedule of enabledSchedules) {
       try {
         // Validate the cron expression before attempting to start
         if (!cron.validate(schedule.cron)) {
-          logger.error({ event: 'schedule_invalid_cron', scheduleId: schedule.id, cron: schedule.cron, timestamp: new Date().toISOString() }, 'Invalid cron expression for schedule');
+          logger.error(
+            {
+              event: 'schedule_invalid_cron',
+              scheduleId: schedule.id,
+              cron: schedule.cron,
+              timestamp: new Date().toISOString(),
+            },
+            'Invalid cron expression for schedule'
+          );
           // Disable invalid schedules
           await db
             .update(schedules)
-            .set({ 
+            .set({
               enabled: false,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(schedules.id, schedule.id));
           startupErrors.push(`Schedule ${schedule.id}: Invalid cron expression`);
@@ -49,27 +64,91 @@ export async function initializeScheduler(): Promise<void> {
         // Try to start the schedule
         await startSchedule(schedule);
       } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-        logger.error({ event: 'schedule_service_start_failed', scheduleId: schedule.id, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Failed to start schedule');
-        const errorMessage = error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error);
+        // Use type-safe error handling
+        const errorMessage = isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error);
+        // Use type-safe error handling
+        const errorMessage = isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error);
+        logger.error(
+          {
+            event: 'schedule_service_start_failed',
+            scheduleId: schedule.id,
+            errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+            stack:
+              error instanceof Error
+                ? error instanceof Error
+                  ? error.stack
+                  : undefined
+                : undefined,
+            timestamp: new Date().toISOString(),
+          },
+          'Failed to start schedule'
+        );
+        const errorMessage =
+          error instanceof Error
+            ? error instanceof Error
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error);
         startupErrors.push(`Schedule ${schedule.id}: ${errorMessage}`);
         // Continue with other schedules even if this one fails
       }
     }
     if (startupErrors.length > 0) {
-      logger.warn({ event: 'scheduler_service_startup_errors', errors: startupErrors, timestamp: new Date().toISOString() }, `Scheduler initialized with startup errors`);
+      logger.warn(
+        {
+          event: 'scheduler_service_startup_errors',
+          errors: startupErrors,
+          timestamp: new Date().toISOString(),
+        },
+        `Scheduler initialized with startup errors`
+      );
     } else {
-      logger.info({ event: 'scheduler_service_init_complete', timestamp: new Date().toISOString() }, 'Scheduler initialized successfully');
+      logger.info(
+        { event: 'scheduler_service_init_complete', timestamp: new Date().toISOString() },
+        'Scheduler initialized successfully'
+      );
     }
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'scheduler_service_init_error', errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error initializing scheduler service');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'scheduler_service_init_error',
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error initializing scheduler service'
+    );
     throw error;
   }
 }
@@ -100,7 +179,7 @@ export async function createSchedule(
         cron: cronExpression,
         enabled,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
     // If the schedule is enabled, start it right away
@@ -109,11 +188,32 @@ export async function createSchedule(
     }
     return newSchedule;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_create_error', errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error creating schedule');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_create_error',
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error creating schedule'
+    );
     throw error;
   }
 }
@@ -128,11 +228,33 @@ export async function getSchedule(scheduleId: string): Promise<Schedule | undefi
       .where(eq(schedules.id, scheduleId.toString()));
     return schedule;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_get_error', scheduleId, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error getting schedule');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_get_error',
+        scheduleId,
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error getting schedule'
+    );
     throw error;
   }
 }
@@ -141,16 +263,34 @@ export async function getSchedule(scheduleId: string): Promise<Schedule | undefi
  */
 export async function listSchedules(): Promise<Schedule[]> {
   try {
-    return await db
-      .select()
-      .from(schedules)
-      .orderBy(schedules.createdAt);
+    return await db.select().from(schedules).orderBy(schedules.createdAt);
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_list_error', errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error listing schedules');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_list_error',
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error listing schedules'
+    );
     throw error;
   }
 }
@@ -172,7 +312,7 @@ export async function updateSchedule(
     }
     // Prepare updates
     const updateValues: Partial<Schedule> = {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
     if (updates.cronExpression) {
       // Validate the new cron expression
@@ -203,11 +343,33 @@ export async function updateSchedule(
     }
     return updatedSchedule;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_update_error', scheduleId, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error updating schedule');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_update_error',
+        scheduleId,
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error updating schedule'
+    );
     throw error;
   }
 }
@@ -227,11 +389,33 @@ export async function deleteSchedule(scheduleId: string): Promise<boolean> {
       .returning();
     return !!deletedSchedule;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_delete_error', scheduleId, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error deleting schedule');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_delete_error',
+        scheduleId,
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error deleting schedule'
+    );
     throw error;
   }
 }
@@ -244,43 +428,102 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
     if (activeSchedules.has(schedule.id)) {
       await stopSchedule(schedule.id);
     }
-    logger.info({ event: 'schedule_service_start_schedule', scheduleId: schedule.id, cron: schedule.cron, timestamp: new Date().toISOString() }, 'Starting schedule with cron');
+    logger.info(
+      {
+        event: 'schedule_service_start_schedule',
+        scheduleId: schedule.id,
+        cron: schedule.cron,
+        timestamp: new Date().toISOString(),
+      },
+      'Starting schedule with cron'
+    );
     // Create a node-cron task with proper error handling and timezone configuration
     try {
       // Configure with UTC timezone to avoid timezone-related errors
       const options = {
         scheduled: true,
-        timezone: "UTC"
+        timezone: 'UTC',
       };
-      const task = cron.schedule(schedule.cron, async () => {
-        try {
-          await executeScheduledWorkflow(schedule);
-        } catch (executionError) {
-          logger.error({ event: 'schedule_service_execute_error', scheduleId: schedule.id, errorMessage: executionError.message, stack: executionError.stack, timestamp: new Date().toISOString() }, 'Error executing scheduled workflow');
-          // Log error but don't kill the scheduler
-        }
-      }, options);
+      const task = cron.schedule(
+        schedule.cron,
+        async () => {
+          try {
+            await executeScheduledWorkflow(schedule);
+          } catch (executionError) {
+            logger.error(
+              {
+                event: 'schedule_service_execute_error',
+                scheduleId: schedule.id,
+                errorMessage: executionError.message,
+                stack: executionError.stack,
+                timestamp: new Date().toISOString(),
+              },
+              'Error executing scheduled workflow'
+            );
+            // Log error but don't kill the scheduler
+          }
+        },
+        options
+      );
       // Store the task in our active schedules map
       activeSchedules.set(schedule.id, task);
-      logger.info({ event: 'schedule_service_start_schedule_success', scheduleId: schedule.id, timestamp: new Date().toISOString() }, 'Schedule started successfully');
+      logger.info(
+        {
+          event: 'schedule_service_start_schedule_success',
+          scheduleId: schedule.id,
+          timestamp: new Date().toISOString(),
+        },
+        'Schedule started successfully'
+      );
     } catch (cronError) {
-      logger.error({ event: 'schedule_service_start_schedule_error', scheduleId: schedule.id, errorMessage: cronError.message, stack: cronError.stack, timestamp: new Date().toISOString() }, 'Failed to create cron job for schedule');
+      logger.error(
+        {
+          event: 'schedule_service_start_schedule_error',
+          scheduleId: schedule.id,
+          errorMessage: cronError.message,
+          stack: cronError.stack,
+          timestamp: new Date().toISOString(),
+        },
+        'Failed to create cron job for schedule'
+      );
       // Update the schedule to be disabled due to invalid cron expression
       await db
         .update(schedules)
-        .set({ 
+        .set({
           enabled: false,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(schedules.id, schedule.id));
       throw new Error(`Invalid cron expression or time value: ${schedule.cron}`);
     }
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_start_error', scheduleId: schedule.id, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error starting schedule');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_start_error',
+        scheduleId: schedule.id,
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error starting schedule'
+    );
     throw error;
   }
 }
@@ -291,17 +534,53 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
   try {
     const task = activeSchedules.get(scheduleId);
     if (task) {
-      logger.info({ event: 'schedule_service_stop_schedule', scheduleId, timestamp: new Date().toISOString() }, 'Stopping schedule');
+      logger.info(
+        {
+          event: 'schedule_service_stop_schedule',
+          scheduleId,
+          timestamp: new Date().toISOString(),
+        },
+        'Stopping schedule'
+      );
       task.stop();
       activeSchedules.delete(scheduleId);
-      logger.info({ event: 'schedule_service_stop_schedule_success', scheduleId, timestamp: new Date().toISOString() }, 'Schedule stopped successfully');
+      logger.info(
+        {
+          event: 'schedule_service_stop_schedule_success',
+          scheduleId,
+          timestamp: new Date().toISOString(),
+        },
+        'Schedule stopped successfully'
+      );
     }
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_stop_error', scheduleId, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error stopping schedule');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_stop_error',
+        scheduleId,
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error stopping schedule'
+    );
     throw error;
   }
 }
@@ -310,13 +589,21 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
  */
 async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
   try {
-    logger.info({ event: 'schedule_service_execute_workflow', scheduleId: schedule.id, workflowId: schedule.workflowId!, timestamp: new Date().toISOString() }, 'Executing scheduled workflow');
+    logger.info(
+      {
+        event: 'schedule_service_execute_workflow',
+        scheduleId: schedule.id,
+        workflowId: schedule.workflowId!,
+        timestamp: new Date().toISOString(),
+      },
+      'Executing scheduled workflow'
+    );
     // Update the lastRunAt timestamp
     await db
       .update(schedules)
-      .set({ 
+      .set({
         lastRunAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(schedules.id, schedule.id));
     // Execute the workflow using the job queue for better reliability
@@ -325,52 +612,104 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
     // Create a task log entry
     try {
       await // @ts-ignore
-db.insert(taskLogs).values({
+      db.insert(taskLogs).values({
         id: taskId,
         taskType: 'scheduledWorkflow',
         taskText: `Run scheduled workflow: ${schedule.workflowId!}`,
         taskData: {
           scheduleId: schedule.id,
           workflowId: schedule.workflowId!,
-          cron: schedule.cron
+          cron: schedule.cron,
         },
         status: 'pending',
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     } catch (insertError) {
       // If there was an error with the insert, try a different approach
-      logger.error({ event: 'schedule_service_task_log_insert_error', scheduleId: schedule.id, workflowId: schedule.workflowId!, errorMessage: insertError.message, stack: insertError.stack, timestamp: new Date().toISOString() }, 'Error inserting task log, trying alternative approach');
+      logger.error(
+        {
+          event: 'schedule_service_task_log_insert_error',
+          scheduleId: schedule.id,
+          workflowId: schedule.workflowId!,
+          errorMessage: insertError.message,
+          stack: insertError.stack,
+          timestamp: new Date().toISOString(),
+        },
+        'Error inserting task log, trying alternative approach'
+      );
       // Try with user_id if that's what's missing (detected from logs)
       try {
         await // @ts-ignore
-db.insert(taskLogs).values({
+        db.insert(taskLogs).values({
           id: taskId,
           taskType: 'scheduledWorkflow',
           taskText: `Run scheduled workflow: ${schedule.workflowId!}`,
           taskData: {
             scheduleId: schedule.id,
             workflowId: schedule.workflowId!,
-            cron: schedule.cron
+            cron: schedule.cron,
           },
           status: 'pending',
           createdAt: new Date(),
           // Add user_id if schema requires it
-          userId: 'system-scheduler'
+          userId: 'system-scheduler',
         });
       } catch (secondError) {
-        logger.error({ event: 'schedule_service_task_log_insert_error_second_attempt', scheduleId: schedule.id, workflowId: schedule.workflowId!, errorMessage: secondError.message, stack: secondError.stack, timestamp: new Date().toISOString() }, 'Second attempt at inserting task log failed');
+        logger.error(
+          {
+            event: 'schedule_service_task_log_insert_error_second_attempt',
+            scheduleId: schedule.id,
+            workflowId: schedule.workflowId!,
+            errorMessage: secondError.message,
+            stack: secondError.stack,
+            timestamp: new Date().toISOString(),
+          },
+          'Second attempt at inserting task log failed'
+        );
         throw secondError; // Re-throw the error to be caught by the outer catch
       }
     }
     // Enqueue the job with the task ID
     await enqueueJob(taskId, 5); // Priority 5 for scheduled jobs
-    logger.info({ event: 'schedule_service_execute_workflow_queued', scheduleId: schedule.id, workflowId: schedule.workflowId!, taskId, timestamp: new Date().toISOString() }, 'Scheduled workflow execution queued');
+    logger.info(
+      {
+        event: 'schedule_service_execute_workflow_queued',
+        scheduleId: schedule.id,
+        workflowId: schedule.workflowId!,
+        taskId,
+        timestamp: new Date().toISOString(),
+      },
+      'Scheduled workflow execution queued'
+    );
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_execute_workflow_error', scheduleId: schedule.id, workflowId: schedule.workflowId!, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error executing scheduled workflow');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_execute_workflow_error',
+        scheduleId: schedule.id,
+        workflowId: schedule.workflowId!,
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error executing scheduled workflow'
+    );
     // We don't throw here to prevent the scheduler from stopping on errors
   }
 }
@@ -386,23 +725,68 @@ export async function executeWorkflowById(workflowId: string): Promise<void> {
     }
     // Skip if the workflow is already running or locked
     if (workflow.status === 'running' || workflow.locked) {
-      logger.info({ event: 'schedule_service_execute_workflow_skip', workflowId, timestamp: new Date().toISOString() }, 'Workflow is already running or locked, skipping execution');
+      logger.info(
+        {
+          event: 'schedule_service_execute_workflow_skip',
+          workflowId,
+          timestamp: new Date().toISOString(),
+        },
+        'Workflow is already running or locked, skipping execution'
+      );
       return;
     }
     // Run the workflow
     const result = await runWorkflow(workflowId);
-    logger.info({ event: 'schedule_service_execute_workflow_result', workflowId, status: result.status, timestamp: new Date().toISOString() }, 'Scheduled workflow executed');
+    logger.info(
+      {
+        event: 'schedule_service_execute_workflow_result',
+        workflowId,
+        status: result.status,
+        timestamp: new Date().toISOString(),
+      },
+      'Scheduled workflow executed'
+    );
     // Continue execution if the workflow is paused (multi-step workflow)
     if (result.status === 'paused') {
-      logger.info({ event: 'schedule_service_execute_workflow_continue', workflowId, currentStep: result.currentStep, timestamp: new Date().toISOString() }, 'Workflow is paused, continuing execution');
+      logger.info(
+        {
+          event: 'schedule_service_execute_workflow_continue',
+          workflowId,
+          currentStep: result.currentStep,
+          timestamp: new Date().toISOString(),
+        },
+        'Workflow is paused, continuing execution'
+      );
       await runWorkflow(workflowId);
     }
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    logger.error({ event: 'schedule_service_execute_workflow_by_id_error', workflowId, errorMessage: isError(error) ? getErrorMessage(error) : String(error), stack: (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined), timestamp: new Date().toISOString() }, 'Error executing workflow');
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
+    logger.error(
+      {
+        event: 'schedule_service_execute_workflow_by_id_error',
+        workflowId,
+        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
+        stack:
+          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'Error executing workflow'
+    );
     throw error;
   }
 }

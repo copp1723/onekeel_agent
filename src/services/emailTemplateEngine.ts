@@ -1,6 +1,6 @@
 /**
  * Email Template Engine
- * 
+ *
  * A simple template engine for rendering email templates with variable substitution.
  * Supports both HTML and plain text templates.
  */
@@ -37,7 +37,7 @@ export interface EmailTemplateResult {
 }
 /**
  * Load a template from file or cache
- * 
+ *
  * @param templateName - Name of the template
  * @param format - Format of the template (html or text)
  * @returns The template string
@@ -64,7 +64,7 @@ function loadTemplate(templateName: string, format: 'html' | 'text'): string {
 }
 /**
  * Render a template with data
- * 
+ *
  * @param template - Template string
  * @param data - Data to render in the template
  * @returns Rendered template
@@ -89,10 +89,12 @@ function renderTemplate(template: string, data: TemplateData): string {
       let result = template;
       while ((eachMatch = eachRegex.exec(template)) !== null) {
         const itemTemplate = eachMatch[1];
-        const renderedItems = value.map((item: any) => {
-          // Replace {{this}} with the current item
-          return itemTemplate.replace(/\{\{this\}\}/g, item.toString());
-        }).join('');
+        const renderedItems = value
+          .map((item: any) => {
+            // Replace {{this}} with the current item
+            return itemTemplate.replace(/\{\{this\}\}/g, item.toString());
+          })
+          .join('');
         // Replace the entire {{#each}} block with the rendered items
         result = result.replace(eachMatch[0], renderedItems);
       }
@@ -118,7 +120,7 @@ function renderTemplate(template: string, data: TemplateData): string {
 }
 /**
  * Render an email template
- * 
+ *
  * @param options - Template options
  * @returns Rendered template
  */
@@ -151,7 +153,7 @@ export function renderEmailTemplate(options: EmailTemplateOptions): EmailTemplat
 }
 /**
  * Convert HTML to plain text
- * 
+ *
  * @param html - HTML string
  * @returns Plain text
  */
@@ -166,7 +168,7 @@ function htmlToText(html: string): string {
 }
 /**
  * Get a list of available templates
- * 
+ *
  * @returns Array of template names
  */
 export function listTemplates(): string[] {
@@ -190,7 +192,7 @@ export function listTemplates(): string[] {
  * Clear the template cache
  */
 export function clearTemplateCache(): void {
-  Object.keys(templateCache).forEach(key => {
+  Object.keys(templateCache).forEach((key) => {
     delete templateCache[key];
   });
 }

@@ -1,20 +1,24 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { isError } from '../utils/errorUtils.js.js';
+import { isError } from '../utils/errorUtils.js';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../shared/db.js.js';
-import { workflows, emailNotifications, emailLogs } from '../../shared/schema.js.js';
+import { db } from '../../shared/db.js';
+import { workflows, emailNotifications, emailLogs } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { configureNotification, sendCompletionEmail, sendFailureEmail } from '../../services/workflowEmailService.js.js';
-import { emailQueue } from '../../services/emailQueue.js.js';
+import {
+  configureNotification,
+  sendCompletionEmail,
+  sendFailureEmail,
+} from '../../services/workflowEmailService.js';
+import { emailQueue } from '../../services/emailQueue.js';
 // Mock dependencies
 vi.mock('../../services/mailerService.js', () => ({
   sendEmail: vi.fn().mockResolvedValue({ messageId: 'test-message-id' }),
-  generateWorkflowSummaryHtml: vi.fn().mockReturnValue('<p>Test email content</p>')
+  generateWorkflowSummaryHtml: vi.fn().mockReturnValue('<p>Test email content</p>'),
 }));
 vi.mock('../../services/emailQueue.js', () => ({
   emailQueue: {
-    enqueue: vi.fn().mockResolvedValue('test-queue-id')
-  }
+    enqueue: vi.fn().mockResolvedValue('test-queue-id'),
+  },
 }));
 describe('Email Notifications Integration', () => {
   // Test data
@@ -31,8 +35,8 @@ describe('Email Notifications Integration', () => {
       userId: testUserId,
       status: 'completed',
       createdAt: new Date(),
-      updatedAt: new Date()
-      } as any) // @ts-ignore - Ensuring all required properties are provided as any // @ts-ignore - Type issues with Drizzle insert in tests;
+      updatedAt: new Date(),
+    } as any); // @ts-ignore - Ensuring all required properties are provided as any // @ts-ignore - Type issues with Drizzle insert in tests;
   });
   // Clean up test data after tests
   afterAll(async () => {
@@ -42,15 +46,14 @@ describe('Email Notifications Integration', () => {
   });
   afterEach(async () => {
     // Clean up test data
-    await db.delete(emailNotifications)
-      .where(eq(emailNotifications.workflowId!, testWorkflowId));
+    await db.delete(emailNotifications).where(eq(emailNotifications.workflowId!, testWorkflowId));
   });
   describe('Email Notification Configuration', () => {
     it('should configure email notifications for a workflow', async () => {
       const config = {
         recipientEmail: testEmail,
         sendOnCompletion: true,
-        sendOnFailure: true
+        sendOnFailure: true,
       };
       const result = await configureNotification(testWorkflowId, config);
       // Check that the notification was configured
@@ -101,13 +104,35 @@ describe('Email Notifications Integration', () => {
         // If we reach here, the test should fail
         expect(true).toBe(false);
       } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+        // Use type-safe error handling
+        const errorMessage = isError(error)
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : String(error);
+        // Use type-safe error handling
+        const errorMessage = isError(error)
+          ? error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error);
         // Check that the error was handled properly
         expect(error).toBeDefined();
-        expect(isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)).toBe('Failed to send email');
+        expect(
+          isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+        ).toBe('Failed to send email');
         // Check that the failure was logged in the database
         const logs = await db
           .select()
@@ -129,13 +154,13 @@ describe('Email Notifications Integration', () => {
         userId: testUserId,
         status: 'pending',
         createdAt: new Date(),
-        updatedAt: new Date()
-      } as any) // @ts-ignore - Ensuring all required properties are provided as any // @ts-ignore - Type issues with Drizzle insert in tests;
+        updatedAt: new Date(),
+      } as any); // @ts-ignore - Ensuring all required properties are provided as any // @ts-ignore - Type issues with Drizzle insert in tests;
       // Configure notifications
       await configureNotification(newWorkflowId, {
         recipientEmail: testEmail,
         sendOnCompletion: true,
-        sendOnFailure: true
+        sendOnFailure: true,
       });
       // Update workflow status to completed
       await db
@@ -165,11 +190,10 @@ describe('Email Notifications Integration', () => {
       workflowId: testWorkflowId,
       recipientEmail: testEmail,
       sendOnCompletion: true,
-      sendOnFailure: false
+      sendOnFailure: false,
     });
     const results = { status: 'success', data: { test: true } };
-    await expect(sendCompletionEmail(testWorkflowId, results))
-      .resolves.not.toThrow();
+    await expect(sendCompletionEmail(testWorkflowId, results)).resolves.not.toThrow();
   });
   it('should send failure email when configured', async () => {
     // Configure notifications
@@ -177,18 +201,15 @@ describe('Email Notifications Integration', () => {
       workflowId: testWorkflowId,
       recipientEmail: testEmail,
       sendOnCompletion: false,
-      sendOnFailure: true
+      sendOnFailure: true,
     });
     const error = new Error('Test workflow failure');
-    await expect(sendFailureEmail(testWorkflowId, error))
-      .resolves.not.toThrow();
+    await expect(sendFailureEmail(testWorkflowId, error)).resolves.not.toThrow();
   });
   it('should not send emails when not configured', async () => {
     const results = { status: 'success', data: { test: true } };
     const error = new Error('Test workflow failure');
-    await expect(sendCompletionEmail(testWorkflowId, results))
-      .resolves.not.toThrow();
-    await expect(sendFailureEmail(testWorkflowId, error))
-      .resolves.not.toThrow();
+    await expect(sendCompletionEmail(testWorkflowId, results)).resolves.not.toThrow();
+    await expect(sendFailureEmail(testWorkflowId, error)).resolves.not.toThrow();
   });
 });

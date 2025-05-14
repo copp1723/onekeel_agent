@@ -3,80 +3,91 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { 
-  parseCSV, 
-  parseXLSX, 
-  parsePDF, 
-  parseByExtension, 
+import {
+  parseCSV,
+  parseXLSX,
+  parsePDF,
+  parseByExtension,
   detectFileType,
-  FileType
-} from '../../services/attachmentParsers.js.js';
+  FileType,
+} from '../../services/attachmentParsers.js';
 // Mock fs module
 jest.mock('fs', () => ({
   readFileSync: jest.fn(),
   existsSync: jest.fn().mockReturnValue(true),
-  mkdirSync: jest.fn()
+  mkdirSync: jest.fn(),
 }));
 // Mock csv-parse/sync
 jest.mock('csv-parse/sync', () => ({
   parse: jest.fn().mockReturnValue([
     { name: 'John', age: '30' },
-    { name: 'Jane', age: '25' }
-  ])
+    { name: 'Jane', age: '25' },
+  ]),
 }));
 // Mock exceljs
 jest.mock('exceljs', () => {
   const mockWorksheet = {
     eachRow: jest.fn((callback) => {
       // Mock header row
-      callback({
-        eachCell: (cb) => {
-          cb({ value: 'name' }, 1);
-          cb({ value: 'age' }, 2);
-        }
-      }, 1);
+      callback(
+        {
+          eachCell: (cb) => {
+            cb({ value: 'name' }, 1);
+            cb({ value: 'age' }, 2);
+          },
+        },
+        1
+      );
       // Mock data rows
-      callback({
-        eachCell: (cb) => {
-          cb({ value: 'John', type: 0 }, 1);
-          cb({ value: 30, type: 0 }, 2);
-        }
-      }, 2);
-      callback({
-        eachCell: (cb) => {
-          cb({ value: 'Jane', type: 0 }, 1);
-          cb({ value: 25, type: 0 }, 2);
-        }
-      }, 3);
+      callback(
+        {
+          eachCell: (cb) => {
+            cb({ value: 'John', type: 0 }, 1);
+            cb({ value: 30, type: 0 }, 2);
+          },
+        },
+        2
+      );
+      callback(
+        {
+          eachCell: (cb) => {
+            cb({ value: 'Jane', type: 0 }, 1);
+            cb({ value: 25, type: 0 }, 2);
+          },
+        },
+        3
+      );
     }),
     getRow: jest.fn().mockReturnValue({
       eachCell: jest.fn((callback) => {
         callback({ value: 'name' }, 1);
         callback({ value: 'age' }, 2);
-      })
-    })
+      }),
+    }),
   };
   return {
     Workbook: jest.fn().mockImplementation(() => ({
       xlsx: {
-        readFile: jest.fn().mockResolvedValue(undefined)
+        readFile: jest.fn().mockResolvedValue(undefined),
       },
       getWorksheet: jest.fn().mockReturnValue(mockWorksheet),
       eachSheet: jest.fn((callback) => {
         callback({ name: 'Sheet1' });
       }),
-      worksheets: [{ name: 'Sheet1' }]
+      worksheets: [{ name: 'Sheet1' }],
     })),
     ValueType: {
-      Date: 3
-    }
+      Date: 3,
+    },
   };
 });
 // Mock pdf-parse
-jest.mock('pdf-parse', () => jest.fn().mockResolvedValue({
-  text: 'Header1 Header2 Header3\nJohn 30 Male\nJane 25 Female',
-  numpages: 1
-}));
+jest.mock('pdf-parse', () =>
+  jest.fn().mockResolvedValue({
+    text: 'Header1 Header2 Header3\nJohn 30 Male\nJane 25 Female',
+    numpages: 1,
+  })
+);
 describe('Attachment Parser Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();

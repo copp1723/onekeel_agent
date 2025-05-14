@@ -1,16 +1,16 @@
 /**
  * Results Persistence Service
- * 
+ *
  * Handles storing parsed results in both the filesystem and database
  * with support for deduplication and structured organization.
  */
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/index.js.js';
-import { reports, reportSources } from '../shared/report-schema.js.js';
+import { db } from '../db/index.js';
+import { reports, reportSources } from '../shared/report-schema.js';
 import { eq } from 'drizzle-orm';
-import { ParserResult } from './attachmentParsers.js.js';
+import { ParserResult } from './attachmentParsers.js';
 // Interface for storing results
 export interface StorageResult {
   id: string;
@@ -98,17 +98,15 @@ export async function checkForDuplicateReport(
  * @param sourceInfo - Source information
  * @returns Source ID
  */
-export async function storeReportSource(
-  sourceInfo: {
-    vendor: string;
-    sourceType: string;
-    emailSubject?: string;
-    emailFrom?: string;
-    emailDate?: Date;
-    filePath: string;
-    metadata?: Record<string, any>;
-  }
-): Promise<string> {
+export async function storeReportSource(sourceInfo: {
+  vendor: string;
+  sourceType: string;
+  emailSubject?: string;
+  emailFrom?: string;
+  emailDate?: Date;
+  filePath: string;
+  metadata?: Record<string, any>;
+}): Promise<string> {
   const sourceId = uuidv4();
   await db.insert(reportSources).values({
     id: sourceId,
@@ -120,7 +118,7 @@ export async function storeReportSource(
     filePath: sourceInfo.filePath,
     metadata: sourceInfo.metadata || {},
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
   console.log(`Stored report source: ${sourceId}`);
   return sourceId;
@@ -130,18 +128,16 @@ export async function storeReportSource(
  * @param reportData - Report data
  * @returns Report ID
  */
-export async function storeReportData(
-  reportData: {
-    sourceId: string;
-    reportData: ParserResult;
-    recordCount: number;
-    vendor: string;
-    reportDate?: Date;
-    reportType?: string;
-    status?: 'pending_analysis' | 'analyzed' | 'error';
-    metadata?: Record<string, any>;
-  }
-): Promise<string> {
+export async function storeReportData(reportData: {
+  sourceId: string;
+  reportData: ParserResult;
+  recordCount: number;
+  vendor: string;
+  reportDate?: Date;
+  reportType?: string;
+  status?: 'pending_analysis' | 'analyzed' | 'error';
+  metadata?: Record<string, any>;
+}): Promise<string> {
   // Check for duplicates
   const duplicateId = await checkForDuplicateReport(
     reportData.vendor,
@@ -164,7 +160,7 @@ export async function storeReportData(
     status: reportData.status || 'pending_analysis',
     metadata: reportData.metadata || {},
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
   console.log(`Stored report data: ${reportId}`);
   return reportId;
@@ -201,7 +197,7 @@ export async function storeResults(
       emailFrom: sourceInfo.emailFrom,
       emailDate: sourceInfo.emailDate,
       filePath: sourceInfo.filePath,
-      metadata: sourceInfo.metadata
+      metadata: sourceInfo.metadata,
     });
     // Store report data
     const storedReportId = await storeReportData({
@@ -213,8 +209,8 @@ export async function storeResults(
       status: 'pending_analysis',
       metadata: {
         ...parserResult.metadata,
-        jsonPath
-      }
+        jsonPath,
+      },
     });
     return {
       id: storedReportId,
@@ -227,8 +223,8 @@ export async function storeResults(
       status: 'pending_analysis',
       metadata: {
         ...parserResult.metadata,
-        sourceInfo: sourceInfo.metadata
-      }
+        sourceInfo: sourceInfo.metadata,
+      },
     };
   } catch (error) {
     console.error('Error storing results:', error);
@@ -241,5 +237,5 @@ export default {
   checkForDuplicateReport,
   storeReportSource,
   storeReportData,
-  storeResults
+  storeResults,
 };

@@ -1,6 +1,6 @@
 /**
  * CredentialVault - Client-side module for credential management
- * 
+ *
  * This module handles saving, retrieving, and listing user credentials
  * for sites that require authentication
  */
@@ -27,10 +27,10 @@ export class CredentialVault {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          Accept: 'application/json',
         },
         credentials: 'same-origin',
-        body: JSON.stringify(params)
+        body: JSON.stringify(params),
       });
       if (!response.ok) {
         throw new Error(`Failed to save credential: ${response.statusText}`);
@@ -48,8 +48,8 @@ export class CredentialVault {
   static async listCredentials(): Promise<Credential[]> {
     try {
       const response = await fetch('/api/credentials', {
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
       });
       if (!response.ok) {
         throw new Error(`Failed to list credentials: ${response.statusText}`);
@@ -69,7 +69,7 @@ export class CredentialVault {
     try {
       const response = await fetch(`/api/credentials/${credentialId}`, {
         method: 'DELETE',
-        credentials: 'same-origin'
+        credentials: 'same-origin',
       });
       if (!response.ok) {
         throw new Error(`Failed to delete credential: ${response.statusText}`);

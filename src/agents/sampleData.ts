@@ -2,7 +2,7 @@
  * Sample Data Provider
  * Provides sample data for testing CRM report flows without real credentials
  */
-import { CRMPlatform, PlatformConfig } from '../types.js.js';
+import { CRMPlatform, PlatformConfig } from '../types.js';
 /**
  * Returns a sample platform configuration for testing
  * Uses the same structure as the real platforms.json config
@@ -13,49 +13,49 @@ export function getSamplePlatformConfig(platform: CRMPlatform): PlatformConfig {
   if (platform === 'VinSolutions') {
     return {
       loginSteps: [
-        { action: "goto", args: ["https://crm.vinsolutions.com/login"] },
-        { action: "fill", selector: "#username", value: "{{VIN_SOLUTIONS_USERNAME}}" },
-        { action: "fill", selector: "#password", value: "{{VIN_SOLUTIONS_PASSWORD}}" },
-        { action: "click", selector: "button[type='submit']" }
+        { action: 'goto', args: ['https://crm.vinsolutions.com/login'] },
+        { action: 'fill', selector: '#username', value: '{{VIN_SOLUTIONS_USERNAME}}' },
+        { action: 'fill', selector: '#password', value: '{{VIN_SOLUTIONS_PASSWORD}}' },
+        { action: 'click', selector: "button[type='submit']" },
       ],
       otpStep: {
-        action: "otpEmail",
+        action: 'otpEmail',
         selector: "input[name='otp']",
-        clickAfter: "button:has-text('Verify')"
+        clickAfter: "button:has-text('Verify')",
       },
       navigationSteps: [
-        { action: "click", selector: "nav >> text=Insights" },
-        { action: "click", selector: "label:has-text('Most Popular')" }
+        { action: 'click', selector: 'nav >> text=Insights' },
+        { action: 'click', selector: "label:has-text('Most Popular')" },
       ],
       downloadSteps: [
         {
-          action: "download",
+          action: 'download',
           rowSelector: "tr:has-text('Dealership Performance Dashboard')",
           buttonSelector: "button[aria-label='Download']",
-          saveAs: "report.csv"
-        }
-      ]
+          saveAs: 'report.csv',
+        },
+      ],
     };
   } else {
     return {
       loginSteps: [
-        { action: "goto", args: ["https://login.vauto.com"] },
-        { action: "fill", selector: "input[name='username']", value: "{{VAUTO_USERNAME}}" },
-        { action: "fill", selector: "input[name='password']", value: "{{VAUTO_PASSWORD}}" },
-        { action: "click", selector: "button#loginButton" }
+        { action: 'goto', args: ['https://login.vauto.com'] },
+        { action: 'fill', selector: "input[name='username']", value: '{{VAUTO_USERNAME}}' },
+        { action: 'fill', selector: "input[name='password']", value: '{{VAUTO_PASSWORD}}' },
+        { action: 'click', selector: 'button#loginButton' },
       ],
       navigationSteps: [
-        { action: "click", selector: "a:has-text('Reports')" },
-        { action: "click", selector: "span:has-text('Inventory Reports')" }
+        { action: 'click', selector: "a:has-text('Reports')" },
+        { action: 'click', selector: "span:has-text('Inventory Reports')" },
       ],
       downloadSteps: [
         {
-          action: "download",
+          action: 'download',
           rowSelector: "tr:has-text('Inventory Status')",
-          buttonSelector: "button.download-button",
-          saveAs: "inventory.csv"
-        }
-      ]
+          buttonSelector: 'button.download-button',
+          saveAs: 'inventory.csv',
+        },
+      ],
     };
   }
 }
@@ -95,7 +95,10 @@ ${formattedDate},${dealerId},S12349,5TDZA3DC1CS123459,Toyota,Sienna,2022,10,3450
  * @param platform - CRM platform (VinSolutions or VAUTO)
  * @returns Path to the temporary file
  */
-export async function createSampleReportFile(dealerId: string, platform: CRMPlatform = 'VinSolutions'): Promise<string> {
+export async function createSampleReportFile(
+  dealerId: string,
+  platform: CRMPlatform = 'VinSolutions'
+): Promise<string> {
   const fs = await import('fs/promises');
   const path = await import('path');
   const os = await import('os');

@@ -1,10 +1,10 @@
 /**
  * Retry Utility
- * 
+ *
  * Provides configurable retry mechanisms with exponential backoff for handling
  * transient failures in network operations, API calls, and other error-prone tasks.
  */
-import { logger } from '../shared/logger.js.js';
+import { logger } from '../shared/logger.js';
 /**
  * Retry options for configuring retry behavior
  */
@@ -43,16 +43,13 @@ export interface RetryResult<T> {
 }
 /**
  * Retry a function with exponential backoff
- * 
+ *
  * @param fn - The async function to retry
  * @param options - Retry configuration options
  * @returns The result of the function if successful
  * @throws The last error encountered if all retries fail
  */
-export async function retry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
+export async function retry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const {
     retries = 3,
     minTimeout = 1000,
@@ -61,7 +58,7 @@ export async function retry<T>(
     jitter = true,
     maxRetryTime,
     retryIf = () => true,
-    onRetry
+    onRetry,
   } = options;
   let attempt = 0;
   const startTime = Date.now();
@@ -90,16 +87,23 @@ export async function retry<T>(
       }
       // Log retry attempt
       logger.info(`Retry attempt ${attempt}/${retries} after ${delay}ms delay`, {
-        error: error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error),
+        error:
+          error instanceof Error
+            ? error instanceof Error
+              ? error instanceof Error
+                ? error.message
+                : String(error)
+              : String(error)
+            : String(error),
         attempt,
-        delay
+        delay,
       });
       // Execute onRetry callback if provided
       if (onRetry) {
         onRetry(error, attempt);
       }
       // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
   // This should never be reached due to the throw in the catch block
@@ -109,7 +113,7 @@ export async function retry<T>(
 /**
  * Retry a function with exponential backoff and return detailed results
  * instead of throwing an exception on failure
- * 
+ *
  * @param fn - The async function to retry
  * @param options - Retry configuration options
  * @returns Object containing result or error and metadata
@@ -128,26 +132,26 @@ export async function retryWithResult<T>(
         if (options.onRetry) {
           options.onRetry(error, attempt);
         }
-      }
+      },
     });
     return {
       result,
       attempts: attempts + 1, // +1 because the successful attempt isn't counted in onRetry
       success: true,
-      totalTime: Date.now() - startTime
+      totalTime: Date.now() - startTime,
     };
   } catch (error) {
     return {
       error,
       attempts: attempts + 1, // +1 because the final failed attempt
       success: false,
-      totalTime: Date.now() - startTime
+      totalTime: Date.now() - startTime,
     };
   }
 }
 /**
  * Create a retryable version of an async function
- * 
+ *
  * @param fn - The async function to make retryable
  * @param options - Default retry options for the function
  * @returns A new function that will retry the original function
