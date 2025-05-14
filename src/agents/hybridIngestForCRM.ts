@@ -187,9 +187,6 @@ async function browserAutomationFallback(
     // Wait for report download
     console.log('[INFO] Successfully authenticated, downloading report...');
     
-    // Create sample report for testing
-    const reportFileName = `${platform}_report_${Date.now()}.csv`;
-    
     // In a real implementation, this would navigate to the reports section and download
     // For now, create a sample report
     return createSampleReport(platform);
