@@ -4,8 +4,8 @@
  * This service handles fetching and processing emails from multiple CRM vendors
  * with configurable pattern matching and extraction strategies.
  */
-
 import fs from 'fs';
+import { getErrorMessage, isError } from '../utils/errorUtils.js';
 import path from 'path';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
@@ -22,20 +22,16 @@ import {
   ProcessedReport,
   VendorEmailResult,
   EmailCheckResult,
-} from '../types/email';
-
+} from '../types/email.js';
 interface SampleRecord {
   [key: string]: string | number;
 }
-
 interface SampleVendorData {
   records: SampleRecord[];
 }
-
 interface VendorConfigs {
   [vendor: string]: VendorConfig;
 }
-
 // Sample vendor data for testing
 const sampleVendorData: Record<string, SampleVendorData> = {
   VinSolutions: {
@@ -160,7 +156,6 @@ const sampleVendorData: Record<string, SampleVendorData> = {
     ],
   },
 };
-
 // Default vendor configurations
 const defaultVendorConfigs: VendorConfigs = {
   VinSolutions: {
@@ -207,18 +202,15 @@ const defaultVendorConfigs: VendorConfigs = {
     },
   },
 };
-
 /**
  * Check emails from all configured vendors
  */
 export async function checkEmailsFromAllVendors(): Promise<EmailCheckResult> {
   try {
     console.log('Checking emails from all configured vendors...');
-
     // Load configuration
     const config = await loadVendorConfig();
     const vendors = Object.keys(config.vendors || {});
-
     if (vendors.length === 0) {
       return {
         success: false,
@@ -227,20 +219,16 @@ export async function checkEmailsFromAllVendors(): Promise<EmailCheckResult> {
         processedReports: [],
       };
     }
-
     console.log(`Found ${vendors.length} configured vendors: ${vendors.join(', ')}`);
-
     // If using sample data, skip actual email checking
     if (process.env.USE_SAMPLE_DATA === 'true') {
       console.log('Using sample data for testing');
-
       const results: EmailCheckResult = {
         success: true,
         message: 'Sample data processed',
         totalProcessed: 0,
         processedReports: [],
       };
-
       // Process each vendor with sample data
       for (const vendor of vendors) {
         if (sampleVendorData[vendor]) {
@@ -257,15 +245,12 @@ export async function checkEmailsFromAllVendors(): Promise<EmailCheckResult> {
           }
         }
       }
-
       return results;
     }
-
     // Process emails for each vendor
     const allResults = await Promise.all(
       vendors.map((vendor) => processVendorEmails(vendor, config.vendors[vendor]))
     );
-
     // Combine results
     return {
       success: true,
@@ -274,16 +259,17 @@ export async function checkEmailsFromAllVendors(): Promise<EmailCheckResult> {
       processedReports: allResults.flatMap((r) => r.processedReports || []),
     };
   } catch (error) {
-    console.error('Error checking emails from all vendors:', error);
+    // Use type-safe error handling
+    const errorMessage = getErrorMessage(error);
+    console.error('Error checking emails from all vendors:', errorMessage);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: errorMessage,
       totalProcessed: 0,
       processedReports: [],
     };
   }
 }
-
 /**
  * Process emails for a specific vendor
  */
@@ -293,19 +279,15 @@ async function processVendorEmails(
 ): Promise<VendorEmailResult> {
   try {
     console.log(`Processing emails for vendor: ${vendor}`);
-
     if (!vendorConfig) {
       return { success: false, message: 'No vendor configuration found', processedReports: [] };
     }
-
     // Get email configuration from environment
     const emailConfig = getEmailConfig();
-
     if (!emailConfig.valid) {
       console.error('Invalid email configuration. Check environment variables.');
       return { success: false, message: 'Invalid email configuration', processedReports: [] };
     }
-
     // Connect to mailbox
     const client = new ImapFlow({
       host: emailConfig.host,
@@ -316,40 +298,29 @@ async function processVendorEmails(
         pass: emailConfig.pass,
       },
     });
-
     await client.connect();
-
     // Select the mailbox
     const lock = await client.getMailboxLock('INBOX');
-
     try {
       // Build search criteria
       const searchCriteria = buildSearchCriteria(vendorConfig.emailPatterns);
-
       // Search for matching emails
       const messages = await client.search(searchCriteria);
-
       console.log(`Found ${messages.length} matching emails for ${vendor}`);
-
       if (messages.length === 0) {
         return { success: true, message: 'No matching emails found', processedReports: [] };
       }
-
       // Process each matching email
       const processedReports: ProcessedReport[] = [];
-
       for (const message of messages) {
         const emailData = await fetchEmail(client, message.seq);
-
         if (!emailData) {
           console.log(`Failed to fetch email #${message.seq}`);
           continue;
         }
-
         // Process attachments
         for (const attachment of emailData.attachments) {
           const reportData = await processAttachment(attachment, vendorConfig.extractorConfig);
-
           if (reportData && 'success' in reportData && reportData.success) {
             processedReports.push({
               vendor,
@@ -362,7 +333,6 @@ async function processVendorEmails(
           }
         }
       }
-
       return { success: true, message: 'Emails processed', processedReports };
     } finally {
       // Always release the mailbox lock
@@ -373,68 +343,56 @@ async function processVendorEmails(
     console.error(`Error processing emails for vendor ${vendor}:`, error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: getErrorMessage(error),
       processedReports: [],
     };
   }
 }
-
 /**
  * Build search criteria for IMAP search
  */
 function buildSearchCriteria(emailPatterns: EmailPattern): Record<string, any> {
   const criteria: any[] = [];
-
   // Add sender criteria if specified
   if (emailPatterns.fromAddresses && emailPatterns.fromAddresses.length > 0) {
     const fromOr = emailPatterns.fromAddresses.map((from) => ({ from }));
     criteria.push({ or: fromOr });
   }
-
   // Add subject criteria if specified
   if (emailPatterns.subjectPatterns && emailPatterns.subjectPatterns.length > 0) {
     const subjectOr = emailPatterns.subjectPatterns.map((subject) => ({ subject }));
     criteria.push({ or: subjectOr });
   }
-
   // Search for unseen messages with attachments
   criteria.push({ unseen: true });
   criteria.push({ hasAttachment: true });
-
   // Default to last 30 days if no criteria specified
   if (criteria.length === 0) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     criteria.push({ since: thirtyDaysAgo });
   }
-
   return { and: criteria };
 }
-
 /**
  * Fetch the content of a single email
  */
 async function fetchEmail(client: ImapFlow, seq: number): Promise<EmailData | null> {
   try {
     const message = await client.fetchOne(seq, { source: true });
-
     if (!message) {
       return null;
     }
-
     // Parse email content
     const parsed = await simpleParser(message.source);
-
     // Extract attachments
     const attachments: EmailAttachment[] = [];
-
     if (parsed.attachments && parsed.attachments.length > 0) {
       for (const attachment of parsed.attachments) {
         const fileExt = path
           .extname(attachment.filename || '')
           .toLowerCase()
           .substring(1);
-
         attachments.push({
           filename: attachment.filename || '',
           contentType: attachment.contentType,
@@ -443,7 +401,6 @@ async function fetchEmail(client: ImapFlow, seq: number): Promise<EmailData | nu
         });
       }
     }
-
     return {
       messageId: parsed.messageId || uuidv4(),
       subject: parsed.subject || '',
@@ -456,7 +413,6 @@ async function fetchEmail(client: ImapFlow, seq: number): Promise<EmailData | nu
     return null;
   }
 }
-
 interface AttachmentResult {
   success: boolean;
   reportId?: string;
@@ -464,7 +420,6 @@ interface AttachmentResult {
   recordCount?: number;
   message?: string;
 }
-
 /**
  * Process an email attachment based on configured extractor
  */
@@ -475,30 +430,23 @@ async function processAttachment(
   try {
     // Check if attachment matches expected type
     const fileExt = attachment.extension;
-
     if (!fileExt) {
       return { success: false, message: 'Unable to determine attachment file type' };
     }
-
     // Create a unique report ID
     const reportId = uuidv4();
-
     // Create downloads directory if it doesn't exist
     const downloadsDir = './downloads';
     if (!fs.existsSync(downloadsDir)) {
       fs.mkdirSync(downloadsDir, { recursive: true });
     }
-
     // Save attachment to file
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `${reportId}_${timestamp}.${fileExt}`;
     const filePath = path.join(downloadsDir, fileName);
-
     fs.writeFileSync(filePath, attachment.content);
-
     // Parse the file content based on type
     let records: any[] = [];
-
     if (fileExt === 'csv') {
       records = await parseCsvFile(filePath, extractorConfig);
     } else if (fileExt === 'xlsx' || fileExt === 'xls') {
@@ -508,7 +456,6 @@ async function processAttachment(
     } else {
       return { success: false, message: `Unsupported file type: ${fileExt}` };
     }
-
     return {
       success: true,
       reportId,
@@ -516,11 +463,12 @@ async function processAttachment(
       recordCount: records.length,
     };
   } catch (error) {
-    console.error('Error processing attachment:', error);
-    return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
+    // Use type-safe error handling
+    const errorMessage = getErrorMessage(error);
+    console.error('Error processing attachment:', errorMessage);
+    return { success: false, message: errorMessage };
   }
 }
-
 /**
  * Parse a CSV file based on extractor configuration
  */
@@ -528,25 +476,20 @@ async function parseCsvFile(filePath: string, extractorConfig: ExtractorConfig):
   try {
     // Read file content
     const content = fs.readFileSync(filePath, 'utf8');
-
     // Parse CSV
     const csvOptions = {
       columns: true,
       skip_empty_lines: true,
       trim: true,
     };
-
     const records = csvParse(content, csvOptions);
-
     console.log(`Parsed ${records.length} records from CSV file: ${filePath}`);
-
     return records;
   } catch (error) {
     console.error('Error parsing CSV file:', error);
     throw error;
   }
 }
-
 /**
  * Parse an Excel file based on extractor configuration
  */
@@ -555,43 +498,33 @@ async function parseExcelFile(filePath: string, extractorConfig: ExtractorConfig
     // Load workbook
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
-
     const allRecords: any[] = [];
-
     // Determine which sheets to process
     const sheetsToProcess = extractorConfig.sheets || [];
-
     // If no specific sheets are specified, process all sheets
     if (sheetsToProcess.length === 0) {
       workbook.eachSheet((sheet) => {
         sheetsToProcess.push(sheet.name);
       });
     }
-
     // Process each sheet
     for (const sheetName of sheetsToProcess) {
       const sheet = workbook.getWorksheet(sheetName);
-
       if (!sheet) {
         console.warn(`Sheet not found: ${sheetName}`);
         continue;
       }
-
       // Get headers from the first row
       const headers: string[] = [];
       sheet.getRow(1).eachCell((cell) => {
         headers.push(cell.value?.toString() || '');
       });
-
       // Process rows
       const sheetRecords: any[] = [];
-
       sheet.eachRow((row, rowNumber) => {
         // Skip header row
         if (rowNumber === 1) return;
-
         const record: Record<string, any> = {};
-
         // Map values to headers
         row.eachCell((cell, colNumber) => {
           if (colNumber <= headers.length) {
@@ -599,23 +532,18 @@ async function parseExcelFile(filePath: string, extractorConfig: ExtractorConfig
             record[header] = cell.value;
           }
         });
-
         sheetRecords.push(record);
       });
-
       console.log(`Parsed ${sheetRecords.length} records from sheet: ${sheetName}`);
-
       // Add sheet records to all records
       allRecords.push(...sheetRecords);
     }
-
     return allRecords;
   } catch (error) {
     console.error('Error parsing Excel file:', error);
     throw error;
   }
 }
-
 /**
  * Parse a PDF file based on extractor configuration
  */
@@ -623,37 +551,28 @@ async function parsePdfFile(filePath: string, extractorConfig: ExtractorConfig):
   try {
     // Read file content
     const dataBuffer = fs.readFileSync(filePath);
-
     // Parse PDF
     const pdfData = await parsePdf(dataBuffer);
-
     // For PDFs, we need more advanced parsing strategies
     // This is a simplified implementation - in a real system,
     // you'd need more sophisticated table extraction
-
     // Basic approach: split by lines and look for patterns
     const lines = pdfData.text.split('\n').filter((line) => line.trim().length > 0);
-
     // Simple heuristic: look for lines that might be table rows
     // (e.g., contain multiple numerical values or match certain patterns)
     const possibleRecords: string[][] = [];
-
     for (const line of lines) {
       // Skip headers or footers
       if (line.toLowerCase().includes('page') || line.toLowerCase().includes('report')) {
         continue;
       }
-
       // Look for lines with multiple values (simple heuristic)
       const values = line.split(/\s{2,}/).filter((v) => v.trim().length > 0);
-
       if (values.length >= 3) {
         possibleRecords.push(values);
       }
     }
-
     console.log(`Extracted ${possibleRecords.length} potential records from PDF: ${filePath}`);
-
     // This is where you'd implement more sophisticated PDF table extraction
     // For now, we return an array with the raw text for further processing
     return [{ rawText: pdfData.text, extractedLines: possibleRecords }];
@@ -662,7 +581,6 @@ async function parsePdfFile(filePath: string, extractorConfig: ExtractorConfig):
     throw error;
   }
 }
-
 interface EmailConfig {
   host: string;
   port: number;
@@ -671,7 +589,6 @@ interface EmailConfig {
   pass: string;
   valid: boolean;
 }
-
 /**
  * Get email configuration from environment variables
  */
@@ -684,50 +601,40 @@ function getEmailConfig(): EmailConfig {
     pass: process.env.EMAIL_PASS || '',
     valid: false,
   };
-
   config.valid = Boolean(config.host && config.user && config.pass);
-
   return config;
 }
-
 interface MultiVendorConfig {
   vendors: VendorConfigs;
 }
-
 /**
  * Load vendor configuration from file or create default
  */
 async function loadVendorConfig(): Promise<MultiVendorConfig> {
   try {
     const configPath = path.join(process.cwd(), 'configs', 'multi-vendor.json');
-
     // Check if config file exists
     if (fs.existsSync(configPath)) {
       const configText = fs.readFileSync(configPath, 'utf8');
       return JSON.parse(configText);
     }
-
     // Create default configuration
     const defaultConfig = {
       vendors: defaultVendorConfigs,
     };
-
     // Create configs directory if it doesn't exist
     const configsDir = path.dirname(configPath);
     if (!fs.existsSync(configsDir)) {
       fs.mkdirSync(configsDir, { recursive: true });
     }
-
     // Save default configuration
     fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
-
     return defaultConfig;
   } catch (error) {
     console.error('Error loading vendor configuration:', error);
     return { vendors: defaultVendorConfigs };
   }
 }
-
 interface SampleDataResult {
   success: boolean;
   reportId: string;
@@ -736,48 +643,38 @@ interface SampleDataResult {
   recordCount: number;
   message?: string;
 }
-
 /**
  * Create sample report data for testing
  */
 async function createSampleReportData(vendor: string): Promise<SampleDataResult> {
   try {
     console.log(`Creating sample report data for ${vendor}...`);
-
     if (!sampleVendorData[vendor]) {
       throw new Error(`No sample data available for vendor: ${vendor}`);
     }
-
     // Create a unique report ID
     const reportId = uuidv4();
-
     // Create downloads directory if it doesn't exist
     const downloadsDir = './downloads';
     if (!fs.existsSync(downloadsDir)) {
       fs.mkdirSync(downloadsDir, { recursive: true });
     }
-
     // Create sample CSV file
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `${vendor}_${timestamp}.csv`;
     const filePath = path.join(downloadsDir, fileName);
-
     // Extract keys from first record
     const headers = Object.keys(sampleVendorData[vendor].records[0]).join(',');
-
     // Convert each record to CSV row
     const rows = sampleVendorData[vendor].records.map((record) =>
       Object.values(record)
         .map((v) => (typeof v === 'string' ? `"${v}"` : v))
         .join(',')
     );
-
     // Write CSV file
     const csvContent = [headers, ...rows].join('\n');
     fs.writeFileSync(filePath, csvContent);
-
     console.log(`Sample ${vendor} report saved to ${filePath}`);
-
     return {
       success: true,
       reportId,
@@ -793,11 +690,10 @@ async function createSampleReportData(vendor: string): Promise<SampleDataResult>
       vendor,
       filePath: '',
       recordCount: 0,
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: getErrorMessage(error),
     };
   }
 }
-
 export default {
   checkEmailsFromAllVendors,
   processVendorEmails,

@@ -42,7 +42,15 @@ if (process.env.NODE_ENV === 'development') {
   streams.push({ level: 'debug' as Level, stream: pretty });
 }
 // Create logger instance with multiple streams
-const logger: Logger = pino(baseOptions, pino.multistream(streams)) as Logger;
+const logger: Logger = pino(
+  streams.length > 0
+    ? {
+        ...baseOptions,
+        // @ts-ignore - pino transport type issue
+        transport: { targets: streams.map(s => ({ ...s })) }
+      }
+    : baseOptions
+);
 // Add error context formatter
 export function formatError(error: unknown) {
   return {

@@ -5,9 +5,7 @@
  * with validation and normalization using Zod schemas.
  */
 import fs from 'fs';
-import { getErrorMessage } from '...';
-import { getErrorMessage } from '....js';
-import { isError } from '../utils/errorUtils.js';
+import { getErrorMessage } from '../utils/errorUtils.js';
 import path from 'path';
 import { parse as csvParse } from 'csv-parse/sync';
 import ExcelJS from 'exceljs';
@@ -39,10 +37,7 @@ export interface ParserResult {
     [key: string]: any;
   };
 }
-// Add error type guard
-function isError(error: unknown): error is Error {
-  return error instanceof Error;
-}
+// Using isError from errorUtils.js
 /**
  * Parse a CSV file
  * @param filePath - Path to the CSV file
@@ -82,58 +77,29 @@ export async function parseCSV(
       },
       'Parsed CSV records'
     );
+    const metadata: ParserResult['metadata'] = {
+      fileType: FileType.CSV,
+      fileName: path.basename(filePath),
+      parseDate: new Date().toISOString(),
+      ...(options.vendor ? { vendor: options.vendor } : {}),
+      ...(options.reportType ? { reportType: options.reportType } : {}),
+    };
     return {
       id: uuidv4(),
       records,
       recordCount: records.length,
-      metadata: {
-        fileType: FileType.CSV,
-        fileName: path.basename(filePath),
-        parseDate: new Date().toISOString(),
-        vendor: options.vendor,
-        reportType: options.reportType,
-      },
+      metadata,
     };
   } catch (error) {
     // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
-    const message = isError(error)
-      ? isError(error)
-        ? error instanceof Error
-          ? isError(error)
-            ? error instanceof Error
-              ? error.message
-              : String(error)
-            : String(error)
-          : String(error)
-        : String(error)
-      : 'Unknown error parsing CSV file';
-    const stack = isError(error)
-      ? error instanceof Error
-        ? error instanceof Error
-          ? error.stack
-          : undefined
-        : undefined
-      : undefined;
+    const errorMessage = getErrorMessage(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+
     logger.error(
       {
         event: 'error_parsing_csv',
         file: filePath,
-        errorMessage: message,
+        errorMessage,
         stack,
         timestamp: new Date().toISOString(),
       },
@@ -228,59 +194,29 @@ export async function parseXLSX(
       },
       'Parsed Excel records'
     );
+    const metadata: ParserResult['metadata'] = {
+      fileType: FileType.XLSX,
+      fileName: path.basename(filePath),
+      parseDate: new Date().toISOString(),
+      sheets: sheetsToProcess,
+      ...(options.vendor ? { vendor: options.vendor } : {}),
+      ...(options.reportType ? { reportType: options.reportType } : {}),
+    };
     return {
       id: uuidv4(),
       records,
       recordCount: records.length,
-      metadata: {
-        fileType: FileType.XLSX,
-        fileName: path.basename(filePath),
-        parseDate: new Date().toISOString(),
-        vendor: options.vendor,
-        reportType: options.reportType,
-        sheets: sheetsToProcess,
-      },
+      metadata,
     };
   } catch (error) {
     // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
-    const message = isError(error)
-      ? isError(error)
-        ? error instanceof Error
-          ? isError(error)
-            ? error instanceof Error
-              ? error.message
-              : String(error)
-            : String(error)
-          : String(error)
-        : String(error)
-      : 'Unknown error parsing Excel file';
-    const stack = isError(error)
-      ? error instanceof Error
-        ? error instanceof Error
-          ? error.stack
-          : undefined
-        : undefined
-      : undefined;
+    const errorMessage = getErrorMessage(error);
+    const stack = error instanceof Error ? error.stack : undefined;
     logger.error(
       {
         event: 'error_parsing_excel',
         file: filePath,
-        errorMessage: message,
+        errorMessage,
         stack,
         timestamp: new Date().toISOString(),
       },
@@ -335,59 +271,29 @@ export async function parsePDF(
       },
       'Parsed PDF records'
     );
+    const metadata: ParserResult['metadata'] = {
+      fileType: FileType.PDF,
+      fileName: path.basename(filePath),
+      parseDate: new Date().toISOString(),
+      pageCount: pdfData.numpages,
+      ...(options.vendor ? { vendor: options.vendor } : {}),
+      ...(options.reportType ? { reportType: options.reportType } : {}),
+    };
     return {
       id: uuidv4(),
       records,
       recordCount: records.length,
-      metadata: {
-        fileType: FileType.PDF,
-        fileName: path.basename(filePath),
-        parseDate: new Date().toISOString(),
-        vendor: options.vendor,
-        reportType: options.reportType,
-        pageCount: pdfData.numpages,
-      },
+      metadata,
     };
   } catch (error) {
     // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
-    const message = isError(error)
-      ? isError(error)
-        ? error instanceof Error
-          ? isError(error)
-            ? error instanceof Error
-              ? error.message
-              : String(error)
-            : String(error)
-          : String(error)
-        : String(error)
-      : 'Unknown error parsing PDF file';
-    const stack = isError(error)
-      ? error instanceof Error
-        ? error instanceof Error
-          ? error.stack
-          : undefined
-        : undefined
-      : undefined;
+    const errorMessage = getErrorMessage(error);
+    const stack = error instanceof Error ? error.stack : undefined;
     logger.error(
       {
         event: 'error_parsing_pdf',
         file: filePath,
-        errorMessage: message,
+        errorMessage,
         stack,
         timestamp: new Date().toISOString(),
       },
@@ -459,27 +365,13 @@ function extractTabularDataFromPDF(text: string): Record<string, any>[] {
     return records;
   } catch (error) {
     // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
+    const stack = error instanceof Error ? error.stack : undefined;
     logger.error(
       {
         event: 'error_extracting_pdf_table',
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack,
         timestamp: new Date().toISOString(),
       },
       'Error extracting tabular data from PDF'
