@@ -5,84 +5,85 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from './Button';
 import Input from './Input';
+import { useForm, validationRules } from '@/hooks/useForm';
+import FormWrapper from './Form/FormWrapper';
 
 interface EmailNotificationFormProps {
   defaultEmail?: string;
 }
 
+interface EmailFormValues {
+  email: string;
+}
+
 export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotificationFormProps) {
   const router = useRouter();
-  const [email, setEmail] = useState(defaultEmail);
-  const [error, setError] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState<'notifications' | 'execution'>('notifications');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const {
+    values,
+    errors,
+    formError,
+    isSubmitting,
+    handleChange,
+    handleSubmit,
+    setFormError
+  } = useForm<EmailFormValues>({
+    initialValues: {
+      email: defaultEmail,
+    },
+    validationRules: {
+      email: [
+        validationRules.required('Please enter an email address'),
+        validationRules.email('Please enter a valid email address'),
+      ],
+    },
+    onSubmit: async (values) => {
+      setStatus('sending');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Reset states
-    setError('');
-    
-    // Validate email
-    if (!email) {
-      setError('Please enter an email address');
-      return;
-    }
-    
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    
-    // Set loading state
-    setStatus('sending');
-    
-    try {
-      // In a development/demo environment, we'll simulate a successful API call
-      // This allows testing the UI without an actual backend connection
-      
-      // Uncomment this for actual API integration
-      // const response = await fetch('/api/emails/test', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ recipientEmail: email }),
-      // });
-      // 
-      // const data = await response.json();
-      // 
-      // if (response.ok) {
-      //   setStatus('sent');
-      //   // Reset to idle after 3 seconds
-      //   setTimeout(() => setStatus('idle'), 3000);
-      // } else {
-      //   setStatus('error');
-      //   setError(data.message || 'Failed to send test email');
-      // }
-      
-      // Simulate API call for demo purposes
-      console.log(`Demo mode: Would send email to ${email}`);
-      
-      // Simulate a short delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate success
-      setStatus('sent');
-      
-      // Reset to idle after 3 seconds
-      setTimeout(() => setStatus('idle'), 3000);
-    } catch (err) {
-      setStatus('error');
-      setError('An error occurred while sending the test email');
-      console.error('Error sending test email:', err);
-    }
-  };
+      try {
+        // In a development/demo environment, we'll simulate a successful API call
+        // This allows testing the UI without an actual backend connection
+
+        // Uncomment this for actual API integration
+        // const response = await fetch('/api/emails/test', {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //   },
+        //   body: JSON.stringify({ recipientEmail: values.email }),
+        // });
+        //
+        // const data = await response.json();
+        //
+        // if (response.ok) {
+        //   setStatus('sent');
+        //   // Reset to idle after 3 seconds
+        //   setTimeout(() => setStatus('idle'), 3000);
+        // } else {
+        //   setStatus('error');
+        //   throw new Error(data.message || 'Failed to send test email');
+        // }
+
+        // Simulate API call for demo purposes
+        console.log(`Demo mode: Would send email to ${values.email}`);
+
+        // Simulate a short delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Simulate success
+        setStatus('sent');
+
+        // Reset to idle after 3 seconds
+        setTimeout(() => setStatus('idle'), 3000);
+      } catch (err) {
+        setStatus('error');
+        setFormError(err instanceof Error ? err.message : 'An error occurred while sending the test email');
+        console.error('Error sending test email:', err);
+      }
+    },
+  });
 
   return (
     <div className="bg-white rounded-lg shadow-md">
@@ -90,7 +91,7 @@ export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotifi
         <h2 className="text-xl font-semibold mb-4 text-primary-600">
           Workflow Email Notification System
         </h2>
-        
+
         {/* Tabs */}
         <div className="flex border-b mb-6">
           <button
@@ -116,7 +117,7 @@ export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotifi
             Task Execution
           </button>
         </div>
-        
+
         {activeTab === 'notifications' && (
           <div className="max-w-md mx-auto">
             {status === 'sent' && (
@@ -124,56 +125,40 @@ export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotifi
                 Test email sent successfully!
               </div>
             )}
-            
-            {status === 'error' && (
-              <div className="bg-red-50 text-red-800 p-3 rounded mb-4">
-                {error || 'Failed to send test email'}
-              </div>
-            )}
-            
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Recipient Email:
-                </label>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {formError && (
+                <div className="bg-red-50 text-red-800 p-3 rounded">
+                  {formError}
+                </div>
+              )}
+
+              <div>
                 <Input
-                  id="email"
+                  label="Recipient Email"
+                  name="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={values.email}
+                  onChange={handleChange}
                   placeholder="user@example.com"
-                  className={error ? 'border-red-500' : ''}
-                  aria-invalid={!!error}
-                  aria-describedby={error ? 'email-error' : undefined}
+                  error={errors.email}
+                  required
                 />
-                {error && (
-                  <p id="email-error" className="mt-1 text-sm text-red-600">
-                    {error}
-                  </p>
-                )}
               </div>
-              
+
               <Button
                 type="submit"
                 variant="primary"
                 className="w-full"
-                disabled={status === 'sending'}
+                isLoading={isSubmitting || status === 'sending'}
               >
-                {status === 'sending' ? (
-                  <div className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Sending...
-                  </div>
-                ) : 'Send Test Email'}
+                {isSubmitting || status === 'sending' ? 'Sending...' : 'Send Test Email'}
               </Button>
             </form>
-            
+
             <div className="mt-6 pt-5 border-t border-gray-200">
-              <Link 
-                href="/email-logs" 
+              <Link
+                href="/email-logs"
                 className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
               >
                 View Email Logs
@@ -184,7 +169,7 @@ export default function EmailNotificationForm({ defaultEmail = '' }: EmailNotifi
             </div>
           </div>
         )}
-        
+
         {activeTab === 'execution' && (
           <div className="flex flex-col items-center justify-center py-8">
             <p className="text-gray-500 mb-4">No active tasks available</p>
