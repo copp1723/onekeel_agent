@@ -2,9 +2,43 @@
 
 This document provides detailed information about configuring the AgentFlow application, including environment variables, configuration files, and validation rules.
 
+## Configuration System
+
+AgentFlow uses a centralized, type-safe configuration system with validation using Zod schemas and support for different environments (development, test, production).
+
+### Configuration Structure
+
+The configuration is organized into the following sections:
+
+- **Environment**: The current environment (development, test, production)
+- **Database**: Database connection settings
+- **Email**: Email service configuration for sending notifications
+- **OTP Email**: Email configuration for OTP retrieval
+- **Security**: Security-related settings (encryption, rate limiting, etc.)
+- **Server**: Web server configuration
+- **Application**: General application settings
+- **API Keys**: External API keys
+- **Redis**: Redis connection settings
+- **CRM Credentials**: Credentials for CRM platforms
+
+### Using the Configuration System
+
+```typescript
+// Import the entire configuration
+import config from '../config/index.js';
+
+// Or import specific sections
+import { database, email, security } from '../config/index.js';
+
+// Access configuration values
+const port = config.server.port;
+const dbUrl = config.database.url;
+const apiKey = config.apiKeys.openai;
+```
+
 ## Environment Variables
 
-AgentFlow uses environment variables for configuration. These can be set in a `.env` file in the project root or directly in the environment.
+AgentFlow uses environment variables for configuration. These can be set in a `.env` file in the project root or directly in the environment. The configuration system loads these variables, validates them, and provides type-safe access to them.
 
 ### Required Environment Variables
 
@@ -60,18 +94,45 @@ These variables are required for specific CRM platforms:
 
 ## Validation Rules
 
-The application validates environment variables at startup using the `envValidator` utility. The validation rules include:
+The application validates configuration values using Zod schemas. The validation rules include:
 
 1. **Required Variables**: Checks that all required variables are set
-2. **Default Values**: Warns if default values are used in production
-3. **Format Validation**: Validates the format of certain variables
-4. **Production Checks**: Applies stricter validation in production
+2. **Type Validation**: Ensures values have the correct type (string, number, boolean, etc.)
+3. **Format Validation**: Validates the format of certain variables (email, URL, etc.)
+4. **Default Values**: Warns if default values are used in production
+5. **Refinement Rules**: Applies additional validation rules to certain values
+6. **Production Checks**: Applies stricter validation in production
 
 ### Validation Behavior
 
-- In **development** mode, missing optional variables trigger warnings but allow startup
+- In **development** mode, missing optional variables use defaults and warnings are logged
 - In **production** mode, missing required variables or using default values for sensitive data causes the application to exit
 - In **test** mode, default test values are used for most variables
+
+### Schema Validation
+
+The configuration system uses Zod schemas to validate configuration values. For example:
+
+```typescript
+// Database configuration schema
+export const DatabaseConfigSchema = z.object({
+  url: z.string().url().optional(),
+  host: z.string().optional(),
+  port: z.coerce.number().optional(),
+  user: z.string().optional(),
+  password: z.string().optional(),
+  database: z.string().optional(),
+  ssl: z.boolean().default(false),
+  poolSize: z.coerce.number().min(1).default(10),
+  connectionTimeout: z.coerce.number().min(1000).default(30000),
+}).refine(
+  (data) => data.url || (data.host && data.user && data.database),
+  {
+    message: "Either 'url' or 'host', 'user', and 'database' must be provided",
+    path: ['url'],
+  }
+);
+```
 
 ## Configuration Files
 
@@ -131,9 +192,12 @@ Configures browser automation steps for each platform:
 
 3. For production, ensure all required variables are set and no default values are used for sensitive data.
 
-4. Validate your configuration:
-   ```bash
-   npm run validate-env
+4. The configuration is automatically validated when the application starts. If there are any validation errors, they will be logged and the application will exit in production mode.
+
+5. You can also manually validate the configuration by importing it:
+   ```typescript
+   import config from './src/config/index.js';
+   console.log('Configuration loaded successfully:', config.env);
    ```
 
 ## Configuration Best Practices
@@ -143,8 +207,22 @@ Configures browser automation steps for each platform:
 3. **Rotate API keys** periodically
 4. **Use environment-specific validation** to catch configuration issues early
 5. **Document all configuration changes** in your team's knowledge base
+6. **Use the type-safe configuration system** instead of accessing `process.env` directly
+7. **Add new configuration options** to the appropriate schema in `src/config/schema.ts`
+8. **Provide sensible defaults** for optional configuration values
+9. **Use refinement rules** for complex validation requirements
+10. **Keep configuration organized** by category (database, email, security, etc.)
 
 ## Troubleshooting Configuration Issues
+
+### Configuration Validation Errors
+
+If the application fails to start with configuration validation errors:
+
+1. Check the error message to identify which configuration values failed validation
+2. Verify that all required variables are set in your `.env` file
+3. Ensure that values have the correct format (e.g., valid URLs, email addresses, etc.)
+4. Check for type mismatches (e.g., string vs. number)
 
 ### Missing Environment Variables
 
@@ -179,3 +257,12 @@ If the application fails to connect to the database:
    ```bash
    psql "postgresql://user:password@localhost:5432/dbname"
    ```
+
+### Schema Validation Issues
+
+If you're adding new configuration options and encountering validation errors:
+
+1. Check that the schema in `src/config/schema.ts` matches your expectations
+2. Ensure that refinement rules are not too restrictive
+3. Verify that default values are valid according to the schema
+4. Add appropriate type coercion for numeric values (e.g., `z.coerce.number()` instead of `z.number()`)
