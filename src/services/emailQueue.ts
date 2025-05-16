@@ -97,10 +97,14 @@ class EmailQueueService {
             recipient: email.recipientEmail,
           });
         } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
           // Use type-safe error handling
           const errorMessage = isError(error)
             ? error instanceof Error
-              ? error.message
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
               : String(error)
             : String(error);
           // Use type-safe error handling
@@ -108,7 +112,7 @@ class EmailQueueService {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -128,7 +132,7 @@ class EmailQueueService {
                     ? error instanceof Error
                       ? isError(error)
                         ? error instanceof Error
-                          ? error.message
+                          ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                           : String(error)
                         : String(error)
                       : String(error)

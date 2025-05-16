@@ -2,7 +2,6 @@ import { runFlow, waitForOTP } from '../../agents/runFlow.js';
 import { checkEmailForOTP } from '../../utils/emailOTP.js';
 import logger from '../../utils/logger.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 // Mock the dependencies
 vi.mock('playwright-core', () => ({
   chromium: {

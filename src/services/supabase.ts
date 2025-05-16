@@ -1,5 +1,5 @@
 import { db } from '../shared/db.js';
-import { getErrorMessage } from '...';
+import { getErrorMessage } from '....js';
 import { getErrorMessage } from '....js';
 import { isError } from '../utils/errorUtils.js';
 import { apiKeys, dealerCredentials } from '../shared/schema.js';
@@ -27,10 +27,14 @@ export async function getApiKey(keyName: string): Promise<string | null> {
     const [result] = await db.select().from(apiKeys).where(eq(apiKeys.keyName, keyName));
     return result?.keyValue || null;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -38,7 +42,7 @@ export async function getApiKey(keyName: string): Promise<string | null> {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -49,7 +53,7 @@ export async function getApiKey(keyName: string): Promise<string | null> {
         keyName,
         errorMessage: isError(error) ? getErrorMessage(error) : String(error),
         stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+          error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined) : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error retrieving API key from Supabase'
@@ -71,10 +75,14 @@ export async function getDealerCredentials(dealerId: string): Promise<DealerCred
       .where(eq(dealerCredentials.dealerId!, dealerId));
     return result || null;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -82,7 +90,7 @@ export async function getDealerCredentials(dealerId: string): Promise<DealerCred
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -93,7 +101,7 @@ export async function getDealerCredentials(dealerId: string): Promise<DealerCred
         dealerId,
         errorMessage: isError(error) ? getErrorMessage(error) : String(error),
         stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+          error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined) : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error retrieving dealer credentials from Supabase'
@@ -119,10 +127,14 @@ export async function saveDealerCredentials(
       .returning();
     return result;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -130,7 +142,7 @@ export async function saveDealerCredentials(
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -141,7 +153,7 @@ export async function saveDealerCredentials(
         dealerId: credentials.dealerId!,
         errorMessage: isError(error) ? getErrorMessage(error) : String(error),
         stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+          error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined) : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error saving dealer credentials to Supabase'

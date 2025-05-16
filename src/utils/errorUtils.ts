@@ -1,26 +1,15 @@
-import { AppError } from '../types.js';
-import { getErrorMessage, getErrorStack } from '../utils/errorUtils.js';
-import { getErrorMessage, getErrorStack } from '../utils/errorUtils.js';
-import { isError } from '../utils/errorUtils.js';
 export interface ErrorWithMessage {
   message: string;
   stack?: string;
   name?: string;
 }
+
 /**
  * Type guard to check if an error is an instance of AppError
- * @param error The error to check
- * @returns True if the error is an AppError
+ * This delegates to the implementation in errorTypes.js
  */
-export function isAppError(error: unknown): error is AppError {
-  return (
-    error !== null &&
-    typeof error === 'object' &&
-    'isOperational' in error &&
-    'code' in error &&
-    'statusCode' in error
-  );
-}
+export { isAppError } from '../shared/errorTypes.js';
+
 export function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
   return (
     typeof error === 'object' &&
@@ -29,6 +18,7 @@ export function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
     typeof (error as Record<string, unknown>).message === 'string'
   );
 }
+
 export function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
   if (isErrorWithMessage(maybeError)) return maybeError;
   try {
@@ -38,44 +28,37 @@ export function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
     return new Error(String(maybeError));
   }
 }
+
 /**
  * Type guard to check if an object is an Error
- * @param error The object to check
- * @returns True if the object is an Error
  */
 export function isError(error: unknown): error is Error {
   return error instanceof Error;
 }
+
 export function getErrorMessage(error: unknown): string {
   if (isError(error)) {
-    return error instanceof Error
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
+    return error.message;
   }
   return toErrorWithMessage(error).message;
 }
+
 export function getErrorStack(error: unknown): string | undefined {
   if (isError(error)) {
-    return error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined;
+    return error.stack;
   }
-  return isErrorWithMessage(error)
-    ? error instanceof Error
-      ? error instanceof Error
-        ? error.stack
-        : undefined
-      : undefined
-    : undefined;
+  if (isErrorWithMessage(error)) {
+    return error.stack;
+  }
+  return undefined;
 }
+
 export function isCircuitOpenError(error: unknown): boolean {
   return isErrorWithMessage(error) && error.name === 'CircuitOpenError';
 }
+
 /**
  * Create a type-safe error object for logging
- * @param error The error object
- * @param context Additional context for the error
- * @returns An object with error details for logging
  */
 export function createErrorLogObject(
   error: unknown,

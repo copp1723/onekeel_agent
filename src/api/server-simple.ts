@@ -1,14 +1,17 @@
-import express from 'express';
-import { isError } from '../utils/errorUtils.js';
+import express, { Request, Response, NextFunction } from 'express';
+import { isError, getErrorMessage } from '../utils/errorUtils.js';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { logTask, getTaskLogs } from '../shared/logger.js';
 import { TaskType } from '../types.js';
+
 // Load environment variables
 dotenv.config();
+
 // Initialize Express app
 const app = express();
 app.use(express.json());
+
 // Simple in-memory task storage as fallback
 const taskLogs: Record<
   string,
@@ -23,6 +26,7 @@ const taskLogs: Record<
     completedAt?: string;
   }
 > = {};
+
 // API endpoint for submitting new tasks (Phase 2)
 app.post('/api/tasks', async (req: Request, res: Response) => {
   try {
@@ -66,10 +70,12 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
       }).catch((err) => console.error('Failed to log completion to database:', err));
     }, 2000);
   } catch (error) {
-    console.error('Error submitting task:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const errorMessage = getErrorMessage(error);
+    console.error('Error submitting task:', errorMessage);
+    res.status(500).json({ error: errorMessage });
   }
 });
+
 // API endpoint to get task status and results
 app.get('/api/tasks/:taskId', (req, res) => {
   const { taskId } = req.params;
@@ -78,6 +84,7 @@ app.get('/api/tasks/:taskId', (req, res) => {
   }
   res.status(200).json(taskLogs[taskId]);
 });
+
 // API endpoint to list all tasks
 app.get('/api/tasks', async (_req, res) => {
   try {
@@ -89,12 +96,14 @@ app.get('/api/tasks', async (_req, res) => {
     const allTasks = [...memoryTasks];
     res.status(200).json(allTasks);
   } catch (error) {
-    console.error('Error fetching tasks:', error);
+    const errorMessage = getErrorMessage(error);
+    console.error('Error fetching tasks:', errorMessage);
     // Fall back to just in-memory tasks
     const tasks = Object.values(taskLogs);
     res.status(200).json(tasks);
   }
 });
+
 // API endpoint for direct task execution (Phase 3)
 app.post('/submit-task', async (req: Request, res: Response) => {
   try {
@@ -150,37 +159,15 @@ app.post('/submit-task', async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
-    console.error('Error in submit-task endpoint:', error);
+    const errorMessage = getErrorMessage(error);
+    console.error('Error in submit-task endpoint:', errorMessage);
     return res.status(500).json({
       success: false,
-      error: isError(error)
-        ? error instanceof Error
-          ? isError(error)
-            ? error instanceof Error
-              ? error.message
-              : String(error)
-            : String(error)
-          : String(error)
-        : String(error) || 'Internal server error',
+      error: errorMessage || 'Internal server error',
     });
   }
 });
+
 // API health check endpoint
 app.get('/health', (_req, res) => {
   res.status(200).json({
@@ -189,6 +176,7 @@ app.get('/health', (_req, res) => {
     message: 'API server is running',
   });
 });
+
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

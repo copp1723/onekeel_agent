@@ -111,10 +111,14 @@ export async function sendEmail(options: EmailSendOptions): Promise<EmailLog> {
       .where(eq(emailLogs.id, logId.toString()));
     return updatedLog;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -122,7 +126,7 @@ export async function sendEmail(options: EmailSendOptions): Promise<EmailLog> {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -136,7 +140,7 @@ export async function sendEmail(options: EmailSendOptions): Promise<EmailLog> {
           ? error instanceof Error
             ? isError(error)
               ? error instanceof Error
-                ? error.message
+                ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                 : String(error)
               : String(error)
             : String(error)

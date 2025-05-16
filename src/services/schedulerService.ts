@@ -3,16 +3,30 @@
  * Manages and executes scheduled workflows based on cron expressions
  */
 import { db } from '../shared/db.js';
-import { getErrorMessage } from '...';
-import { getErrorMessage } from '....js';
-import { isError } from '../utils/errorUtils.js';
-import { schedules, taskLogs } from '....js';
+import { getErrorMessage } from '../utils/errorUtils.js';
+import { schedules, taskLogs } from '../shared/schema.js';
 import { runWorkflow, getWorkflow } from './workflowService.js';
-import { eq, and } from '....js';
+import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import cron from 'node-cron';
 import { enqueueJob } from './jobQueue.js';
 import logger from '../utils/logger.js';
+
+// Define Schedule type based on the database schema
+export interface Schedule {
+  id: string;
+  userId: string | null;
+  workflowId: string | null;
+  intent: string | null;
+  platform: string | null;
+  cron: string;
+  nextRunAt: Date | null;
+  lastRunAt: Date | null;
+  status: string;
+  enabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 // Map to keep track of active schedules and their node-cron tasks
 const activeSchedules = new Map<string, ReturnType<typeof cron.schedule>>();
 /**
@@ -64,45 +78,17 @@ export async function initializeScheduler(): Promise<void> {
         // Try to start the schedule
         await startSchedule(schedule);
       } catch (error) {
-        // Use type-safe error handling
-        const errorMessage = isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error);
-        // Use type-safe error handling
-        const errorMessage = isError(error)
-          ? error instanceof Error
-            ? isError(error)
-              ? error instanceof Error
-                ? error.message
-                : String(error)
-              : String(error)
-            : String(error)
-          : String(error);
+        let errorMessage = getErrorMessage(error);
         logger.error(
           {
             event: 'schedule_service_start_failed',
             scheduleId: schedule.id,
-            errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-            stack:
-              error instanceof Error
-                ? error instanceof Error
-                  ? error.stack
-                  : undefined
-                : undefined,
+            errorMessage,
+            stack: error instanceof Error ? error.stack : undefined,
             timestamp: new Date().toISOString(),
           },
           'Failed to start schedule'
         );
-        const errorMessage =
-          error instanceof Error
-            ? error instanceof Error
-              ? error instanceof Error
-                ? error.message
-                : String(error)
-              : String(error)
-            : String(error);
         startupErrors.push(`Schedule ${schedule.id}: ${errorMessage}`);
         // Continue with other schedules even if this one fails
       }
@@ -123,28 +109,12 @@ export async function initializeScheduler(): Promise<void> {
       );
     }
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'scheduler_service_init_error',
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error initializing scheduler service'
@@ -188,28 +158,12 @@ export async function createSchedule(
     }
     return newSchedule;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_create_error',
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error creating schedule'
@@ -228,29 +182,13 @@ export async function getSchedule(scheduleId: string): Promise<Schedule | undefi
       .where(eq(schedules.id, scheduleId.toString()));
     return schedule;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_get_error',
         scheduleId,
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error getting schedule'
@@ -265,28 +203,12 @@ export async function listSchedules(): Promise<Schedule[]> {
   try {
     return await db.select().from(schedules).orderBy(schedules.createdAt);
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_list_error',
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error listing schedules'
@@ -343,29 +265,13 @@ export async function updateSchedule(
     }
     return updatedSchedule;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_update_error',
         scheduleId,
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error updating schedule'
@@ -389,29 +295,13 @@ export async function deleteSchedule(scheduleId: string): Promise<boolean> {
       .returning();
     return !!deletedSchedule;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_delete_error',
         scheduleId,
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error deleting schedule'
@@ -454,8 +344,8 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
               {
                 event: 'schedule_service_execute_error',
                 scheduleId: schedule.id,
-                errorMessage: executionError.message,
-                stack: executionError.stack,
+                errorMessage: getErrorMessage(executionError),
+                stack: executionError instanceof Error ? executionError.stack : undefined,
                 timestamp: new Date().toISOString(),
               },
               'Error executing scheduled workflow'
@@ -480,8 +370,8 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
         {
           event: 'schedule_service_start_schedule_error',
           scheduleId: schedule.id,
-          errorMessage: cronError.message,
-          stack: cronError.stack,
+          errorMessage: getErrorMessage(cronError),
+          stack: cronError instanceof Error ? cronError.stack : undefined,
           timestamp: new Date().toISOString(),
         },
         'Failed to create cron job for schedule'
@@ -497,29 +387,13 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
       throw new Error(`Invalid cron expression or time value: ${schedule.cron}`);
     }
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_start_error',
         scheduleId: schedule.id,
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error starting schedule'
@@ -554,29 +428,13 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
       );
     }
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_stop_error',
         scheduleId,
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error stopping schedule'
@@ -631,8 +489,8 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
           event: 'schedule_service_task_log_insert_error',
           scheduleId: schedule.id,
           workflowId: schedule.workflowId!,
-          errorMessage: insertError.message,
-          stack: insertError.stack,
+          errorMessage: getErrorMessage(insertError),
+          stack: insertError instanceof Error ? insertError.stack : undefined,
           timestamp: new Date().toISOString(),
         },
         'Error inserting task log, trying alternative approach'
@@ -660,8 +518,8 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
             event: 'schedule_service_task_log_insert_error_second_attempt',
             scheduleId: schedule.id,
             workflowId: schedule.workflowId!,
-            errorMessage: secondError.message,
-            stack: secondError.stack,
+            errorMessage: getErrorMessage(secondError),
+            stack: secondError instanceof Error ? secondError.stack : undefined,
             timestamp: new Date().toISOString(),
           },
           'Second attempt at inserting task log failed'
@@ -682,30 +540,14 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
       'Scheduled workflow execution queued'
     );
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_execute_workflow_error',
         scheduleId: schedule.id,
         workflowId: schedule.workflowId!,
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error executing scheduled workflow'
@@ -760,29 +602,13 @@ export async function executeWorkflowById(workflowId: string): Promise<void> {
       await runWorkflow(workflowId);
     }
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    let errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'schedule_service_execute_workflow_by_id_error',
         workflowId,
-        errorMessage: isError(error) ? getErrorMessage(error) : String(error),
-        stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       },
       'Error executing workflow'

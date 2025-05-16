@@ -3,9 +3,10 @@ import { isError } from '../utils/errorUtils.js';
 import { ParsedMail, simpleParser } from 'mailparser';
 import * as nodemailer from 'nodemailer';
 import * as crypto from 'crypto';
-import { retry } from '....js';
-import { CircuitBreaker } from '....js';
-import { logger } from '../shared/logger.js';
+import { retry } from '../utils/retry.js';
+import { CircuitBreaker } from '../utils/circuitBreaker.js';
+import logger from '../shared/logger.js';
+
 interface EmailConfig {
   user: string;
   password: string;
@@ -13,12 +14,7 @@ interface EmailConfig {
   port: number;
   tls: boolean;
 }
-interface OTPEmail {
-  to: string;
-  subject: string;
-  otp: string;
-  expiresIn: number; // milliseconds
-}
+
 /**
  * Circuit breaker for SMTP operations
  */
@@ -28,6 +24,7 @@ const smtpCircuitBreaker = new CircuitBreaker('smtp-operations', {
   successThreshold: 2,
   inMemory: true,
 });
+
 export async function sendOTP(email: string, config: EmailConfig): Promise<string> {
   // Generate a random 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -103,6 +100,7 @@ export async function sendOTP(email: string, config: EmailConfig): Promise<strin
     );
   });
 }
+
 export function verifyOTP(inputOTP: string, hashedOTPWithExpiry: string): boolean {
   const [hashedOTP, expiryTimeStr] = hashedOTPWithExpiry.split(':');
   const expiryTime = parseInt(expiryTimeStr);
@@ -114,6 +112,7 @@ export function verifyOTP(inputOTP: string, hashedOTPWithExpiry: string): boolea
   const hashedInput = crypto.createHash('sha256').update(inputOTP).digest('hex');
   return hashedInput === hashedOTP;
 }
+
 // For checking emails for incoming OTP (useful for automation)
 /**
  * Configuration for email OTP retrieval with timeout
@@ -128,6 +127,7 @@ export interface EmailOTPConfig extends EmailConfig {
   /** Search criteria for finding OTP emails */
   searchCriteria?: any;
 }
+
 /**
  * Circuit breaker for IMAP operations
  */
@@ -140,6 +140,7 @@ const imapCircuitBreaker = new CircuitBreaker('imap-operations', {
     logger.info(`IMAP circuit breaker state changed from ${from} to ${to}`);
   },
 });
+
 /**
  * Checks emails for an OTP and returns it
  * @param config - Email configuration with optional timeout and pattern settings
@@ -268,33 +269,16 @@ export async function checkEmailForOTP(config: EmailOTPConfig): Promise<string |
       );
     });
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
-    // Handle circuit breaker errors
-    if (error.name === 'CircuitOpenError') {
-      logger.warn(
-        `IMAP circuit is open: ${isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
-      );
+    const errorMessage = isError(error) ? error.message : String(error);
+    if ((error as any)?.name === 'CircuitOpenError') {
+      logger.warn(`IMAP circuit is open: ${errorMessage}`);
     } else {
-      logger.error('Error in checkEmailForOTP:', error);
+      logger.error('Error in checkEmailForOTP:', errorMessage);
     }
     return null;
   }
 }
+
 /**
  * Retrieves an OTP from an email account with retry and circuit breaker protection
  *

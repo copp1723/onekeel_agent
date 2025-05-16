@@ -273,7 +273,7 @@ export async function runWorkflow(workflowId: string): Promise<Workflow> {
             error instanceof Error
               ? error instanceof Error
                 ? error instanceof Error
-                  ? error.message
+                  ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                   : String(error)
                 : String(error)
               : String(error),
@@ -289,10 +289,14 @@ export async function runWorkflow(workflowId: string): Promise<Workflow> {
       return failedWorkflow;
     }
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -300,7 +304,7 @@ export async function runWorkflow(workflowId: string): Promise<Workflow> {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -319,7 +323,7 @@ export async function runWorkflow(workflowId: string): Promise<Workflow> {
                 ? error instanceof Error
                   ? isError(error)
                     ? error instanceof Error
-                      ? error.message
+                      ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                       : String(error)
                     : String(error)
                   : String(error)

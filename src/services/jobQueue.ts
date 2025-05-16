@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { getErrorMessage } from '...';
+import { getErrorMessage } from '....js';
 import { getErrorMessage } from '....js';
 import { isError } from '../utils/errorUtils.js';
 /**
@@ -129,10 +129,14 @@ export async function initializeJobQueue() {
       'BullMQ initialized with Redis connection'
     );
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -140,7 +144,7 @@ export async function initializeJobQueue() {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -151,7 +155,7 @@ export async function initializeJobQueue() {
         event: 'redis_connection_failed',
         errorMessage: isError(error) ? getErrorMessage(error) : String(error),
         stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+          error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined) : undefined,
         timestamp: new Date().toISOString(),
       },
       'Redis connection failed, using in-memory job queue'
@@ -192,7 +196,7 @@ async function setupWorker() {
           error instanceof Error
             ? error instanceof Error
               ? error instanceof Error
-                ? error.message
+                ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                 : String(error)
               : String(error)
             : String(error);
@@ -215,7 +219,7 @@ async function setupWorker() {
           event: 'worker_init_failed',
           errorMessage: getErrorMessage(error),
           stack:
-            error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+            error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined) : undefined,
           timestamp: new Date().toISOString(),
         },
         'Failed to initialize BullMQ worker'
@@ -245,9 +249,13 @@ async function processInMemoryJobs() {
       job.updatedAt = new Date();
     } catch (error) {
       // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      // Use type-safe error handling
       const errorMessage = isError(error)
         ? error instanceof Error
-          ? error.message
+          ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
           : String(error)
         : String(error);
       // Use type-safe error handling
@@ -255,7 +263,7 @@ async function processInMemoryJobs() {
         ? error instanceof Error
           ? isError(error)
             ? error instanceof Error
-              ? error.message
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
               : String(error)
             : String(error)
           : String(error)
@@ -267,7 +275,7 @@ async function processInMemoryJobs() {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -339,10 +347,14 @@ async function processJob(jobId: string, data: any) {
     }
     return true;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -350,7 +362,7 @@ async function processJob(jobId: string, data: any) {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -361,7 +373,7 @@ async function processJob(jobId: string, data: any) {
         jobId,
         errorMessage: isError(error) ? getErrorMessage(error) : String(error),
         stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+          error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined) : undefined,
         timestamp: new Date().toISOString(),
       },
       `Error processing job ${jobId}`
@@ -376,7 +388,7 @@ async function processJob(jobId: string, data: any) {
             error instanceof Error
               ? error instanceof Error
                 ? error instanceof Error
-                  ? error.message
+                  ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                   : String(error)
                 : String(error)
               : String(error),
@@ -549,10 +561,14 @@ export async function retryJob(jobId: string): Promise<boolean> {
     }
     return true;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -560,7 +576,7 @@ export async function retryJob(jobId: string): Promise<boolean> {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -571,7 +587,7 @@ export async function retryJob(jobId: string): Promise<boolean> {
         jobId,
         errorMessage: isError(error) ? getErrorMessage(error) : String(error),
         stack:
-          error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined,
+          error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined) : undefined,
         timestamp: new Date().toISOString(),
       },
       `Error retrying job ${jobId}`

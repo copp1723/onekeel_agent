@@ -69,7 +69,7 @@ export async function fetchCRMReport(options: CRMReportOptions): Promise<string>
       error instanceof Error
         ? error instanceof Error
           ? error instanceof Error
-            ? error.message
+            ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
             : String(error)
           : String(error)
         : String(error);
@@ -138,7 +138,7 @@ export async function parseCRMReport(filePath: string): Promise<CRMReport> {
       error instanceof Error
         ? error instanceof Error
           ? error instanceof Error
-            ? error.message
+            ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
             : String(error)
           : String(error)
         : String(error);

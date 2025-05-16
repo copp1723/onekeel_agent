@@ -12,7 +12,6 @@ import { initializeProcessingWorker } from '../workers/processingWorker.js';
 import { initializeInsightWorker } from '../workers/insightWorker.js';
 import { initializeDistributedScheduler } from './distributedScheduler.js';
 import logger from '../utils/logger.js';
-
 /**
  * Initialize the job queue system
  */
@@ -25,21 +24,16 @@ export async function initializeJobQueueSystem(): Promise<void> {
       },
       'Initializing job queue system...'
     );
-    
     // Initialize Redis connection
     await initializeRedis();
-    
     // Initialize queue manager
     await initializeQueueManager();
-    
     // Initialize workers
     initializeIngestionWorker();
     initializeProcessingWorker();
     initializeInsightWorker();
-    
     // Initialize distributed scheduler
     await initializeDistributedScheduler();
-    
     logger.info(
       {
         event: 'job_queue_system_initialized',
@@ -48,12 +42,15 @@ export async function initializeJobQueueSystem(): Promise<void> {
       'Job queue system initialized successfully'
     );
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
-
     logger.error(
       {
         event: 'job_queue_system_init_error',
@@ -65,7 +62,6 @@ export async function initializeJobQueueSystem(): Promise<void> {
     throw error;
   }
 }
-
 /**
  * Shutdown the job queue system
  */
@@ -88,12 +84,15 @@ export async function shutdownJobQueueSystem(): Promise<void> {
       'Job queue system shutdown complete'
     );
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
-
     logger.error(
       {
         event: 'job_queue_system_shutdown_error',
@@ -105,7 +104,6 @@ export async function shutdownJobQueueSystem(): Promise<void> {
     throw error;
   }
 }
-
 // Export all components for direct access
 export * from './bullmqService.js';
 export * from './queueManager.js';

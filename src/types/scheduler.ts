@@ -8,18 +8,15 @@ export interface Schedule {
   createdAt: Date;
   updatedAt: Date;
 }
-
 export interface ScheduleOptions {
   description?: string;
   enabled?: boolean;
 }
-
 export interface ScheduleUpdate {
   cronExpression?: string;
   enabled?: boolean;
   description?: string;
 }
-
 export interface ScheduleLog {
   id: string;
   scheduleId: string;
@@ -29,13 +26,11 @@ export interface ScheduleLog {
   startedAt: Date;
   completedAt?: Date;
 }
-
 export interface SchedulerConfig {
   retryLimit: number;
   retryDelay: number;
   useNodemailerFallback: boolean;
 }
-
 export interface TimerInfo {
   timer: NodeJS.Timer;
   workflowId: string;

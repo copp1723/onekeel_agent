@@ -189,7 +189,7 @@ export async function ingestScheduledReport(
             }
             logger.error('Error processing emails:', error);
             throw new Error(
-              `Failed to process emails: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+              `Failed to process emails: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
             );
           } finally {
             // Close the connection in the finally block to ensure it happens
@@ -234,10 +234,14 @@ export async function ingestScheduledReport(
       );
     });
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -245,7 +249,7 @@ export async function ingestScheduledReport(
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -253,7 +257,7 @@ export async function ingestScheduledReport(
     // Handle circuit breaker errors
     if (error.name === 'CircuitOpenError') {
       logger.warn(
-        `IMAP circuit is open: ${isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
+        `IMAP circuit is open: ${isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)) : String(error)) : String(error)) : String(error)}`
       );
       throw new Error(`Email service is currently unavailable. Please try again later.`);
     }
@@ -288,10 +292,14 @@ export async function tryFetchReportFromEmail(platform: CRMPlatform): Promise<st
     const filePath = await ingestScheduledReport(platform, downloadDir);
     return filePath;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -299,7 +307,7 @@ export async function tryFetchReportFromEmail(platform: CRMPlatform): Promise<st
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -310,7 +318,7 @@ export async function tryFetchReportFromEmail(platform: CRMPlatform): Promise<st
           ? error instanceof Error
             ? isError(error)
               ? error instanceof Error
-                ? error.message
+                ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                 : String(error)
               : String(error)
             : String(error)
@@ -321,7 +329,7 @@ export async function tryFetchReportFromEmail(platform: CRMPlatform): Promise<st
       error.name === 'CircuitOpenError' ||
       (error instanceof Error
         ? error instanceof Error
-          ? error.message
+          ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
           : String(error)
         : String(error)
       ).includes('currently unavailable')

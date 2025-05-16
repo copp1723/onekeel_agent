@@ -105,10 +105,14 @@ export async function generateInsightsFromCSV(
     console.log(`Insight saved to: ${outputPath}`);
     return insightData;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -116,7 +120,7 @@ export async function generateInsightsFromCSV(
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -131,7 +135,7 @@ export async function generateInsightsFromCSV(
         ? error instanceof Error
           ? isError(error)
             ? error instanceof Error
-              ? error.message
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
               : String(error)
             : String(error)
           : String(error)
@@ -162,7 +166,7 @@ export async function generateInsightsFromCSV(
     // Re-throw with meaningful message
     if (error instanceof Error) {
       throw new Error(
-        `Failed to generate insights: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+        `Failed to generate insights: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
       );
     } else {
       throw new Error(`Failed to generate insights: Unknown error`);
@@ -247,10 +251,14 @@ export async function generateInsightsFromCSVContent(
     console.log(`Insight saved to: ${outputPath}`);
     return insightData;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -258,7 +266,7 @@ export async function generateInsightsFromCSVContent(
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -273,7 +281,7 @@ export async function generateInsightsFromCSVContent(
         ? error instanceof Error
           ? isError(error)
             ? error instanceof Error
-              ? error.message
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
               : String(error)
             : String(error)
           : String(error)
@@ -302,7 +310,7 @@ export async function generateInsightsFromCSVContent(
     // Re-throw with meaningful message
     if (error instanceof Error) {
       throw new Error(
-        `Failed to generate insights: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+        `Failed to generate insights: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
       );
     } else {
       throw new Error(`Failed to generate insights: Unknown error`);

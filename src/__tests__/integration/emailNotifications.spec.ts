@@ -104,10 +104,14 @@ describe('Email Notifications Integration', () => {
         // If we reach here, the test should fail
         expect(true).toBe(false);
       } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
         // Use type-safe error handling
         const errorMessage = isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error);
         // Use type-safe error handling
@@ -115,7 +119,7 @@ describe('Email Notifications Integration', () => {
           ? error instanceof Error
             ? isError(error)
               ? error instanceof Error
-                ? error.message
+                ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                 : String(error)
               : String(error)
             : String(error)
@@ -127,7 +131,7 @@ describe('Email Notifications Integration', () => {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)

@@ -4,13 +4,11 @@
  * This service sends alert emails to administrators when critical errors occur.
  * It uses the email template service to format alerts and the mailer service to send them.
  */
-
 import { sendAlertEmail } from './emailTemplateService.js';
 import { logger } from '../shared/logger.js';
 import { db } from '../shared/db.js';
 import { emailQueue } from '../shared/schema.js';
 import { isError } from '../utils/errorUtils.js';
-
 // Types
 export interface AlertOptions {
   severity?: 'info' | 'warning' | 'error' | 'critical';
@@ -19,7 +17,6 @@ export interface AlertOptions {
   actionUrl?: string;
   actionText?: string;
 }
-
 /**
  * Get admin email addresses from environment variables
  * @returns Array of admin email addresses
@@ -30,10 +27,8 @@ function getAdminEmails(): string[] {
     logger.warn('No admin emails configured for alerts. Set ADMIN_EMAILS environment variable.');
     return [];
   }
-  
   return adminEmailsStr.split(',').map(email => email.trim());
 }
-
 /**
  * Send an alert to administrators
  * 
@@ -53,20 +48,16 @@ export async function sendAdminAlert(
       logger.warn('Cannot send admin alert: No admin emails configured');
       return false;
     }
-
     const severity = options.severity || 'error';
     const component = options.component || 'System';
-    
     // Format the alert title with severity and component
     const formattedTitle = `[${severity.toUpperCase()}] ${component}: ${title}`;
-    
     // Prepare detail items for the email template
     const detailItems = [
       { label: 'Timestamp', value: new Date().toISOString() },
       { label: 'Severity', value: severity },
       { label: 'Component', value: component },
     ];
-    
     // Add any additional details
     if (options.details) {
       Object.entries(options.details).forEach(([key, value]) => {
@@ -76,7 +67,6 @@ export async function sendAdminAlert(
         });
       });
     }
-    
     // Queue the alert email for each admin
     for (const email of adminEmails) {
       try {
@@ -101,21 +91,18 @@ export async function sendAdminAlert(
           attempts: 0,
           maxAttempts: 5, // Try harder for admin alerts
         });
-        
         logger.info(`Admin alert queued for ${email}: ${formattedTitle}`);
       } catch (error) {
         // Log but continue with other emails
         logger.error(`Failed to queue admin alert for ${email}:`, isError(error) ? error : String(error));
       }
     }
-    
     return true;
   } catch (error) {
     logger.error('Failed to send admin alert:', isError(error) ? error : String(error));
     return false;
   }
 }
-
 /**
  * Send an immediate alert to administrators (bypassing the queue)
  * Use this only for critical alerts when the queue might be affected
@@ -131,13 +118,10 @@ export async function sendImmediateAdminAlert(
       logger.warn('Cannot send immediate admin alert: No admin emails configured');
       return false;
     }
-
     const severity = options.severity || 'critical';
     const component = options.component || 'System';
-    
     // Format the alert title with severity and component
     const formattedTitle = `[${severity.toUpperCase()}] ${component}: ${title}`;
-    
     // Prepare detail items for the email template
     const detailItems = [
       { label: 'Timestamp', value: new Date().toISOString() },
@@ -145,7 +129,6 @@ export async function sendImmediateAdminAlert(
       { label: 'Component', value: component },
       { label: 'Immediate Alert', value: 'Yes (bypassing queue)' },
     ];
-    
     // Add any additional details
     if (options.details) {
       Object.entries(options.details).forEach(([key, value]) => {
@@ -155,7 +138,6 @@ export async function sendImmediateAdminAlert(
         });
       });
     }
-    
     // Send the alert email directly to all admins
     await sendAlertEmail(adminEmails, formattedTitle, message, {
       detailItems,
@@ -163,7 +145,6 @@ export async function sendImmediateAdminAlert(
       actionText: options.actionText,
       date: new Date().toLocaleString(),
     });
-    
     logger.info(`Immediate admin alert sent: ${formattedTitle}`);
     return true;
   } catch (error) {

@@ -19,10 +19,14 @@ router.get('/', isAuthenticated, async (req, res) => {
     );
     res.json({ jobs });
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -30,7 +34,7 @@ router.get('/', isAuthenticated, async (req, res) => {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -44,7 +48,7 @@ router.get('/', isAuthenticated, async (req, res) => {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -80,7 +84,7 @@ router.get('/:id', isAuthenticated, async (req, res) => {
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : 'Unknown error',
@@ -108,7 +112,7 @@ router.post('/:id/retry', isAuthenticated, async (req, res) => {
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : 'Unknown error',
@@ -139,7 +143,7 @@ router.post('/enqueue/:taskId', isAuthenticated, async (req, res) => {
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : 'Unknown error',

@@ -5,9 +5,7 @@
  * Processes email ingestion, report fetching, and data extraction
  */
 import { Job } from 'bullmq';
-import { getErrorMessage } from '...';
-import { getErrorMessage } from '....js';
-import { isError } from '../utils/errorUtils.js';
+import { getErrorMessage, isError } from '../utils/errorUtils.js';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger.js';
 import { db } from '../shared/db.js';
@@ -16,6 +14,14 @@ import { eq } from 'drizzle-orm';
 import { createWorker, QUEUE_NAMES, JOB_TYPES } from '../services/bullmqService.js';
 import { emailIngestAndRunFlow } from '../agents/emailIngestAndRunFlow.js';
 import { EnvVars } from '../types.js';
+
+// Define shared Redis connection options
+const redisConnectionOptions = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  // password: process.env.REDIS_PASSWORD, // Uncomment if needed
+};
+
 /**
  * Initialize the ingestion worker
  */
@@ -23,6 +29,7 @@ export function initializeIngestionWorker(): void {
   try {
     // Create worker for ingestion queue
     createWorker(QUEUE_NAMES.INGESTION, processIngestionJob, {
+      connection: redisConnectionOptions,
       concurrency: parseInt(process.env.INGESTION_WORKER_CONCURRENCY || '3'),
       limiter: {
         max: 5, // Maximum number of jobs processed in duration
@@ -37,34 +44,14 @@ export function initializeIngestionWorker(): void {
       'Ingestion worker initialized'
     );
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'ingestion_worker_init_error',
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error initializing ingestion worker: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error initializing ingestion worker: ${errorMessage}`
     );
   }
 }
@@ -124,36 +111,16 @@ async function processIngestionJob(job: Job): Promise<any> {
     );
     return result;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'ingestion_job_error',
         jobId: job.id,
         jobName: job.name,
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error processing ingestion job ${job.id} (${job.name}): ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error processing ingestion job ${job.id} (${job.name}): ${errorMessage}`
     );
     // Extract task ID from job data
     const { taskId } = job.data;
@@ -163,14 +130,7 @@ async function processIngestionJob(job: Job): Promise<any> {
         .update(taskLogs)
         .set({
           status: 'failed',
-          error:
-            error instanceof Error
-              ? error instanceof Error
-                ? error instanceof Error
-                  ? error.message
-                  : String(error)
-                : String(error)
-              : String(error),
+          error: errorMessage,
         })
         .where(eq(taskLogs.id, taskId.toString()));
     }
@@ -200,15 +160,19 @@ async function processEmailIngestion(
       EMAIL_USER: process.env.EMAIL_USER || '',
       EMAIL_PASSWORD: process.env.EMAIL_PASSWORD || '',
       EMAIL_HOST: process.env.EMAIL_HOST || '',
-      EMAIL_PORT: parseInt(process.env.EMAIL_PORT || '993'),
-      EMAIL_TLS: process.env.EMAIL_TLS !== 'false',
+      EMAIL_PORT: process.env.EMAIL_PORT || '993', // keep as string
+      EMAIL_TLS: (process.env.EMAIL_TLS !== 'false').toString(), // string
       DOWNLOAD_DIR: process.env.DOWNLOAD_DIR || './downloads',
     };
-    // Run email ingestion flow
-    const result = await emailIngestAndRunFlow(platform, envVars, logger, {
-      intent,
+    // Build options object with exactOptionalPropertyTypes compliance
+    const flowOptions: { intent?: string; skipInsights?: boolean } = {
       skipInsights: options?.skipInsights || false,
-    });
+    };
+    if (intent !== undefined) {
+      flowOptions.intent = intent;
+    }
+    // Run email ingestion flow
+    const result = await emailIngestAndRunFlow(platform, envVars, logger, flowOptions);
     logger.info(
       {
         event: 'email_ingestion_completed',
@@ -221,36 +185,16 @@ async function processEmailIngestion(
     );
     return result;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'email_ingestion_error',
         platform,
         intent,
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error processing email ingestion for ${platform}${intent ? ` (${intent})` : ''}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error processing email ingestion for ${platform}${intent ? ` (${intent})` : ''}: ${errorMessage}`
     );
     throw error;
   }
@@ -282,36 +226,16 @@ export async function createIngestionTaskLog(
     });
     return taskId;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'create_ingestion_task_log_error',
         platform,
         intent,
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error creating ingestion task log: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error creating ingestion task log: ${errorMessage}`
     );
     throw error;
   }

@@ -80,21 +80,25 @@ class WorkflowManager {
       };
     } catch (error) {
       // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      // Use type-safe error handling
       const errorMessage = isError(error)
         ? error instanceof Error
-          ? error.message
+          ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
           : String(error)
         : String(error);
       const errorMessage =
         error instanceof Error
           ? isError(error)
             ? error instanceof Error
-              ? error.message
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
               : String(error)
             : String(error)
           : 'Unknown error';
       const stack =
-        error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined;
+        error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.stack : undefined) : undefined) : undefined) : undefined;
       logger.error(
         {
           event: 'workflow_step_error',

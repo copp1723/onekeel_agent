@@ -10,24 +10,20 @@ export interface PlatformSelector {
   reportsTab?: string;
   downloadReport?: string;
 }
-
 export interface PlatformConfig {
   baseUrl: string;
   selectors: PlatformSelector;
   hasOTP: boolean;
 }
-
 export interface PlatformConfigs {
   [platform: string]: PlatformConfig;
 }
-
 export interface HybridIngestOptions {
   downloadDir?: string;
   useSampleData?: boolean;
   maxRetries?: number;
   retryInterval?: number;
 }
-
 export interface ReportResult {
   success: boolean;
   filePath?: string;

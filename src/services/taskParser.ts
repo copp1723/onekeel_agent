@@ -1,6 +1,6 @@
 import { Eko } from '@eko-ai/eko';
 // Import ExecutionPlan as a type only since we're not using the class constructor
-import type { ExecutionPlan } from '../agent/executePlan.js.js';
+import type {   ExecutionPlan   } from '../agent/executePlan.js';
 import { logger } from '../shared/logger.js';
 import { v4 as uuidv4 } from 'uuid';
 export interface ParsedTask {
@@ -106,7 +106,7 @@ export class TaskParser {
             error instanceof Error
               ? error instanceof Error
                 ? error instanceof Error
-                  ? error.message
+                  ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                   : String(error)
                 : String(error)
               : 'Unknown parsing error',
@@ -120,7 +120,7 @@ export class TaskParser {
           error instanceof Error
             ? error instanceof Error
               ? error instanceof Error
-                ? error.message
+                ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                 : String(error)
               : String(error)
             : 'Unknown parsing error',

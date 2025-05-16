@@ -5,18 +5,24 @@
  * Processes report parsing, insight generation, and distribution
  */
 import { Job } from 'bullmq';
-import { getErrorMessage } from '...';
-import { getErrorMessage } from '....js';
-import { isError } from '../utils/errorUtils.js';
+import { getErrorMessage } from '../utils/errorUtils.js';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger.js';
 import { db } from '../shared/db.js';
-import { taskLogs } from '....js';
+import { taskLogs } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import { createWorker, QUEUE_NAMES, JOB_TYPES } from '../services/bullmqService.js';
 import { parseByExtension } from '../services/attachmentParsers.js';
 import { storeResults } from '../services/resultsPersistence.js';
 import { runWorkflow, getWorkflow } from '../services/workflowService.js';
+
+// Define shared Redis connection options
+const redisConnectionOptions = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  // password: process.env.REDIS_PASSWORD, // Uncomment if needed
+};
+
 /**
  * Initialize the processing worker
  */
@@ -24,6 +30,7 @@ export function initializeProcessingWorker(): void {
   try {
     // Create worker for processing queue
     createWorker(QUEUE_NAMES.PROCESSING, processProcessingJob, {
+      connection: redisConnectionOptions,
       concurrency: parseInt(process.env.PROCESSING_WORKER_CONCURRENCY || '2'),
       limiter: {
         max: 3, // Maximum number of jobs processed in duration
@@ -38,37 +45,18 @@ export function initializeProcessingWorker(): void {
       'Processing worker initialized'
     );
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'processing_worker_init_error',
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error initializing processing worker: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error initializing processing worker: ${errorMessage}`
     );
   }
 }
+
 /**
  * Process a processing job
  */
@@ -128,59 +116,31 @@ async function processProcessingJob(job: Job): Promise<any> {
     );
     return result;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'processing_job_error',
         jobId: job.id,
         jobName: job.name,
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error processing job ${job.id} (${job.name}): ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error processing job ${job.id} (${job.name}): ${errorMessage}`
     );
-    // Extract task ID from job data
     const { taskId } = job.data;
     if (taskId) {
-      // Update task status
       await db
         .update(taskLogs)
         .set({
           status: 'failed',
-          error:
-            error instanceof Error
-              ? error instanceof Error
-                ? error instanceof Error
-                  ? error.message
-                  : String(error)
-                : String(error)
-              : String(error),
+          error: errorMessage,
         })
         .where(eq(taskLogs.id, taskId.toString()));
     }
     throw error;
   }
 }
+
 /**
  * Process a report
  */
@@ -239,46 +199,27 @@ async function processReport(data: any): Promise<any> {
     );
     return storageResult;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'report_processing_error',
         reportPath: data.reportPath,
         platform: data.platform!,
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error processing report: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error processing report: ${errorMessage}`
     );
     throw error;
   }
 }
+
 /**
  * Generate insights from a report
  */
 async function generateInsightFromReport(data: any): Promise<any> {
   try {
-    const { reportId, platform, options } = data;
+    const { reportId, platform, options = {} } = data;
     if (!reportId) {
       throw new Error('Missing reportId in job data');
     }
@@ -290,6 +231,7 @@ async function generateInsightFromReport(data: any): Promise<any> {
         event: 'insight_generation_started',
         reportId,
         platform,
+        options,
         timestamp: new Date().toISOString(),
       },
       `Generating insights for report ${reportId}`
@@ -301,6 +243,7 @@ async function generateInsightFromReport(data: any): Promise<any> {
       timestamp: new Date().toISOString(),
       reportId,
       platform,
+      options,
     };
     logger.info(
       {
@@ -314,40 +257,21 @@ async function generateInsightFromReport(data: any): Promise<any> {
     );
     return insightResult;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'insight_generation_error',
         reportId: data.reportId,
         platform: data.platform!,
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error generating insights: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error generating insights: ${errorMessage}`
     );
     throw error;
   }
 }
+
 /**
  * Execute a scheduled workflow
  */
@@ -424,39 +348,20 @@ async function executeScheduledWorkflow(data: any): Promise<any> {
     }
     return result;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'scheduled_workflow_execution_error',
         workflowId: data.workflowId!,
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error executing scheduled workflow: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error executing scheduled workflow: ${errorMessage}`
     );
     throw error;
   }
 }
+
 /**
  * Create a task log entry for a processing job
  */
@@ -483,35 +388,15 @@ export async function createProcessingTaskLog(
     });
     return taskId;
   } catch (error) {
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = getErrorMessage(error);
     logger.error(
       {
         event: 'create_processing_task_log_error',
         jobType,
-        errorMessage:
-          error instanceof Error
-            ? isError(error)
-              ? getErrorMessage(error)
-              : String(error)
-            : String(error),
+        errorMessage,
         timestamp: new Date().toISOString(),
       },
-      `Error creating processing task log: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error creating processing task log: ${errorMessage}`
     );
     throw error;
   }

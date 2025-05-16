@@ -63,10 +63,14 @@ router.post('/', isAuthenticated, async (req: any, res) => {
     });
     res.status(201).json(schedule);
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -74,7 +78,7 @@ router.post('/', isAuthenticated, async (req: any, res) => {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -88,7 +92,7 @@ router.post('/', isAuthenticated, async (req: any, res) => {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -113,10 +117,14 @@ router.get('/', isAuthenticated, async (req: any, res) => {
     });
     res.json(schedulesList);
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -124,7 +132,7 @@ router.get('/', isAuthenticated, async (req: any, res) => {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -138,7 +146,7 @@ router.get('/', isAuthenticated, async (req: any, res) => {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -167,7 +175,7 @@ router.get('/:id', isAuthenticated, validateScheduleId, async (req: any, res) =>
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -205,7 +213,7 @@ router.put('/:id', isAuthenticated, validateScheduleId, async (req: any, res) =>
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -239,7 +247,7 @@ router.delete('/:id', isAuthenticated, validateScheduleId, async (req: any, res)
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -273,7 +281,7 @@ router.post('/:id/retry', isAuthenticated, validateScheduleId, async (req: any, 
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -303,7 +311,7 @@ router.get('/:id/logs', isAuthenticated, validateScheduleId, async (req: any, re
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),

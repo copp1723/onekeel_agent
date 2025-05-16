@@ -71,7 +71,7 @@ export function extractCleanContent(): EkoTool {
           error:
             (error instanceof Error
               ? error instanceof Error
-                ? error.message
+                ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                 : String(error)
               : String(error)) || String(error),
           url: args.url,

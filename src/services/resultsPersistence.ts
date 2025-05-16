@@ -7,13 +7,14 @@
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/index.js';
+import { db } from '../shared/db.js';
 import { reports, reportSources } from '../shared/report-schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { ParserResult } from './attachmentParsers.js';
 // Interface for storing results
 export interface StorageResult {
   id: string;
+  reportId: string; // Added reportId property
   filePath: string;
   jsonPath: string;
   sourceId: string;
@@ -77,8 +78,12 @@ export async function checkForDuplicateReport(
   const existingReports = await db
     .select()
     .from(reports)
-    .where(eq(reports.vendor, vendor))
-    .where(eq(reports.recordCount, recordCount));
+    .where(
+      and(
+        eq(reports.vendor, vendor),
+        eq(reports.recordCount, recordCount)
+      )
+    );
   if (existingReports.length === 0) {
     return null;
   }
@@ -193,11 +198,11 @@ export async function storeResults(
     const sourceId = await storeReportSource({
       vendor,
       sourceType: sourceInfo.sourceType,
-      emailSubject: sourceInfo.emailSubject,
-      emailFrom: sourceInfo.emailFrom,
-      emailDate: sourceInfo.emailDate,
+      ...(sourceInfo.emailSubject ? { emailSubject: sourceInfo.emailSubject } : {}),
+      ...(sourceInfo.emailFrom ? { emailFrom: sourceInfo.emailFrom } : {}),
+      ...(sourceInfo.emailDate ? { emailDate: sourceInfo.emailDate } : {}),
       filePath: sourceInfo.filePath,
-      metadata: sourceInfo.metadata,
+      ...(sourceInfo.metadata ? { metadata: sourceInfo.metadata } : {}),
     });
     // Store report data
     const storedReportId = await storeReportData({
@@ -205,7 +210,7 @@ export async function storeResults(
       reportData: parserResult,
       recordCount: parserResult.recordCount,
       vendor,
-      reportType: parserResult.metadata.reportType,
+      ...(parserResult.metadata.reportType ? { reportType: parserResult.metadata.reportType } : {}),
       status: 'pending_analysis',
       metadata: {
         ...parserResult.metadata,
@@ -214,12 +219,13 @@ export async function storeResults(
     });
     return {
       id: storedReportId,
+      reportId: storedReportId, // Added reportId property
       filePath: sourceInfo.filePath,
       jsonPath,
       sourceId,
       recordCount: parserResult.recordCount,
       vendor,
-      reportType: parserResult.metadata.reportType,
+      reportType: parserResult.metadata.reportType ?? '',
       status: 'pending_analysis',
       metadata: {
         ...parserResult.metadata,

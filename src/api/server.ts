@@ -4,7 +4,6 @@ import { isError } from '../utils/errorUtils.js';
 import { routeHandler } from '../utils/routeHandler.js';
 import parseTask from '../services/taskParser.js';
 import { getTaskLogs } from '../shared/logger.js';
-import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { registerAuthRoutes } from '../server/routes/index.js';
 import { initializeJobQueue } from '../services/jobQueue.js';
@@ -15,24 +14,22 @@ import jobsRouter from '../server/routes/jobs.js';
 import workflowsRouter from '../server/routes/workflows.js';
 import { rateLimiters } from '../shared/middleware/rateLimiter.js';
 import { errorHandlerMiddleware } from '../shared/errorHandler.js';
-import { validateEnvOrExit } from '../utils/envValidator.js';
 import { initializeEncryption } from '../utils/encryption.js';
 import { logger } from '../shared/logger.js';
-// Load environment variables
-dotenv.config();
-// Validate environment variables
-// This will exit the process in production if required variables are missing or using defaults
-validateEnvOrExit();
-// Initialize encryption with validated key
-initializeEncryption();
+import config from '../config/index.js';
+import { setupSwagger } from './middleware/swagger.js';
+import * as monitoringService from '../services/monitoringService.js';
+import { registerMonitoringMiddleware } from '../middleware/monitoringMiddleware.js';
+import { registerMonitoringRoutes } from '../server/routes/monitoring.js';
+
 // Log startup information
 logger.info(
   {
     event: 'server_startup',
-    environment: process.env.NODE_ENV || 'development',
+    environment: config.env,
     timestamp: new Date().toISOString(),
   },
-  'Server starting with validated environment'
+  'Server starting with validated configuration'
 );
 // Initialize Express app
 const app = express();
@@ -41,12 +38,27 @@ app.use(express.json());
 app.use(express.static('public'));
 // Apply global rate limiter to all routes
 app.use(rateLimiters.api);
+// Set up Swagger UI for API documentation
+setupSwagger(app);
+// Apply performance monitoring middleware
+import { performanceMonitoring } from '../middleware/performance.js';
+app.use(performanceMonitoring);
 // Configure and register authentication routes
 (async () => {
   try {
+    // Initialize monitoring services
+    const monitoringStatus = await monitoringService.initialize();
+    logger.info(`Monitoring services initialized: Sentry=${monitoringStatus.sentryInitialized}, DataDog=${monitoringStatus.datadogInitialized}`);
+
+    // Start performance monitoring
+    import { startPerformanceMonitoring } from '../services/performanceMonitor.js';
+    startPerformanceMonitoring();
+    logger.info('Performance monitoring started');
+
     // Initialize job queue service
     await initializeJobQueue();
     console.log('Job queue initialized');
+
     // Initialize the task scheduler
     await initializeScheduler();
     console.log('Task scheduler initialized');
@@ -56,21 +68,31 @@ app.use(rateLimiters.api);
     console.log('Health check schedulers started');
 
     // Initialize email service if SendGrid API key is available
-    if (process.env.SENDGRID_API_KEY) {
+    if (config.apiKeys.sendgrid) {
       initializeMailer();
     } else {
       console.warn('SendGrid API key not found; email functionality will be limited');
     }
+
     // Register authentication and API routes
     await registerAuthRoutes(app);
     console.log('Authentication routes registered successfully');
+
     // Register job management routes
     app.use('/api/jobs', jobsRouter);
+
     // Register workflow routes
     app.use('/api/workflows', workflowsRouter);
+
+    // Register monitoring routes
+    registerMonitoringRoutes(app);
+    console.log('Monitoring routes registered');
+
     console.log('Job management and workflow routes registered');
   } catch (error) {
     console.error('Failed to register routes:', error);
+    // Track error in monitoring service
+    monitoringService.trackError(error, { component: 'server_initialization' }, true);
   }
 })();
 // Set up routes
@@ -92,8 +114,8 @@ router.post(
   '/test-parser',
   routeHandler(async (req: Request, res: Response) => {
     const task = req.body.task || '';
-    // Pass the EKO_API_KEY from environment variables or a default empty string
-    const ekoApiKey = process.env.EKO_API_KEY || '';
+    // Pass the EKO API key from configuration
+    const ekoApiKey = config.apiKeys.eko || '';
     const result = await parseTask(task, ekoApiKey);
     res.json(result);
   })
@@ -104,6 +126,28 @@ router.get(
   routeHandler(async (_req: Request, res: Response) => {
     const tasks = await getTaskLogs('all');
     res.json(tasks);
+  })
+);
+
+// Performance metrics endpoint
+router.get(
+  '/performance',
+  routeHandler(async (_req: Request, res: Response) => {
+    // Import performance metrics functions
+    const { getPerformanceMetrics } = await import('../middleware/performance.js');
+    const { getSystemMetrics, getMetricsHistory } = await import('../services/performanceMonitor.js');
+
+    // Get metrics
+    const performanceMetrics = getPerformanceMetrics();
+    const systemMetrics = getSystemMetrics();
+    const metricsHistory = getMetricsHistory();
+
+    // Return metrics
+    res.json({
+      performance: performanceMetrics,
+      system: systemMetrics,
+      history: metricsHistory.slice(-10), // Return only the last 10 metrics
+    });
   })
 );
 // Register API routes
@@ -150,10 +194,14 @@ app.post('/api/tasks', rateLimiters.taskSubmission, async (req: Request, res: Re
       message: 'Task submitted and enqueued successfully',
     });
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -161,7 +209,7 @@ app.post('/api/tasks', rateLimiters.taskSubmission, async (req: Request, res: Re
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -175,7 +223,7 @@ app.post('/api/tasks', rateLimiters.taskSubmission, async (req: Request, res: Re
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -215,10 +263,14 @@ app.post('/submit-task', rateLimiters.taskSubmission, async (req: Request, res: 
       message: 'Task submitted for immediate processing',
     });
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -226,7 +278,7 @@ app.post('/submit-task', rateLimiters.taskSubmission, async (req: Request, res: 
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -240,7 +292,7 @@ app.post('/submit-task', rateLimiters.taskSubmission, async (req: Request, res: 
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -252,9 +304,11 @@ app.post('/submit-task', rateLimiters.taskSubmission, async (req: Request, res: 
 // Add global error handler middleware
 app.use(errorHandlerMiddleware);
 // Start the server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`AI Agent API server running on port ${PORT}`);
+const PORT = config.server.port;
+const HOST = config.server.host;
+const server = app.listen(PORT, HOST, () => {
+  console.log(`AI Agent API server running on ${HOST}:${PORT}`);
+  console.log(`Environment: ${config.env}`);
   console.log(`Available endpoints:`);
   console.log(`  GET / - Web UI for task submission and result viewing`);
   console.log(`  POST /api/tasks - Submit a new task (rate limited: 10/minute)`);
@@ -262,7 +316,32 @@ app.listen(PORT, () => {
   console.log(`  GET /api/tasks - List all tasks`);
   console.log(`  POST /submit-task - Execute tasks directly (rate limited: 10/minute)`);
   console.log(`  GET /api/health - Health check endpoint (rate limited: 30/minute)`);
-  console.log(`Rate limiting enabled: 100 requests per 15 minutes globally`);
+  console.log(`  GET /api-docs - API documentation (Swagger UI)`);
+  console.log(`  GET /api/performance - Performance metrics endpoint`);
+  console.log(`  GET /api/monitoring/health/summary - Monitoring dashboard summary`);
+  console.log(`  GET /api/monitoring/dashboard/error-rates - Error rates dashboard`);
+  console.log(`Rate limiting enabled: ${config.security.rateLimiting.maxRequests} requests per ${config.security.rateLimiting.windowMs/1000} seconds globally`);
 });
+
+// Handle graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+
+  // Shutdown monitoring services
+  await monitoringService.shutdown();
+
+  // Close server
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+
+  // Force close after timeout
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+});
+
 // Export the app for testing
 export { app };

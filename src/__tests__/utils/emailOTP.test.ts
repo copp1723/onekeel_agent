@@ -2,7 +2,6 @@ import * as imap from 'imap-simple';
 import { simpleParser } from 'mailparser';
 import { checkEmailForOTP, verifyOTP } from '../../utils/emailOTP.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 // Mock the imap-simple module
 vi.mock('imap-simple', () => ({
   connect: vi.fn(),

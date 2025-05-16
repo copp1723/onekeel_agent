@@ -113,10 +113,14 @@ export async function emailIngestAndRunFlow(
               throw new ReportNotFoundError(`No report found in email for ${normalizedPlatform}`);
             }
           } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
             // Use type-safe error handling
             const errorMessage = isError(error)
               ? error instanceof Error
-                ? error.message
+                ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                 : String(error)
               : String(error);
             // Use type-safe error handling
@@ -124,14 +128,14 @@ export async function emailIngestAndRunFlow(
               ? error instanceof Error
                 ? isError(error)
                   ? error instanceof Error
-                    ? error.message
+                    ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                     : String(error)
                   : String(error)
                 : String(error)
               : String(error);
             if (error instanceof ReportNotFoundError) {
               logger.error(
-                `No report found in email: ${isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
+                `No report found in email: ${isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)) : String(error)) : String(error)) : String(error)}`
               );
               throw new Error(
                 `Email ingestion failed: No report found for ${normalizedPlatform}. Please check that scheduled reports are being sent to the configured email account.`
@@ -140,13 +144,13 @@ export async function emailIngestAndRunFlow(
               error instanceof Error &&
               (error instanceof Error
                 ? error instanceof Error
-                  ? error.message
+                  ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                   : String(error)
                 : String(error)
               ).includes('Missing required email configuration')
             ) {
               logger.error(
-                `Email configuration error: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+                `Email configuration error: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
               );
               throw new Error(
                 `Email ingestion failed: Missing required email configuration. Please set EMAIL_USER, EMAIL_PASS, and EMAIL_HOST environment variables.`
@@ -155,13 +159,13 @@ export async function emailIngestAndRunFlow(
               error instanceof Error &&
               (error instanceof Error
                 ? error instanceof Error
-                  ? error.message
+                  ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                   : String(error)
                 : String(error)
               ).includes('Authentication failed')
             ) {
               logger.error(
-                `Email authentication error: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+                `Email authentication error: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
               );
               throw new Error(
                 `Email ingestion failed: Authentication failed. Please check your email credentials.`
@@ -170,13 +174,13 @@ export async function emailIngestAndRunFlow(
               error instanceof Error &&
               (error instanceof Error
                 ? error instanceof Error
-                  ? error.message
+                  ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                   : String(error)
                 : String(error)
               ).includes('connect')
             ) {
               logger.error(
-                `Email connection error: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+                `Email connection error: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
               );
               throw new Error(
                 `Email ingestion failed: Could not connect to email server. Please check your network connection and email server settings.`
@@ -185,19 +189,19 @@ export async function emailIngestAndRunFlow(
               error instanceof Error &&
               (error instanceof Error
                 ? error instanceof Error
-                  ? error.message
+                  ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                   : String(error)
                 : String(error)
               ).includes('circuit is open')
             ) {
               logger.warn(
-                `Email service circuit is open: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+                `Email service circuit is open: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
               );
               throw new Error(`Email service is currently unavailable. Please try again later.`);
             } else {
               logger.error(`Unexpected error during email ingestion:`, error);
               throw new Error(
-                `Email ingestion failed: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+                `Email ingestion failed: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
               );
             }
           }
@@ -240,7 +244,7 @@ export async function emailIngestAndRunFlow(
     // Propagate the error with additional context
     if (error instanceof Error) {
       throw new Error(
-        `Email ingestion failed: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+        `Email ingestion failed: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
       );
     } else {
       throw new Error(`Email ingestion failed: ${String(error)}`);

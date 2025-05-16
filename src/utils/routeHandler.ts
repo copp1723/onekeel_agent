@@ -33,7 +33,7 @@ export function routeHandler<P = any>(
               message:
                 error instanceof Error
                   ? error instanceof Error
-                    ? error.message
+                    ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                     : String(error)
                   : String(error),
             });
@@ -43,9 +43,13 @@ export function routeHandler<P = any>(
       return result;
     } catch (error) {
       // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      // Use type-safe error handling
       const errorMessage = isError(error)
         ? error instanceof Error
-          ? error.message
+          ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
           : String(error)
         : String(error);
       // Use type-safe error handling
@@ -53,7 +57,7 @@ export function routeHandler<P = any>(
         ? error instanceof Error
           ? isError(error)
             ? error instanceof Error
-              ? error.message
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
               : String(error)
             : String(error)
           : String(error)
@@ -68,7 +72,7 @@ export function routeHandler<P = any>(
                 ? error instanceof Error
                   ? isError(error)
                     ? error instanceof Error
-                      ? error.message
+                      ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                       : String(error)
                     : String(error)
                   : String(error)

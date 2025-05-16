@@ -50,7 +50,7 @@ describe('retry utility', () => {
       const retryIf = (error: any) =>
         (error instanceof Error
           ? error instanceof Error
-            ? error.message
+            ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
             : String(error)
           : String(error)) === 'retryable';
       await expect(retry(fn, { retries: 2, minTimeout: 10, retryIf })).rejects.toThrow(

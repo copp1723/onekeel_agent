@@ -5,26 +5,26 @@
  * Provides a unified interface for creating queues, workers, and schedulers
  */
 import { Queue, Worker, QueueScheduler, Job, WorkerOptions } from 'bullmq';
-import { isError } from '../utils/errorUtils';
+import {  getErrorMessage } from '../utils/errorUtils.js';
+import {  getErrorMessage } from '....js';
+import { isError } from '../utils/errorUtils.js';
 import { RedisOptions } from 'ioredis';
 import IORedis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
-import logger from '../utils/logger';
-import { db } from '../shared/db';
-import { jobs } from '../shared/schema';
+import logger from '../utils/logger.js';
+import { db } from '../shared/db.js';
+import { jobs } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
-
 /**
  * Error handling utility
  */
 function getTypeSafeError(error: unknown): string {
   return isError(error)
     ? error instanceof Error
-      ? error.message
+      ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
       : String(error)
     : String(error);
 }
-
 // Define queue names
 export const QUEUE_NAMES = {
   INGESTION: 'ingestion',
@@ -32,15 +32,14 @@ export const QUEUE_NAMES = {
   EMAIL: 'email',
   INSIGHT: 'insight',
 };
-
 // Define job types
 export const JOB_TYPES = {
   EMAIL_INGESTION: 'email_ingestion',
   REPORT_PROCESSING: 'report_processing',
   INSIGHT_GENERATION: 'insight_generation',
-  INSIGHT_DISTRIBUTION: 'insight_distribution'
+  INSIGHT_DISTRIBUTION: 'insight_distribution',
+  SCHEDULED_WORKFLOW: 'scheduled_workflow'
 };
-
 // Redis connection options
 const defaultRedisOptions: RedisOptions = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -49,7 +48,6 @@ const defaultRedisOptions: RedisOptions = {
   maxRetriesPerRequest: 3,
   connectTimeout: 10000,
 };
-
 // Default job options
 const defaultJobOptions = {
   attempts: 3,
@@ -65,18 +63,14 @@ const defaultJobOptions = {
     age: 7 * 24 * 3600, // Keep failed jobs for 7 days
   },
 };
-
 // Queue instances
 const queues: Record<string, Queue> = {};
 const workers: Record<string, Worker> = {};
 const schedulers: Record<string, QueueScheduler> = {};
-
 // Redis client
 let redisClient: IORedis | null = null;
-
 // In-memory mode flag
 let inMemoryMode = false;
-
 /**
  * Initialize the Redis connection
  */
@@ -139,7 +133,6 @@ export async function initializeRedis(options: RedisOptions = {}): Promise<IORed
     return null;
   }
 }
-
 /**
  * Create a queue
  */
@@ -190,7 +183,6 @@ export function createQueue(name: string, options: QueueOptions = {}): Queue | n
     return null;
   }
 }
-
 /**
  * Create a worker
  */
@@ -300,7 +292,6 @@ export function createWorker(
     return null;
   }
 }
-
 /**
  * Create a queue scheduler
  */
@@ -350,7 +341,6 @@ export function createScheduler(queueName: string): QueueScheduler | null {
     return null;
   }
 }
-
 /**
  * Update job status in database
  */
@@ -385,28 +375,24 @@ async function updateJobStatus(
     );
   }
 }
-
 /**
  * Get a queue by name
  */
 export function getQueue(name: string): Queue | null {
   return queues[name] || null;
 }
-
 /**
  * Get a worker by queue name
  */
 export function getWorker(queueName: string): Worker | null {
   return workers[queueName] || null;
 }
-
 /**
  * Get a scheduler by queue name
  */
 export function getScheduler(queueName: string): QueueScheduler | null {
   return schedulers[queueName] || null;
 }
-
 /**
  * Close all connections
  */
@@ -448,5 +434,4 @@ export async function closeConnections(): Promise<void> {
     );
   }
 }
-
 export { defaultJobOptions };

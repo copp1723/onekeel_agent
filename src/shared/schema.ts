@@ -383,7 +383,6 @@ export type UpsertSecurityAuditLog = typeof securityAuditLogs.$inferInsert;
 export type SecurityAuditLog = typeof securityAuditLogs.$inferSelect;
 export type UpsertUserCredential = typeof userCredentials.$inferInsert;
 export type UserCredential = typeof userCredentials.$inferSelect;
-
 // IMAP filters for email ingestion
 export const imapFilters = pgTable(
   'imap_filters',
@@ -405,10 +404,8 @@ export const imapFilters = pgTable(
     uniqueIndex('idx_imap_filters_vendor_from').on(table.vendor, table.fromAddress),
   ]
 );
-
 export type UpsertImapFilter = typeof imapFilters.$inferInsert;
 export type ImapFilter = typeof imapFilters.$inferSelect;
-
 // Failed emails table for error recovery
 export const failedEmails = pgTable(
   'failed_emails',
@@ -435,10 +432,8 @@ export const failedEmails = pgTable(
     index('idx_failed_emails_next_retry').on(table.nextRetryAt),
   ]
 );
-
 export type UpsertFailedEmail = typeof failedEmails.$inferInsert;
 export type FailedEmail = typeof failedEmails.$inferSelect;
-
 // Workflow step interfaces
 export type WorkflowStepType =
   | 'emailIngestion'
@@ -457,6 +452,28 @@ export interface WorkflowStep {
   backoffFactor?: number;
 }
 export type WorkflowStatus = 'pending' | 'running' | 'paused' | 'failed' | 'completed';
+// Insight logs for tracking AI insight generation
+export const insightLogs = pgTable(
+  'insight_logs',
+  {
+    id: serial('id').primaryKey(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    success: boolean('success').notNull(),
+    durationMs: integer('duration_ms'),
+    error: text('error'),
+    role: varchar('role', { length: 50 }),
+    promptVersion: varchar('prompt_version', { length: 20 }),
+    rawResponse: jsonb('raw_response'),
+    rawPrompt: text('raw_prompt'),
+    apiKeyHint: varchar('api_key_hint', { length: 10 }), // Store last 4 chars of API key for debugging
+  },
+  (table) => [
+    index('idx_insight_logs_created_at').on(table.createdAt),
+    index('idx_insight_logs_success').on(table.success),
+  ]
+);
+export type UpsertInsightLog = typeof insightLogs.$inferInsert;
+export type InsightLog = typeof insightLogs.$inferSelect;
 // Unencrypted credential data typings
 export interface CredentialData {
   username?: string;

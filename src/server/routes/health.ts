@@ -26,10 +26,14 @@ router.get('/summary', async (req, res) => {
     const summary = await getHealthSummary();
     res.json(summary);
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -37,7 +41,7 @@ router.get('/summary', async (req, res) => {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -51,7 +55,7 @@ router.get('/summary', async (req, res) => {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -68,10 +72,14 @@ router.post('/checks/run', async (req, res) => {
     const results = await runAllHealthChecks();
     res.json(results);
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -79,7 +87,7 @@ router.post('/checks/run', async (req, res) => {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -93,7 +101,7 @@ router.post('/checks/run', async (req, res) => {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -122,7 +130,7 @@ router.post('/checks/:id/run', async (req, res) => {
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -137,10 +145,14 @@ router.get('/checks', async (req, res) => {
     const healthChecks = await getLatestHealthChecks();
     res.json(healthChecks);
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -148,7 +160,7 @@ router.get('/checks', async (req, res) => {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -162,7 +174,7 @@ router.get('/checks', async (req, res) => {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -188,7 +200,7 @@ router.get('/logs/:checkId', async (req, res) => {
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -215,9 +227,13 @@ export function registerHealthRoutes(app: express.Express): void {
       });
     } catch (error) {
       // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      // Use type-safe error handling
       const errorMessage = isError(error)
         ? error instanceof Error
-          ? error.message
+          ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
           : String(error)
         : String(error);
       // Use type-safe error handling
@@ -225,7 +241,7 @@ export function registerHealthRoutes(app: express.Express): void {
         ? error instanceof Error
           ? isError(error)
             ? error instanceof Error
-              ? error.message
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
               : String(error)
             : String(error)
           : String(error)
@@ -239,7 +255,7 @@ export function registerHealthRoutes(app: express.Express): void {
               ? error instanceof Error
                 ? isError(error)
                   ? error instanceof Error
-                    ? error.message
+                    ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                     : String(error)
                   : String(error)
                 : String(error)

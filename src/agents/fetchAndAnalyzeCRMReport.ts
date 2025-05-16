@@ -55,10 +55,14 @@ export async function fetchAndAnalyzeCRMReport(
       insights,
     };
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -66,7 +70,7 @@ export async function fetchAndAnalyzeCRMReport(
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -74,7 +78,7 @@ export async function fetchAndAnalyzeCRMReport(
     console.error('Error in fetchAndAnalyzeCRMReport:', error);
     if (error instanceof Error) {
       throw new Error(
-        `Failed to fetch and analyze CRM report: ${isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
+        `Failed to fetch and analyze CRM report: ${isError(error) ? (error instanceof Error ? (isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error) : String(error)) : String(error)) : String(error)) : String(error)}`
       );
     } else {
       throw new Error(`Failed to fetch and analyze CRM report: Unknown error`);

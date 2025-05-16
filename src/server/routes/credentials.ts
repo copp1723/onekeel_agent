@@ -61,7 +61,7 @@ router.get('/:id', async (req: any, res) => {
       error instanceof Error
         ? error instanceof Error
           ? error instanceof Error
-            ? error.message
+            ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
             : String(error)
           : String(error)
         : 'Unknown error';
@@ -132,7 +132,7 @@ router.put('/:id', async (req: any, res) => {
       error instanceof Error
         ? error instanceof Error
           ? error instanceof Error
-            ? error.message
+            ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
             : String(error)
           : String(error)
         : 'Unknown error';

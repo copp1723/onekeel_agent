@@ -1,18 +1,15 @@
-import { processInsightJob } from '../insightProcessingWorker';
-import { db } from '../../shared/db';
-import logger from '../../utils/logger';
-import { generateInsightFromReport } from '../generateInsightFromReport';
-
+import { processInsightJob } from '../insightProcessingWorker.js';
+import { db } from '../../shared/db.js';
+import logger from '../../utils/logger.js';
+import { generateInsightFromReport } from '../generateInsightFromReport.js';
 // Mock dependencies
 jest.mock('../../shared/db');
 jest.mock('../../utils/logger');
 jest.mock('../generateInsightFromReport');
-
 describe('insightProcessingWorker', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
   it('should process insight generation job successfully', async () => {
     const mockJob = {
       id: 'test-job-1',
@@ -26,7 +23,6 @@ describe('insightProcessingWorker', () => {
         }
       }
     };
-
     const mockInsightResult = {
       insightId: 'test-insight-1',
       summary: 'Test summary',
@@ -34,12 +30,9 @@ describe('insightProcessingWorker', () => {
       actionable_flags: ['Action 1', 'Action 2'],
       confidence: 'high'
     };
-
     (generateInsightFromReport as jest.Mock).mockResolvedValue(mockInsightResult);
     (db.update as jest.Mock).mockResolvedValue({ rowCount: 1 });
-
     const result = await processInsightJob(mockJob as any);
-
     expect(result).toEqual(mockInsightResult);
     expect(db.update).toHaveBeenCalledWith(
       expect.anything(),
@@ -55,7 +48,6 @@ describe('insightProcessingWorker', () => {
       expect.any(String)
     );
   });
-
   it('should handle task ID validation', async () => {
     const mockJob = {
       id: 'test-job-2',
@@ -65,10 +57,8 @@ describe('insightProcessingWorker', () => {
         platform: 'VinSolutions'
       }
     };
-
     await expect(processInsightJob(mockJob as any)).rejects.toThrow('Job data missing taskId');
   });
-
   it('should handle insight generation errors', async () => {
     const mockJob = {
       id: 'test-job-3',
@@ -79,10 +69,8 @@ describe('insightProcessingWorker', () => {
         platform: 'VinSolutions'
       }
     };
-
     const mockError = new Error('Insight generation failed');
     (generateInsightFromReport as jest.Mock).mockRejectedValue(mockError);
-
     await expect(processInsightJob(mockJob as any)).rejects.toThrow('Insight generation failed');
     expect(db.update).toHaveBeenCalledWith(
       expect.anything(),

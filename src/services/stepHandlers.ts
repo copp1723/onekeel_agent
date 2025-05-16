@@ -48,7 +48,7 @@ export async function executeStep(
   } catch (error) {
     // Wrap the error with step context
     const wrappedError = new StepHandlerError(
-      `Step ${step.name} (${step.type}) failed: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`,
+      `Step ${step.name} (${step.type}) failed: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`,
       step,
       error instanceof Error ? error : new Error(String(error))
     );
@@ -94,7 +94,7 @@ async function handleEmailIngestion(
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -130,7 +130,7 @@ async function handleBrowserAction(
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -166,7 +166,7 @@ async function handleInsightGeneration(
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -202,7 +202,7 @@ async function handleDataProcessing(
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -238,7 +238,7 @@ async function handleApiStep(
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),
@@ -274,7 +274,7 @@ async function handleCustomStep(
         error instanceof Error
           ? error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
           : String(error),

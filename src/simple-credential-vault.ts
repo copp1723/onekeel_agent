@@ -114,7 +114,7 @@ export function decryptData(encryptedData: string, iv: string): any {
       error instanceof Error
         ? error instanceof Error
           ? error instanceof Error
-            ? error.message
+            ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
             : String(error)
           : String(error)
         : 'Unknown error';

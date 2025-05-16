@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { getErrorMessage } from '...';
+import { getErrorMessage } from '....js';
 import { getErrorMessage } from '....js';
 import { isError } from '../utils/errorUtils.js';
 /**
@@ -67,10 +67,14 @@ function getNextRunTime(cronExpression: string): Date {
     nextDate.setMinutes(nextDate.getMinutes() + 1);
     return nextDate;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -78,7 +82,7 @@ function getNextRunTime(cronExpression: string): Date {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -95,7 +99,7 @@ function getNextRunTime(cronExpression: string): Date {
             : String(error),
         timestamp: new Date().toISOString(),
       },
-      `Error calculating next run time: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error calculating next run time: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
     );
     // Default to 1 hour from now if parsing fails
     const fallbackDate = new Date();
@@ -132,10 +136,14 @@ export async function initializeDistributedScheduler(): Promise<void> {
       try {
         await startSchedule(schedule.id);
       } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
         // Use type-safe error handling
         const errorMessage = isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error);
         // Use type-safe error handling
@@ -143,7 +151,7 @@ export async function initializeDistributedScheduler(): Promise<void> {
           ? error instanceof Error
             ? isError(error)
               ? error instanceof Error
-                ? error.message
+                ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                 : String(error)
               : String(error)
             : String(error)
@@ -160,7 +168,7 @@ export async function initializeDistributedScheduler(): Promise<void> {
                 : String(error),
             timestamp: new Date().toISOString(),
           },
-          `Failed to start schedule ${schedule.id}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+          `Failed to start schedule ${schedule.id}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
         );
         // Mark problematic schedules as failed
         await db
@@ -172,7 +180,7 @@ export async function initializeDistributedScheduler(): Promise<void> {
               error instanceof Error
                 ? error instanceof Error
                   ? error instanceof Error
-                    ? error.message
+                    ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                     : String(error)
                   : String(error)
                 : String(error),
@@ -193,10 +201,14 @@ export async function initializeDistributedScheduler(): Promise<void> {
       'Distributed scheduler service initialized'
     );
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -204,7 +216,7 @@ export async function initializeDistributedScheduler(): Promise<void> {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -220,7 +232,7 @@ export async function initializeDistributedScheduler(): Promise<void> {
             : String(error),
         timestamp: new Date().toISOString(),
       },
-      `Error initializing distributed scheduler: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error initializing distributed scheduler: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
     );
     throw error;
   }
@@ -250,10 +262,14 @@ async function checkSchedulesForExecution(): Promise<void> {
           // Execute the schedule
           await executeSchedule(schedule.id);
         } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
           // Use type-safe error handling
           const errorMessage = isError(error)
             ? error instanceof Error
-              ? error.message
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
               : String(error)
             : String(error);
           // Use type-safe error handling
@@ -261,7 +277,7 @@ async function checkSchedulesForExecution(): Promise<void> {
             ? error instanceof Error
               ? isError(error)
                 ? error instanceof Error
-                  ? error.message
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                   : String(error)
                 : String(error)
               : String(error)
@@ -278,16 +294,20 @@ async function checkSchedulesForExecution(): Promise<void> {
                   : String(error),
               timestamp: new Date().toISOString(),
             },
-            `Error executing schedule ${schedule.id}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+            `Error executing schedule ${schedule.id}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
           );
         }
       }
     }
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -295,7 +315,7 @@ async function checkSchedulesForExecution(): Promise<void> {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -311,7 +331,7 @@ async function checkSchedulesForExecution(): Promise<void> {
             : String(error),
         timestamp: new Date().toISOString(),
       },
-      `Error checking schedules for execution: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error checking schedules for execution: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
     );
   }
 }
@@ -365,10 +385,14 @@ export async function createSchedule(options: {
     );
     return newSchedule;
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -376,7 +400,7 @@ export async function createSchedule(options: {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -393,7 +417,7 @@ export async function createSchedule(options: {
             : String(error),
         timestamp: new Date().toISOString(),
       },
-      `Error creating schedule: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error creating schedule: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
     );
     throw error;
   }
@@ -466,10 +490,14 @@ export async function startSchedule(scheduleId: string): Promise<void> {
       `Schedule ${scheduleId} started successfully`
     );
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -477,7 +505,7 @@ export async function startSchedule(scheduleId: string): Promise<void> {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -494,7 +522,7 @@ export async function startSchedule(scheduleId: string): Promise<void> {
             : String(error),
         timestamp: new Date().toISOString(),
       },
-      `Error starting schedule ${scheduleId}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Error starting schedule ${scheduleId}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
     );
     throw error;
   }
@@ -588,10 +616,14 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
       `Schedule ${scheduleId} execution queued with task ID ${taskId}`
     );
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
     // Use type-safe error handling
     const errorMessage = isError(error)
       ? error instanceof Error
-        ? error.message
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
         : String(error)
       : String(error);
     // Use type-safe error handling
@@ -599,7 +631,7 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
       ? error instanceof Error
         ? isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error)
         : String(error)
@@ -616,7 +648,7 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
             : String(error),
         timestamp: new Date().toISOString(),
       },
-      `Schedule execution failed ${scheduleId}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)}`
+      `Schedule execution failed ${scheduleId}: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)) : String(error)}`
     );
     // Handle error and update retry count
     try {
@@ -636,7 +668,7 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
               error instanceof Error
                 ? error instanceof Error
                   ? error instanceof Error
-                    ? error.message
+                    ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
                     : String(error)
                   : String(error)
                 : String(error),

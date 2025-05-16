@@ -9,7 +9,7 @@ import { isError } from '../utils/errorUtils.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { OpenAI } from 'openai';
-import { db } from '../db/index.js';
+import { db } from '../shared/db.js';
 import { insights } from '../shared/report-schema.js';
 import { ParserResult } from './attachmentParsers.js';
 import { z } from 'zod';
@@ -293,34 +293,8 @@ export async function generateInsights(
     };
   } catch (error) {
     // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
     // Log error
-    const errorMessage =
-      error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? isError(error)
-              ? error instanceof Error
-                ? error.message
-                : String(error)
-              : String(error)
-            : String(error)
-          : String(error)
-        : String(error);
     const insightRunData: InsightRunLogData = {
       platform,
       promptIntent: intent,

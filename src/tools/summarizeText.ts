@@ -74,7 +74,7 @@ export function summarizeText(_unused: string): EkoTool {
           '❌ Error summarizing text:',
           error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)
         );
@@ -86,7 +86,7 @@ export function summarizeText(_unused: string): EkoTool {
           });
         }
         throw new Error(
-          `Failed to summarize text: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`
+          `Failed to summarize text: ${error instanceof Error ? (error instanceof Error ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)) : String(error)) : String(error)}`
         );
       }
     },

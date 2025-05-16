@@ -13,7 +13,6 @@ jest.mock('../../shared/db', () => ({
     }
   }
 }));
-
 // Mock logger
 jest.mock('../../utils/logger', () => ({
   info: jest.fn(),

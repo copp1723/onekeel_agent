@@ -11,18 +11,15 @@ export interface EmailConfig {
     forceNoop: boolean;
   };
 }
-
 export interface EmailSearchCriteria {
   criteria: Array<Array<string | Date>>;
   filePattern: RegExp;
 }
-
 export interface EmailAttachment {
   filename: string;
   content: Buffer;
   contentType: string;
 }
-
 export interface ParsedEmail {
   attachments?: EmailAttachment[];
   subject: string;

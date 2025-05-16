@@ -1,21 +1,16 @@
-import { initializeInsightWorker } from '../insightWorker';
-import { createWorker, QUEUE_NAMES } from '../../services/bullmqService';
-import logger from '../../utils/logger';
-
+import { initializeInsightWorker } from '../insightWorker.js';
+import { createWorker, QUEUE_NAMES } from '../../services/bullmqService.js';
+import logger from '../../utils/logger.js';
 // Mock dependencies
 jest.mock('../../services/bullmqService');
 jest.mock('../../utils/logger');
-
 describe('insightWorker', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
   it('should initialize insight worker with correct configuration', () => {
     const mockCreateWorker = createWorker as jest.Mock;
-    
     initializeInsightWorker();
-
     expect(mockCreateWorker).toHaveBeenCalledWith(
       QUEUE_NAMES.INSIGHT,
       expect.any(Function),
@@ -34,15 +29,12 @@ describe('insightWorker', () => {
       expect.any(String)
     );
   });
-
   it('should handle initialization errors', () => {
     const mockError = new Error('Test error');
     (createWorker as jest.Mock).mockImplementationOnce(() => {
       throw mockError;
     });
-
     initializeInsightWorker();
-
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         event: 'insight_worker_init_error',
@@ -51,13 +43,10 @@ describe('insightWorker', () => {
       expect.any(String)
     );
   });
-
   it('should use default concurrency when env var is not set', () => {
     delete process.env.INSIGHT_WORKER_CONCURRENCY;
     const mockCreateWorker = createWorker as jest.Mock;
-
     initializeInsightWorker();
-
     expect(mockCreateWorker).toHaveBeenCalledWith(
       QUEUE_NAMES.INSIGHT,
       expect.any(Function),
@@ -66,13 +55,10 @@ describe('insightWorker', () => {
       })
     );
   });
-
   it('should respect custom concurrency from env var', () => {
     process.env.INSIGHT_WORKER_CONCURRENCY = '4';
     const mockCreateWorker = createWorker as jest.Mock;
-
     initializeInsightWorker();
-
     expect(mockCreateWorker).toHaveBeenCalledWith(
       QUEUE_NAMES.INSIGHT,
       expect.any(Function),

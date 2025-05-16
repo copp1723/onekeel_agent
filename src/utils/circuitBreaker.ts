@@ -8,7 +8,6 @@ import { sql } from 'drizzle-orm';
 import { db } from '../shared/db.js';
 import { logger } from '../shared/logger.js';
 import { circuitBreakerState } from '../shared/schema.js';
-import logger from './logger.js';
 // Circuit breaker states
 export enum CircuitState {
   CLOSED = 'closed', // Normal operation, requests pass through
@@ -214,7 +213,7 @@ export class CircuitBreaker {
           .from(circuitBreakerState)
           .where(sql`name = ${this.name}`);
         if (result?.successes !== undefined && result.successes >= this.options.successThreshold) {
-          await this.setState(CircuitState.CLOSED);
+          await this.transitionTo(CircuitState.CLOSED);
         } else {
           await db
             .update(circuitBreakerState)
@@ -255,7 +254,7 @@ export class CircuitBreaker {
           .from(circuitBreakerState)
           .where(sql`name = ${this.name}`);
         if (result?.failures !== undefined && result.failures >= this.options.failureThreshold) {
-          await this.setState(CircuitState.OPEN);
+          await this.transitionTo(CircuitState.OPEN);
           await db
             .update(circuitBreakerState)
             .set({

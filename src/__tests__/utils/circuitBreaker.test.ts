@@ -114,7 +114,7 @@ describe('CircuitBreaker', () => {
         isFailure: (error) =>
           (error instanceof Error
             ? error instanceof Error
-              ? error.message
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
               : String(error)
             : String(error)) === 'count-me',
       });

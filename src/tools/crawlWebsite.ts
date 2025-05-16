@@ -73,10 +73,14 @@ export function crawlWebsite(apiKey: string) {
         console.log('Successfully crawled website');
         return response.data;
       } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
         // Use type-safe error handling
         const errorMessage = isError(error)
           ? error instanceof Error
-            ? error.message
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
             : String(error)
           : String(error);
         // Use type-safe error handling
@@ -84,7 +88,7 @@ export function crawlWebsite(apiKey: string) {
           ? error instanceof Error
             ? isError(error)
               ? error instanceof Error
-                ? error.message
+                ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                 : String(error)
               : String(error)
             : String(error)
@@ -96,7 +100,7 @@ export function crawlWebsite(apiKey: string) {
               ? error instanceof Error
                 ? isError(error)
                   ? error instanceof Error
-                    ? error.message
+                    ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
                     : String(error)
                   : String(error)
                 : String(error)
