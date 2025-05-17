@@ -1,0 +1,11 @@
+Lead ID,First Name,Last Name,Email,Phone,Company,Status,Source,Created Date,Last Contacted,Notes
+1001,John,Smith,john.smith@example.com,555-123-4567,Acme Corp,New,Website,2025-05-01,2025-05-10,"Interested in product demo"
+1002,Jane,Doe,jane.doe@example.com,555-234-5678,Globex,Contacted,Referral,2025-05-02,2025-05-12,"Requested pricing info"
+1003,Robert,Johnson,robertj@example.com,555-345-6789,Initech,Qualified,Email,2025-05-03,2025-05-15,"Scheduled call for next week"
+1004,Emily,Williams,emilyw@example.com,555-456-7890,Umbrella,Proposal Sent,Trade Show,2025-05-04,2025-05-14,"Sent proposal, waiting for feedback"
+1005,Michael,Brown,michaelb@example.com,555-567-8901,Stark Ind,Closed Won,Website,2025-05-05,2025-05-16,"Deal closed at $50,000"
+1006,Sarah,Davis,sarahd@example.com,555-678-9012,Wayne Ent,New,Website,2025-05-06,2025-05-16,"Needs follow-up"
+1007,David,Miller,davidm@example.com,555-789-0123,Oscorp,Contacted,Referral,2025-05-07,2025-05-13,"Requested more information"
+1008,Jessica,Wilson,jessicaw@example.com,555-890-1234,Cyberdyne,Qualified,Email,2025-05-08,2025-05-15,"Interested in enterprise plan"
+1009,James,Taylor,jamest@example.com,555-901-2345,Soylent,Proposal Sent,Website,2025-05-09,2025-05-14,"Sent proposal, waiting for approval"
+1010,Jennifer,Anderson,jennifera@example.com,555-012-3456,Acme Corp,Closed Lost,Referral,2025-05-10,2025-05-16,"Went with competitor"

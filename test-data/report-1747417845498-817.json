@@ -1,0 +1,47 @@
+{
+  "reportId": "report-1747417845494",
+  "vendor": "VinSolutions",
+  "date": "2025-05-16T17:50:45.494Z",
+  "data": [
+    {
+      "customerId": "C1001",
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "phone": "555-0101",
+      "status": "New Lead",
+      "lastContact": "2025-05-10"
+    },
+    {
+      "customerId": "C1002",
+      "name": "Jane Smith",
+      "email": "jane.smith@example.com",
+      "phone": "555-0102",
+      "status": "Contacted",
+      "lastContact": "2025-05-11"
+    },
+    {
+      "customerId": "C1003",
+      "name": "Bob Johnson",
+      "email": "bob.johnson@example.com",
+      "phone": "555-0103",
+      "status": "Test Drive Scheduled",
+      "lastContact": "2025-05-12"
+    },
+    {
+      "customerId": "C1004",
+      "name": "Alice Brown",
+      "email": "alice.brown@example.com",
+      "phone": "555-0104",
+      "status": "Negotiation",
+      "lastContact": "2025-05-13"
+    },
+    {
+      "customerId": "C1005",
+      "name": "Charlie Wilson",
+      "email": "charlie.wilson@example.com",
+      "phone": "555-0105",
+      "status": "Closed - Won",
+      "lastContact": "2025-05-14"
+    }
+  ]
+}

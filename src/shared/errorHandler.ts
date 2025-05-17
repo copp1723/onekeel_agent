@@ -216,18 +216,15 @@ export async function retryWithBackoff<T>(
       logError(appError, { 
         ...context, 
         retryAttempts: attempts,
-                ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
-                : String(error)
-              : String(error)
-            : String(error),
-        attempt,
         maxRetries,
         delay,
+        willRetry: true
       });
       // Wait before retrying
       await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(delay * backoffFactor, maxDelay);
     }
   }
   // This should never be reached due to the throw in the catch block
-  throw isAppError(lastError) ? lastError : toAppError(lastError);
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }

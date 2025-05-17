@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import CredentialForm from '@/components/CredentialForm';
-import CredentialsList from '@/components/CredentialsList';
 import TaskForm from '@/components/TaskForm';
 import Link from 'next/link';
 
@@ -14,20 +12,11 @@ export default function Home() {
         <p className="text-neutral-600 mt-2">Generate valuable insights from your automotive CRM data</p>
       </header>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <CredentialForm />
-        </div>
-        <div>
-          <CredentialsList />
-        </div>
-      </div>
-      
-      <div className="mt-8">
+      <div className="bg-white p-6 rounded-lg shadow-md">
         <TaskForm />
       </div>
       
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold">Recent Analyses</h2>
           <Link 

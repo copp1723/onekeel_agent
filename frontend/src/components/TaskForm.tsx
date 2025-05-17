@@ -25,13 +25,6 @@ export default function TaskForm() {
   const { credentials } = useCredentials();
   const { showToast } = useToast();
 
-  // Get platforms from credentials
-  const uniquePlatforms = Array.from(new Set(credentials.map(cred => cred.platform)));
-  const platforms = uniquePlatforms.map(platform => ({
-    value: platform,
-    label: platform,
-  }));
-
   const {
     values,
     errors,
@@ -61,28 +54,6 @@ export default function TaskForm() {
     },
   });
 
-  if (platforms.length === 0) {
-    return (
-      <Card title="Request Analysis">
-        <div className="text-center py-6">
-          <svg className="mx-auto h-12 w-12 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H9"/>
-          </svg>
-          <p className="mt-4 text-neutral-600">
-            You need to add credentials before you can request an analysis.
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/#credentials')}
-            className="mt-4"
-          >
-            Add Credentials
-          </Button>
-        </div>
-      </Card>
-    );
-  }
-
   return (
     <FormWrapper
       title="Request Analysis"
@@ -94,7 +65,7 @@ export default function TaskForm() {
       <Select
         label="Platform"
         name="platform"
-        options={platforms}
+        options={credentials.map(cred => ({ value: cred.platform, label: cred.platform }))}
         value={values.platform}
         onChange={handleChange}
         error={errors.platform}

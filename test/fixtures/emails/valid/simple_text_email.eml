@@ -1,0 +1,10 @@
+From: test.sender@example.com
+To: test.receiver@example.com
+Subject: Test Email with Simple Text
+Content-Type: text/plain; charset=UTF-8
+
+This is a test email with plain text content.
+It contains multiple lines of text.
+
+Best regards,
+Test Sender
