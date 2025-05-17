@@ -1,0 +1,36 @@
+README.md
+pyproject.toml
+setup.py
+legacy_code/__init__.py
+legacy_code/analyzer.py
+legacy_code/app.py
+legacy_code/column_matcher (1).py
+legacy_code/column_matcher.py
+legacy_code/config (1).py
+legacy_code/config.py
+legacy_code/csv_parser (1).py
+legacy_code/csv_parser.py
+legacy_code/data_cleaner.py
+legacy_code/data_loader.py
+legacy_code/data_normalization.py
+legacy_code/data_parser.py
+legacy_code/enhanced_column_mapper.py
+legacy_code/ga4_parser.py
+legacy_code/ingestion_orchestrator.py
+legacy_code/ingestion_pipeline.py
+legacy_code/main.py
+legacy_code/models.py
+legacy_code/new_pdf_parser.py
+legacy_code/pdf_extractor.py
+legacy_code/pdf_parser.py
+legacy_code/routes.py
+legacy_code/schema_config.py
+legacy_code/template_mapper (1).py
+legacy_code/template_mapper.py
+legacy_code/upload.py
+repl_nix_workspace.egg-info/PKG-INFO
+repl_nix_workspace.egg-info/SOURCES.txt
+repl_nix_workspace.egg-info/dependency_links.txt
+repl_nix_workspace.egg-info/requires.txt
+repl_nix_workspace.egg-info/top_level.txt
+tests/test_pdf_parser_integration.py

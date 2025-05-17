@@ -1,0 +1,69 @@
+[agentic]
+enabled = true
+
+[codebase_indexing]
+enabled = true
+# This will index your codebase for faster searches and better understanding
+paths = ["."]  # Index the current directory
+
+[features]
+# Enable multi-file edits for complex refactoring
+multi_file_edits = true
+# Enable interactive debugging for better troubleshooting
+interactive_debugging = true
+# Enable larger context for better code understanding
+enhanced_context = true
+# Enable access to cutting-edge AI models
+experimental_models = true
+# Enable custom instructions for project-specific behavior
+custom_instructions = true
+
+[multi_file_edits]
+# Maximum number of files that can be modified in a single operation
+max_files = 10
+# Whether to create backups before making changes
+create_backups = true
+
+[interactive_debugging]
+# Enable breakpoints for debugging
+breakpoints = true
+# Show variable values during debugging
+show_variables = true
+# Step through code execution
+step_execution = true
+
+[enhanced_context]
+# Increase the context window size (in tokens)
+context_window_size = 16000
+# Include related files in context
+include_related_files = true
+
+[experimental_models]
+# Enable experimental model features
+enabled = true
+# Fall back to stable models if experimental ones fail
+fallback_to_stable = true
+
+[custom_instructions]
+# Path to custom instructions file (relative to project root)
+instructions_file = ".windsurf_instructions.md"
+# Enable/disable specific instruction sets
+code_style = true
+documentation = true
+testing = true
+
+[code_style]
+# Add your project's code style preferences here
+indent_size = 2
+use_tabs = false
+quote_style = "single"
+
+[documentation]
+# Documentation preferences
+generate_docs = true
+docstring_format = "google"
+
+[testing]
+# Testing preferences
+test_framework = "jest"
+coverage_threshold = 80

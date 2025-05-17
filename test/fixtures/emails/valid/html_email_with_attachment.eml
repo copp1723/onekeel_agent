@@ -1,0 +1,27 @@
+From: noreply@example.com
+To: user@example.com
+Subject: Monthly Report - May 2025
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="boundary-string"
+
+--boundary-string
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<html>
+  <body>
+    <h1>Monthly Report - May 2025</h1>
+    <p>Please find attached the monthly report for May 2025.</p>
+    <p>Best regards,<br>Report System</p>
+  </body>
+</html>
+
+--boundary-string
+Content-Type: text/csv; name="report_may_2025.csv"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="report_may_2025.csv"
+
+SUQsTmFtZSxBbW91bnQsRGF0ZQoxLFRlc3QgUHJvZHVjdCwxMDAuNSwyMDI1LTA1LTAxCjIsQW5vdGhl
+ciBQcm9kdWN0LDIwMC43NSwyMDI1LTA1LTAyCjMsVGhpcmQgUHJvZHVjdCwxNTAuMjUsMjAyNS0w
+NS0wMwo=
+--boundary-string--

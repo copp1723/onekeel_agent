@@ -1,0 +1,5 @@
+From: bad-email
+To: test@example.com
+Subject: Malformed Email Test
+
+This email has malformed headers and should be rejected by the parser.

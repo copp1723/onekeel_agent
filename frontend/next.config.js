@@ -8,6 +8,19 @@ const nextConfig = {
   env: {
     HOST: '0.0.0.0',
   },
+  // Increase webpack timeout and configure chunk loading
+  webpack: (config) => {
+    config.watchOptions = {
+      ...config.watchOptions,
+      poll: 1000,
+      aggregateTimeout: 300,
+    };
+
+    // Increase chunk loading timeout
+    config.output.chunkLoadTimeout = 60000; // 60 seconds
+
+    return config;
+  },
 };
 
 module.exports = nextConfig;

@@ -1,0 +1,404 @@
+
+
+Appointment Performance
+GroupsUsers
+--ALL--
+Admin
+Finance
+Manager
+Sales
+--ALL--
+Ashley Smith
+Bobby Sight
+Dealers United
+Internet Leads at Rob Sight Ford
+Jairon Jasper
+Jason Barrett
+How are these numbers calculated?
+Appointments Set list is based on when the appointment was created.
+Appointments Shown list is based on the appointments shown during the timeframe,
+even if they were created before.
+Sold Customers is the number of deals with a deal number from those appointments SET
+OR SHOWN within that timeframe.
+Confirmed Status:  AllInventory Type:  AllReason:  AllLocation:  All
+From: To: 
+Today  Yesterday  Last 7 Days  MTD  LM
+View Report
+Total All Users
+18 Showed of 37 Set
+(48%)
+Note: 5 appts are in the
+future
+Shown: 20Sold: 6
+Jairon Jasper
+2 Showed of 4 Set
+(50%)
+Note: 1 appts are in the
+future
+Shown: 3Sold: 0
+Appointments Set (4)
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/7/25 10:16am2/9/26 10:30amDavid FosbinderJairon JasperScheduledOtherDealership
+5/7/25 2:57pm5/7/25 5:00pmJennifer SteinerJairon JasperCompleted
+Sales
+Appointment
+Dealership
+5/1/2025
+
+5/16/2025
+
+
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/12/25
+11:18am
+5/13/25 4:00pmJake CresslerJairon JasperCancelled
+Sales
+Appointment
+Dealership
+5/14/25 9:34am5/14/25 11:00amJanet ClarkJairon JasperCompleted
+Sales
+Appointment
+Dealership
+Appointments Shown (3)
+All appointments shown during the timeframe, regardless of when they were set.
+Could have been set days before and will show here.
+SetShowedCustomerAssigned ToReasonLocation
+4/18/25 9:19am5/1/25 9:30amChristina OsterJairon JasperOtherDealership
+5/7/25 2:57pm5/7/25 5:00pmJennifer SteinerJairon JasperSales AppointmentDealership
+5/14/25 9:34am5/14/25 11:00amJanet ClarkJairon JasperSales AppointmentDealership
+Jason Barrett
+7 Showed of 9 Set
+(77%)
+Note: 1 appts are in the
+future
+Shown: 8Sold: 2
+Appointments Set (9)
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/1/25 9:00am5/3/25 10:30amLouis ZambranoJason BarrettCompleted
+Sales
+Appointment
+Dealership
+
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/7/25 1:30pm5/7/25 4:00pmClayton HessJason BarrettCompleted
+Sales
+Appointment
+Dealership
+5/7/25 4:29pm5/7/25 5:00pmAiden Price AstJason BarrettCompleted
+Sales
+Appointment
+Dealership
+5/7/25 4:42pm5/8/25 3:00pmJamie GorkowJason BarrettCompleted
+Sales
+Appointment
+Dealership
+5/8/25 3:31pm5/8/25 4:00pmShawn SpencerJason BarrettCompleted
+Sales
+Appointment
+Dealership
+5/12/25 9:48am5/12/25 4:30pmJustin DriverJason BarrettCompleted
+Sales
+Appointment
+Dealership
+5/12/25 1:24pm5/13/25 12:00pmAshton HansonJason BarrettMissed
+Sales
+Appointment
+Dealership
+5/14/25
+12:03pm
+5/17/25 2:45pmRojelio PerezJason BarrettScheduled
+Sales
+Appointment
+Dealership
+5/14/25 5:25pm5/14/25 5:30pmJeffrey KrempecJason BarrettCompleted
+Sales
+Appointment
+Dealership
+Appointments Shown (8)
+All appointments shown during the timeframe, regardless of when they were set.
+Could have been set days before and will show here.
+
+SetShowedCustomerAssigned ToReasonLocation
+4/30/25 5:33pm5/1/25 10:00amDawon ThreetsJason BarrettSales AppointmentDealership
+5/1/25 9:00am5/3/25 10:30amLouis ZambranoJason BarrettSales AppointmentDealership
+5/7/25 1:30pm5/7/25 4:00pmClayton HessJason BarrettSales AppointmentDealership
+5/7/25 4:29pm5/7/25 5:00pmAiden Price AstJason BarrettSales AppointmentDealership
+5/7/25 4:42pm5/8/25 3:00pmJamie GorkowJason BarrettSales AppointmentDealership
+5/8/25 3:31pm5/8/25 4:00pmShawn SpencerJason BarrettSales AppointmentDealership
+5/12/25 9:48am5/12/25 4:30pmJustin DriverJason BarrettSales AppointmentDealership
+5/14/25 5:25pm5/14/25 5:30pmJeffrey KrempecJason BarrettSales AppointmentDealership
+Sold Customers (2)
+Note: A customer's name may show in duplicate due to multiple appointments.
+SoldDeal #ShownSetCustomerAssigned ToSales RepReasonLocation
+5/9/25
+5:26pm
+28285
+5/7/25
+5:00pm
+5/7/25
+4:29pm
+Aiden Price
+Ast
+Jason BarrettJason Barrett
+Sales
+Appointment
+Dealership
+5/12/25
+6:32pm
+28309
+5/12/25
+4:30pm
+5/12/25
+9:48am
+Justin DriverJason BarrettJason Barrett
+Sales
+Appointment
+Dealership
+Keith Koenigsdorf
+1 Showed of 2 Set
+(50%)
+Shown: 1Sold: 0
+Appointments Set (2)
+
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/2/25 7:34am5/2/25 3:30pm
+STANDARD
+MANAGEMENT LLC
+Keith
+Koenigsdorf
+Cancelled
+Sales
+Appointment
+Dealership
+5/2/25 4:15pm5/3/25 1:30pmColbey Stosberg
+Keith
+Koenigsdorf
+Completed
+Sales
+Appointment
+Dealership
+Appointments Shown (1)
+All appointments shown during the timeframe, regardless of when they were set.
+Could have been set days before and will show here.
+SetShowedCustomerAssigned ToReasonLocation
+5/2/25 4:15pm5/3/25 1:30pmColbey StosbergKeith KoenigsdorfSales AppointmentDealership
+Michael Cox
+1 Showed of 2 Set
+(50%)
+Shown: 1Sold: 1
+Appointments Set (2)
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/6/25 12:09pm5/7/25 4:30pmLeslie JonesMichael CoxCancelled
+Sales
+Appointment
+Dealership
+5/13/25
+10:16am
+5/13/25 10:30amJoseph AllenMichael CoxCompleted
+Sales
+Appointment
+Dealership
+Appointments Shown (1)
+All appointments shown during the timeframe, regardless of when they were set.
+Could have been set days before and will show here.
+
+SetShowedCustomerAssigned ToReasonLocation
+5/13/25 10:16am5/13/25 10:30amGrace AllenMichael CoxSales AppointmentDealership
+Sold Customers (1)
+Note: A customer's name may show in duplicate due to multiple appointments.
+SoldDeal #ShownSetCustomerAssigned ToSales RepReasonLocation
+5/7/25
+12:00am
+28277
+5/7/25
+4:30pm
+5/6/25
+12:09pm
+Leslie JonesMichael CoxMichael Cox
+Sales
+Appointment
+Dealership
+Ryan Russian
+3 Showed of 8 Set
+(37%)
+Note: 2 appts are in the
+future
+Shown: 3Sold: 1
+Appointments Set (8)
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/1/25 5:30pm5/3/25 12:30pmSteven HarmonRyan RussianCompleted
+Sales
+Appointment
+Dealership
+5/2/25 10:35am5/5/25 12:00pmJason YorkRyan RussianMissed
+Sales
+Appointment
+Dealership
+5/5/25 4:16pm5/8/25 4:00pmNico JonesRyan RussianCancelled
+Sales
+Appointment
+Dealership
+5/5/25 4:33pm5/7/25 12:30pmJason YorkRyan RussianMissed
+Sales
+Appointment
+Dealership
+
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/7/25 2:22pm5/8/25 1:30pmNico JonesRyan RussianCompleted
+Sales
+Appointment
+Dealership
+5/12/25
+10:34am
+5/12/25 2:30pm
+Gabriela
+Gantman
+Ryan RussianCompleted
+Sales
+Appointment
+Dealership
+5/15/25 5:47pm5/17/25 10:30amKaren ClaycombRyan RussianScheduled
+Sales
+Appointment
+Dealership
+5/15/25 5:49pm5/16/25 1:00pmChad PassmanRyan RussianScheduled
+Sales
+Appointment
+Dealership
+Appointments Shown (3)
+All appointments shown during the timeframe, regardless of when they were set.
+Could have been set days before and will show here.
+SetShowedCustomerAssigned ToReasonLocation
+5/1/25 5:30pm5/3/25 12:30pmSteven HarmonRyan RussianSales AppointmentDealership
+5/7/25 2:22pm5/8/25 1:30pmNico JonesRyan RussianSales AppointmentDealership
+5/12/25 10:34am5/12/25 2:30pmGabriela GantmanRyan RussianSales AppointmentDealership
+Sold Customers (1)
+Note: A customer's name may show in duplicate due to multiple appointments.
+
+SoldDeal #ShownSetCustomerAssigned ToSales RepReasonLocation
+5/3/25
+12:00am
+28262
+5/3/25
+12:30pm
+5/1/25
+5:30pm
+Steven
+Harmon
+Ryan
+Russian
+Ryan
+Russian
+Sales
+Appointment
+Dealership
+Tim Smith
+2 Showed of 7 Set
+(28%)
+Note: 1 appts are in the
+future
+Shown: 2Sold: 1
+Appointments Set (7)
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/8/25 12:23pm5/8/25 1:00pmRobert AndersonTim SmithCompleted
+Sales
+Appointment
+Dealership
+5/10/25 8:52am5/10/25 3:00pmJames FlowersTim SmithMissed
+Sales
+Appointment
+Dealership
+5/10/25 9:30am5/10/25 1:30pmMark MorelandTim SmithCompleted
+Sales
+Appointment
+Dealership
+5/12/25 9:02am5/15/25 4:30pmAli ReichertTim SmithCancelled
+Sales
+Appointment
+Dealership
+5/13/25 5:15pm5/14/25 11:00amJayme ThorpeTim SmithMissed
+Sales
+Appointment
+Dealership
+5/15/25 8:31am5/15/25 11:00amColby HamelTim SmithMissed
+Sales
+Appointment
+Dealership
+
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/15/25 4:34pm5/17/25 10:00amShane JacksonRyan RussianScheduled
+Sales
+Appointment
+Dealership
+Appointments Shown (2)
+All appointments shown during the timeframe, regardless of when they were set.
+Could have been set days before and will show here.
+SetShowedCustomerAssigned ToReasonLocation
+5/8/25 12:23pm5/8/25 1:00pmRobert AndersonTim SmithSales AppointmentDealership
+5/10/25 9:30am5/10/25 1:30pmMark MorelandTim SmithSales AppointmentDealership
+Sold Customers (1)
+Note: A customer's name may show in duplicate due to multiple appointments.
+SoldDeal #ShownSetCustomerAssigned ToSales RepReasonLocation
+5/8/25
+3:18pm
+28283
+5/8/25
+1:00pm
+5/8/25
+12:23pm
+Robert
+Anderson
+Tim SmithTim Smith
+Sales
+Appointment
+Dealership
+Trey McNeff
+2 Showed of 5 Set
+(40%)
+Shown: 2Sold: 1
+Appointments Set (5)
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/2/25 9:49am5/3/25 9:30amDarrin DickersonTrey McNeffCompleted
+Sales
+Appointment
+Dealership
+
+SetScheduled ForCustomerAssigned ToStatusReasonLocation
+5/5/25 9:06am5/5/25 2:00pmStephanie MyersTrey McNeffCompleted
+Sales
+Appointment
+Dealership
+5/5/25 5:40pm5/6/25 4:30pmGerald WillenerTrey McNeffCancelled
+Sales
+Appointment
+Dealership
+5/6/25 5:26pm5/12/25 1:30pmPayton RhoneTrey McNeffCancelled
+Sales
+Appointment
+Dealership
+5/12/25 9:10am5/12/25 1:30pmChelley WilsonTrey McNeffCancelled
+Sales
+Appointment
+Dealership
+Appointments Shown (2)
+All appointments shown during the timeframe, regardless of when they were set.
+Could have been set days before and will show here.
+SetShowedCustomerAssigned ToReasonLocation
+5/2/25 9:49am5/3/25 9:30amDarrin DickersonTrey McNeffSales AppointmentDealership
+5/5/25 9:06am5/5/25 2:00pmStephanie MyersTrey McNeffSales AppointmentDealership
+Sold Customers (1)
+Note: A customer's name may show in duplicate due to multiple appointments.
+SoldDeal #ShownSetCustomerAssigned ToSales RepReasonLocation
+5/3/25
+12:00am
+28259
+5/3/25
+9:30am
+5/2/25
+9:49am
+Darrin
+Dickerson
+Trey McNeffTrey McNeff
+Sales
+Appointment
+Dealership
