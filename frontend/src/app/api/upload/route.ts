@@ -1,10 +1,42 @@
 import { NextResponse } from 'next/server'
-import { spawn } from 'child_process'
 import path from 'path'
 import fs from 'fs/promises'
 import { v4 as uuidv4 } from 'uuid'
 
 export const runtime = 'nodejs'
+
+// Simple function to count lines in a file
+async function countLines(filePath: string): Promise<number> {
+  try {
+    const content = await fs.readFile(filePath, 'utf8')
+    return content.split('\n').length
+  } catch (error) {
+    console.error('Error counting lines:', error)
+    return 0
+  }
+}
+
+// Simple function to process a CSV file
+async function processFile(filePath: string): Promise<any> {
+  try {
+    const stats = await fs.stat(filePath)
+    const lineCount = await countLines(filePath)
+
+    return {
+      upload_id: uuidv4(),
+      file_name: path.basename(filePath),
+      file_size: stats.size,
+      line_count: lineCount,
+      timestamp: Date.now()
+    }
+  } catch (error) {
+    console.error('Error processing file:', error)
+    return {
+      upload_id: uuidv4(),
+      error: 'Error processing file'
+    }
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -39,66 +71,12 @@ export async function POST(request: Request) {
     const fileBuffer = await file.arrayBuffer()
     await fs.writeFile(tempPath, Buffer.from(fileBuffer))
 
-    console.log(`File saved to ${tempPath}, attempting to process...`)
+    console.log(`File saved to ${tempPath}, processing...`)
 
     try {
-      // Process with Python legacy code (using simplified version)
-      // Try different Python executable names
-      const pythonExecutable = process.platform === 'win32' ? 'python' :
-                              (process.env.PYTHON_PATH || 'python3');
-
-      console.log(`Using Python executable: ${pythonExecutable}`);
-
-      const pythonProcess = spawn(pythonExecutable, [
-        path.join(process.cwd(), '..', 'legacy_code', 'simple_upload.py'),
-        tempPath
-      ])
-
-      let output = ''
-      let errorOutput = ''
-
-      pythonProcess.stdout.on('data', (data) => {
-        const chunk = data.toString()
-        console.log(`Python stdout: ${chunk}`)
-        output += chunk
-      })
-
-      pythonProcess.stderr.on('data', (data) => {
-        const chunk = data.toString()
-        console.error(`Python stderr: ${chunk}`)
-        errorOutput += chunk
-      })
-
-      const uploadId = await new Promise<string>((resolve, reject) => {
-        pythonProcess.on('close', (code) => {
-          console.log(`Python process exited with code ${code}`)
-          console.log(`Python output: ${output}`)
-
-          if (code === 0) {
-            try {
-              // Try to parse JSON from output
-              const result = JSON.parse(output)
-              resolve(result.upload_id)
-            } catch (e) {
-              console.error('Failed to parse Python output as JSON:', e)
-              console.error('Raw output:', output)
-
-              // Fallback: Generate a UUID as upload ID
-              const fallbackId = uuidv4()
-              console.log(`Using fallback UUID: ${fallbackId}`)
-              resolve(fallbackId)
-            }
-          } else {
-            console.error(`Python process failed with code ${code}`)
-            console.error(`Error output: ${errorOutput}`)
-
-            // Fallback: Generate a UUID as upload ID
-            const fallbackId = uuidv4()
-            console.log(`Using fallback UUID after error: ${fallbackId}`)
-            resolve(fallbackId)
-          }
-        })
-      })
+      // Process the file using our JavaScript implementation
+      const result = await processFile(tempPath)
+      console.log('File processing result:', result)
 
       // Clean up temp file
       try {
@@ -107,9 +85,14 @@ export async function POST(request: Request) {
         console.error('Error deleting temp file:', err)
       }
 
+      // Simulate a delay to show progress in the UI
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       return NextResponse.json({
-        uploadId,
-        filename: file.name
+        uploadId: result.upload_id,
+        filename: file.name,
+        lineCount: result.line_count,
+        fileSize: result.file_size
       })
     } catch (processingError) {
       console.error('Error during file processing:', processingError)
