@@ -122,8 +122,7 @@ export const CrmCredentialsSchema = z.object({
     password: z.string().optional(),
   }).optional(),
 });
-export type CrmCredentials = z.infer<typeof CrmCredentialsSchema>;
-
+export 
 // Complete configuration schema
 export const ConfigSchema = z.object({
   env: EnvironmentSchema.default('development'),

@@ -2,6 +2,18 @@
 
 A flexible AI agent backend using Fellou Eko that focuses on file ingestion, data processing, and insight generation. The agent accepts natural language input and returns structured data as JSON. It's specifically designed for automotive dealerships to analyze CRM reports, generate insights, and distribute them via email to different stakeholders.
 
+## New PDF Parser
+
+We've recently migrated from a Python-based camelot PDF parser to a more robust TypeScript-based solution. The new implementation offers:
+
+- Better reliability and accuracy
+- More consistent results across different PDF formats
+- Improved error handling and logging
+- Better integration with the TypeScript/JavaScript ecosystem
+- Reduced dependency on system libraries
+
+For more details, see the [PDF Extraction Documentation](PDF_EXTRACTION_README.md) and [Migration Guide](legacy_code/PARSER_MIGRATION_GUIDE.md).
+
 ## Features
 
 ### Core Features
@@ -20,17 +32,24 @@ A flexible AI agent backend using Fellou Eko that focuses on file ingestion, dat
 - ✅ Multi-step task execution (parse-then-analyze)
 
 ### Automotive Dealership Features
-- ✅ CRM report ingestion via email-only approach (VinSolutions, VAUTO, DealerTrack)
-- ✅ Complete data flow integration pipeline for attachment parsing, storage, and analysis
-- ✅ Support for CSV, XLSX, and PDF file formats with validation
-- ✅ Structured storage of results in filesystem and database
-- ✅ AI-powered insight generation with metadata tracking
-- ✅ Role-based insight distribution
-- ✅ Scheduled report processing
-- ✅ Email notifications
-- ✅ OTP email verification for secure access
+- ✅ **Email-Only CRM Report Ingestion** - Secure, credential-less ingestion of reports from VinSolutions, VAUTO, and other CRM platforms
+- ✅ **Automated Attachment Processing** - Supports CSV, XLSX, and PDF formats with built-in validation
+- ✅ **Structured Data Storage** - Secure storage of parsed results with full audit trail
+- ✅ **AI-Powered Insights** - Advanced analysis with metadata tracking and versioning
+- ✅ **Role-Based Distribution** - Targeted delivery of insights to stakeholders
+- ✅ **Scheduled Processing** - Automatic handling of recurring reports
+- ✅ **Comprehensive Notifications** - Email alerts for processing status and insights
+- ✅ **Secure Access** - OTP verification for all email-based operations
 
-### Recent Fixes and Improvements
+### Recent Improvements
+- 🚀 **Email-Only Architecture** - Completely removed credential-based ingestion in favor of a secure, email-only approach
+- 🛡️ **Enhanced Security** - Eliminated the need to store sensitive credentials by using email-based workflows
+- 🔄 **Simplified Integration** - Streamlined the ingestion process with fewer moving parts and dependencies
+- 📧 **Robust Email Processing** - Improved handling of various email formats and attachments
+- 🧹 **Code Cleanup** - Removed legacy credential management code and related dependencies
+- 📊 **Better Monitoring** - Enhanced logging and error tracking for email processing
+
+### Recent Fixes
 - ✅ Fixed unknown at-rules errors in global CSS by updating postcss.config.js and downgrading Tailwind CSS and PostCSS to compatible versions
 - ✅ Added VSCode settings and CSS configuration files to help the IDE understand Tailwind directives
 - ✅ Executed automated TypeScript error fixing script to address common TypeScript errors
