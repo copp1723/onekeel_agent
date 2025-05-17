@@ -10,6 +10,7 @@ Welcome to the AgentFlow project! This guide will help you set up your developme
 4. [Code Organization](#code-organization)
 5. [Common Development Tasks](#common-development-tasks)
 6. [Troubleshooting](#troubleshooting)
+7. [Pre-commit Hooks: Linting and Testing](#pre-commit-hooks-linting-and-testing)
 
 ## Project Overview
 
@@ -208,6 +209,31 @@ If you need assistance:
 1. Check the project documentation
 2. Review existing issues on GitHub
 3. Reach out to the team on Slack
+
+## Pre-commit Hooks: Linting and Testing
+
+AgentFlow uses a pre-commit hook to enforce code quality. Before any commit, the following checks are run automatically:
+
+- **Linting**: Ensures code style and formatting standards are met (`npm run lint`).
+- **Testing**: Runs the test suite to catch regressions (`npm test`).
+
+If either step fails, the commit will be blocked. This helps maintain a healthy codebase and prevents broken code from being committed.
+
+### How it Works
+
+The pre-commit hook is managed by [Husky](https://typicode.github.io/husky/). You can find the hook script in `.husky/pre-commit`.
+
+**Typical workflow:**
+
+1. Make your code changes.
+2. Stage your changes with `git add`.
+3. Run `git commit ...`.
+4. Husky will automatically run linting and tests. If both pass, the commit succeeds. If not, fix the issues and try again.
+
+### Troubleshooting
+
+- If you want to skip the hook (not recommended), use `git commit --no-verify`.
+- If you encounter issues with Husky, try reinstalling hooks with `npx husky install`.
 
 ---
 

@@ -1,8 +1,6 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Temporarily disabled tests and linting for initial setup
-# npm run lint && npm test
-echo "Pre-commit hook: Tests and linting temporarily disabled for initial setup"
-# echo "Running linting..."
-# npm run lint || { echo "Linting failed"; exit 1; }
+# Run linting and tests before commit
+npm run lint || { echo "Linting failed"; exit 1; }
+npm test || { echo "Tests failed"; exit 1; }
