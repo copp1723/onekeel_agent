@@ -1,49 +1,68 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, isAppError, toAppError } from './errorTypes.js';
+import { 
+  AppError, 
+  isAppError, 
+  toAppError, 
+  ERROR_CODES,
+  type ErrorCode 
+} from './errorTypes.js';
 import { logger } from './logger.js';
 
 /**
- * Log error details
+ * Log error with appropriate level and context
  */
-export function logError(error: AppError): void {
-  const logData = {
-    name: error.name,
-    message: error.message,
-    statusCode: error.statusCode,
-    isOperational: error.isOperational,
-    stack: error.stack,
-    context: error.context || {}
-  };
+export function logError(error: unknown, context: Record<string, any> = {}): void {
+  const appError = toAppError(error);
+  const { name, message, stack, code, statusCode, isOperational } = appError;
   
-  if (error.isOperational) {
-    // Operational errors are expected errors that we want to log at info level
-    logger.info('Operational error occurred', logData);
+  const logContext = {
+    error: {
+      name,
+      message,
+      code,
+      statusCode,
+      isOperational,
+      stack: process.env.NODE_ENV !== 'production' ? stack : undefined,
+    },
+    context: {
+      ...(appError.context || {}),
+      ...context,
+    },
+    timestamp: new Date().toISOString(),
+  };
+
+  if (isOperational) {
+    logger.warn('Operational error occurred', logContext);
   } else {
-    // Non-operational errors are unexpected and should be logged at error level
-    logger.error('Non-operational error occurred', logData);
+    logger.error('Unexpected error occurred', logContext);
   }
 }
 
 /**
  * Format error response for API clients
  */
-export function formatErrorResponse(error: AppError, includeStack: boolean = false): Record<string, any> {
+export function formatErrorResponse(
+  error: unknown,
+  includeDetails: boolean = process.env.NODE_ENV !== 'production'
+): Record<string, any> {
+  const appError = toAppError(error);
   const response: Record<string, any> = {
     status: 'error',
-    statusCode: error.statusCode,
-    message: error.message
+    statusCode: appError.statusCode,
+    code: appError.code,
+    message: appError.message,
   };
-  
+
   // Include additional context for debugging if available
-  if (error.context && Object.keys(error.context).length > 0) {
-    response.context = error.context;
+  if (appError.context && Object.keys(appError.context).length > 0) {
+    response.context = appError.context;
   }
-  
-  // Include stack trace in development environment
-  if (includeStack && error.stack) {
-    response.stack = error.stack;
+
+  // Include stack trace in non-production environments
+  if (includeDetails && appError.stack) {
+    response.stack = appError.stack;
   }
-  
+
   return response;
 }
 
@@ -51,30 +70,43 @@ export function formatErrorResponse(error: AppError, includeStack: boolean = fal
  * Global error handler middleware for Express
  */
 export function errorHandlerMiddleware(
-  error: Error,
+  error: unknown,
   req: Request,
   res: Response,
   next: NextFunction
 ): void {
-  // Convert to AppError if it's not already
-  const appError = isAppError(error) ? error : toAppError(error);
-  
-  // Log the error
-  logError(appError);
-  
-  // Send error response
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const errorResponse = formatErrorResponse(appError, isDevelopment);
-  
-  res.status(appError.statusCode).json(errorResponse);
+  // Log the error with request context
+  logError(error, {
+    path: req.path,
+    method: req.method,
+    params: req.params,
+    query: req.query,
+    // Don't log the entire body as it might contain sensitive data
+    body: Object.keys(req.body || {}).length > 0 ? '[REDACTED]' : undefined,
+  });
+
+  // Format the error response
+  const response = formatErrorResponse(
+    error,
+    process.env.NODE_ENV !== 'production'
+  );
+
+  // Send the response
+  res.status(response.statusCode).json(response);
 }
 
 /**
  * Async handler to catch errors in async route handlers
  */
-export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) {
+export function asyncHandler(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+) {
   return (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+    return Promise.resolve(fn(req, res, next)).catch((error) => {
+      // Convert to AppError if not already
+      const appError = toAppError(error);
+      next(appError);
+    });
   };
 }
 
@@ -82,26 +114,24 @@ export function asyncHandler(fn: (req: Request, res: Response, next: NextFunctio
  * Handle uncaught exceptions and unhandled rejections
  */
 export function setupGlobalErrorHandlers(): void {
-  // Handle uncaught exceptions
   process.on('uncaughtException', (error: Error) => {
-    const appError = isAppError(error) ? error : toAppError(error);
-    logError(appError);
+    const appError = toAppError(error);
+    logError(appError, { type: 'uncaughtException' });
     
-    // If it's a non-operational error, we should exit the process
+    // Consider whether to crash the process or not based on error type
     if (!appError.isOperational) {
-      logger.error('Non-operational error occurred. Exiting process.');
+      logger.fatal('Uncaught exception - Application will exit', { error: appError });
       process.exit(1);
     }
   });
-  
-  // Handle unhandled promise rejections
-  process.on('unhandledRejection', (reason: any) => {
-    const appError = isAppError(reason) ? reason : toAppError(reason);
-    logError(appError);
+
+  process.on('unhandledRejection', (reason: unknown) => {
+    const appError = toAppError(reason);
+    logError(appError, { type: 'unhandledRejection' });
     
-    // If it's a non-operational error, we should exit the process
+    // Consider whether to crash the process or not based on error type
     if (!appError.isOperational) {
-      logger.error('Unhandled promise rejection with non-operational error. Exiting process.');
+      logger.fatal('Unhandled rejection - Application will exit', { error: appError });
       process.exit(1);
     }
   });
@@ -113,22 +143,26 @@ export function setupGlobalErrorHandlers(): void {
 export async function tryCatch<T>(
   fn: () => Promise<T>,
   errorMessage: string = 'An error occurred',
-  context: Record<string, any> = {}
+  context: Record<string, any> = {},
+  errorCode: ErrorCode = 'UNEXPECTED_ERROR'
 ): Promise<T> {
   try {
     return await fn();
   } catch (error) {
-    const appError = isAppError(error) 
-      ? error 
-      : toAppError(error, errorMessage);
+    const appError = toAppError(error);
     
-    // Add additional context
-    appError.context = { ...appError.context, ...context };
+    // Only override the message if it's the default one
+    if (appError.message === 'An unexpected error occurred' || !appError.isOperational) {
+      appError.message = errorMessage;
+      appError.code = errorCode;
+    }
     
-    // Log the error
+    // Add context to the error
+    if (Object.keys(context).length > 0) {
+      appError.context = { ...appError.context, ...context };
+    }
+    
     logError(appError);
-    
-    // Re-throw the error
     throw appError;
   }
 }
@@ -144,6 +178,7 @@ export async function retryWithBackoff<T>(
     backoffFactor?: number;
     maxDelay?: number;
     retryCondition?: (error: any) => boolean;
+    context?: Record<string, any>;
   } = {}
 ): Promise<T> {
   const {
@@ -151,38 +186,48 @@ export async function retryWithBackoff<T>(
     initialDelay = 1000,
     backoffFactor = 2,
     maxDelay = 30000,
-    retryCondition = () => true
+    retryCondition = () => true,
+    context = {},
   } = options;
-  
-  let lastError: any;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+
+  let attempts = 0;
+  let delay = initialDelay;
+
+  while (true) {
     try {
       return await fn();
     } catch (error) {
-      lastError = error;
-      
-      // Check if we should retry based on the error
-      if (!retryCondition(error) || attempt >= maxRetries) {
-        throw isAppError(error) ? error : toAppError(error);
+      attempts++;
+      const appError = toAppError(error);
+      const shouldRetry = 
+        attempts < maxRetries && 
+        (retryCondition ? retryCondition(appError) : true);
+
+      if (!shouldRetry) {
+        logError(appError, { 
+          ...context, 
+          retryAttempts: attempts,
+          maxRetries,
+          willRetry: false 
+        });
+        throw appError;
       }
-      
-      // Calculate delay with exponential backoff
-      const delay = Math.min(initialDelay * Math.pow(backoffFactor, attempt - 1), maxDelay);
-      
-      // Log retry attempt
-      logger.info(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms`, {
-        error: error instanceof Error ? error.message : String(error),
+
+      logError(appError, { 
+        ...context, 
+        retryAttempts: attempts,
+                ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
+                : String(error)
+              : String(error)
+            : String(error),
         attempt,
         maxRetries,
-        delay
+        delay,
       });
-      
       // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
-  
   // This should never be reached due to the throw in the catch block
   throw isAppError(lastError) ? lastError : toAppError(lastError);
 }

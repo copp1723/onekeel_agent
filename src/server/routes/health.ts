@@ -1,10 +1,10 @@
 /**
  * Health Monitoring API Routes
- * 
+ *
  * Exposes endpoints for checking system health and viewing health metrics
  */
-
 import express from 'express';
+import { isError } from '../utils/errorUtils.js';
 import {
   runAllHealthChecks,
   runHealthCheck,
@@ -15,11 +15,9 @@ import {
   checkDatabaseHealth,
   checkEmailService,
   checkAIService,
-  checkSchedulerService
+  checkSchedulerService,
 } from '../../services/healthService.js';
-
 const router = express.Router();
-
 /**
  * Get overall system health summary
  */
@@ -28,14 +26,44 @@ router.get('/summary', async (req, res) => {
     const summary = await getHealthSummary();
     res.json(summary);
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error getting health summary:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve health summary',
-      message: error instanceof Error ? error.message : String(error)
+      message:
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
-
 /**
  * Manually run all health checks
  */
@@ -44,14 +72,44 @@ router.post('/checks/run', async (req, res) => {
     const results = await runAllHealthChecks();
     res.json(results);
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error running health checks:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to run health checks',
-      message: error instanceof Error ? error.message : String(error)
+      message:
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
-
 /**
  * Run a specific health check
  */
@@ -59,7 +117,6 @@ router.post('/checks/:id/run', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await runHealthCheck(id);
-    
     if (result) {
       res.json(result);
     } else {
@@ -67,13 +124,19 @@ router.post('/checks/:id/run', async (req, res) => {
     }
   } catch (error) {
     console.error(`Error running health check ${req.params.id}:`, error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to run health check',
-      message: error instanceof Error ? error.message : String(error)
+      message:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
-
 /**
  * Get all health checks
  */
@@ -82,14 +145,44 @@ router.get('/checks', async (req, res) => {
     const healthChecks = await getLatestHealthChecks();
     res.json(healthChecks);
   } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+        : String(error)
+      : String(error);
+    // Use type-safe error handling
+    const errorMessage = isError(error)
+      ? error instanceof Error
+        ? isError(error)
+          ? error instanceof Error
+            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+            : String(error)
+          : String(error)
+        : String(error)
+      : String(error);
     console.error('Error getting health checks:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve health checks',
-      message: error instanceof Error ? error.message : String(error)
+      message:
+        error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error)
+                ? error instanceof Error
+                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
-
 /**
  * Get health logs for a specific check
  */
@@ -97,27 +190,31 @@ router.get('/logs/:checkId', async (req, res) => {
   try {
     const { checkId } = req.params;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
-    
     const logs = await getHealthLogs(checkId, limit);
     res.json(logs);
   } catch (error) {
     console.error(`Error getting health logs for ${req.params.checkId}:`, error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve health logs',
-      message: error instanceof Error ? error.message : String(error)
+      message:
+        error instanceof Error
+          ? error instanceof Error
+            ? error instanceof Error
+              ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
+              : String(error)
+            : String(error)
+          : String(error),
     });
   }
 });
-
 /**
  * Register routes
  */
 export function registerHealthRoutes(app: express.Express): void {
   // Default health check endpoint for basic status
-  app.get('/api/health', async (req, res) => {
+  app.get('/api/health', async (req: Request, res: Response) => {
     try {
       const dbCheck = await checkDatabaseHealth();
-      
       // Simple health check that just verifies the database
       res.json({
         status: dbCheck.status,
@@ -125,26 +222,54 @@ export function registerHealthRoutes(app: express.Express): void {
         timestamp: new Date(),
         database: {
           status: dbCheck.status,
-          message: dbCheck.message
-        }
+          message: dbCheck.message,
+        },
       });
     } catch (error) {
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error)
+        ? error instanceof Error
+          ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+          : String(error)
+        : String(error);
+      // Use type-safe error handling
+      const errorMessage = isError(error)
+        ? error instanceof Error
+          ? isError(error)
+            ? error instanceof Error
+              ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+              : String(error)
+            : String(error)
+          : String(error)
+        : String(error);
       res.status(500).json({
         status: 'error',
         message: 'Health check failed',
-        error: error instanceof Error ? error.message : String(error)
+        error:
+          error instanceof Error
+            ? isError(error)
+              ? error instanceof Error
+                ? isError(error)
+                  ? error instanceof Error
+                    ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
+                    : String(error)
+                  : String(error)
+                : String(error)
+              : String(error)
+            : String(error),
       });
     }
   });
-  
   // Register the health monitoring dashboard routes
   app.use('/api/health-monitoring', router);
-  
   // Register default health checks
   registerHealthCheck('database', checkDatabaseHealth);
   registerHealthCheck('email', checkEmailService);
   registerHealthCheck('ai', checkAIService);
   registerHealthCheck('scheduler', checkSchedulerService);
-  
   console.log('Health monitoring routes registered');
 }

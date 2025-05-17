@@ -1,6 +1,6 @@
-/**
- * Custom error types for the application
- */
+import { ERROR_CODES } from '../utils/errors.js';
+
+type ErrorCode = keyof typeof ERROR_CODES;
 
 /**
  * Base error class for all application errors
@@ -8,160 +8,283 @@
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly isOperational: boolean;
-  public readonly context?: Record<string, any>;
+  public readonly context: Record<string, any>;
+  public readonly code: string;
 
   constructor(
     message: string,
     statusCode: number = 500,
     isOperational: boolean = true,
-    context?: Record<string, any>
+    context: Record<string, any> = {}
   ) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
     this.context = context;
+    this.code = context?.errorCode || 'UNEXPECTED_ERROR';
     this.name = this.constructor.name;
-    
+
     // Capture stack trace
-    Error.captureStackTrace(this, this.constructor);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+
+  /**
+   * Add additional context to the error
+   */
+  public withContext(context: Record<string, any>): this {
+    Object.assign(this.context, context);
+    return this;
+  }
+
+  /**
+   * Convert error to a plain object for logging
+   */
+  public toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      code: this.code,
+      statusCode: this.statusCode,
+      isOperational: this.isOperational,
+      context: this.context,
+      stack: this.stack,
+    };
   }
 }
-
 /**
  * Error for invalid input data
  */
 export class ValidationError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 400, true, context);
+  constructor(message: string, context: Record<string, any> = {}) {
+    super(message, 400, true, {
+      errorCode: 'VALIDATION_ERROR',
+      ...context,
+    });
   }
 }
-
 /**
  * Error for authentication failures
  */
 export class AuthenticationError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 401, true, context);
+  constructor(message: string = 'Authentication failed', context: Record<string, any> = {}) {
+    super(message, 401, true, {
+      errorCode: 'AUTHENTICATION_FAILED',
+      ...context,
+    });
   }
 }
-
 /**
  * Error for authorization failures
  */
 export class AuthorizationError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 403, true, context);
+  constructor(
+    message: string = 'Insufficient permissions', 
+    context: Record<string, any> = {}
+  ) {
+    super(message, 403, true, {
+      errorCode: 'INSUFFICIENT_PERMISSIONS',
+      ...context,
+    });
   }
 }
-
 /**
  * Error for resource not found
  */
 export class NotFoundError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 404, true, context);
+  constructor(
+    resource: string = 'Resource', 
+    context: Record<string, any> = {}
+  ) {
+    super(`${resource} not found`, 404, true, {
+      errorCode: 'RESOURCE_NOT_FOUND',
+      resource,
+      ...context,
+    });
   }
 }
-
 /**
  * Error for database operations
  */
 export class DatabaseError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 500, true, context);
+  constructor(
+    message: string = 'Database operation failed', 
+    context: Record<string, any> = {}
+  ) {
+    super(message, 500, true, {
+      errorCode: 'DATABASE_ERROR',
+      ...context,
+    });
   }
 }
-
 /**
  * Error for external service failures
  */
 export class ExternalServiceError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 502, true, context);
+  constructor(
+    service: string, 
+    message: string = 'External service error', 
+    context: Record<string, any> = {}
+  ) {
+    super(`${service}: ${message}`, 502, true, {
+      errorCode: 'EXTERNAL_SERVICE_ERROR',
+      service,
+      ...context,
+    });
   }
 }
-
 /**
  * Error for rate limiting
  */
 export class RateLimitError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 429, true, context);
+  constructor(
+    limit: number,
+    window: string,
+    context: Record<string, any> = {}
+  ) {
+    super(
+      `Rate limit exceeded. Try again in ${window}`,
+      429,
+      true,
+      {
+        errorCode: 'RATE_LIMIT_EXCEEDED',
+        limit,
+        window,
+        ...context,
+      }
+    );
   }
 }
-
 /**
  * Error for workflow execution failures
  */
 export class WorkflowError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 500, true, context);
+  constructor(
+    workflowId: string,
+    message: string = 'Workflow execution failed',
+    context: Record<string, any> = {}
+  ) {
+    super(message, 500, true, {
+      errorCode: 'WORKFLOW_ERROR',
+      workflowId,
+      ...context,
+    });
   }
 }
-
 /**
  * Error for email sending failures
  */
 export class EmailError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 500, true, context);
+  constructor(
+    message: string = 'Failed to send email', 
+    context: Record<string, any> = {}
+  ) {
+    super(message, 500, true, {
+      errorCode: 'EMAIL_SEND_ERROR',
+      ...context,
+    });
   }
 }
-
 /**
  * Error for task parsing failures
  */
 export class TaskParsingError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 400, true, context);
+  constructor(
+    message: string = 'Failed to parse task', 
+    context: Record<string, any> = {}
+  ) {
+    super(message, 400, true, {
+      errorCode: 'TASK_PARSING_ERROR',
+      ...context,
+    });
   }
 }
-
 /**
  * Error for scheduler failures
  */
 export class SchedulerError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 500, true, context);
+  constructor(
+    message: string = 'Scheduler error', 
+    context: Record<string, any> = {}
+  ) {
+    super(message, 500, true, {
+      errorCode: 'SCHEDULER_ERROR',
+      ...context,
+    });
   }
 }
-
 /**
  * Error for configuration issues
  */
 export class ConfigurationError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 500, false, context);
+  constructor(
+    message: string = 'Configuration error', 
+    context: Record<string, any> = {}
+  ) {
+    super(message, 500, false, {
+      errorCode: 'CONFIGURATION_ERROR',
+      ...context,
+    });
   }
 }
-
 /**
  * Error for unexpected internal errors
  */
 export class InternalError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
-    super(message, 500, false, context);
+  constructor(
+    message: string = 'An internal error occurred', 
+    context: Record<string, any> = {}
+  ) {
+    super(message, 500, false, {
+      errorCode: 'INTERNAL_ERROR',
+      ...context,
+    });
   }
 }
 
 /**
  * Helper function to determine if an error is an instance of AppError
  */
-export function isAppError(error: any): error is AppError {
-  return error instanceof AppError;
+export function isAppError(error: any): error is CodedError {
+  return (
+    error instanceof CodedError ||
+    (error && 
+     typeof error === 'object' && 
+     'isOperational' in error && 
+     'statusCode' in error &&
+     'code' in error)
+  );
 }
 
 /**
  * Helper function to convert unknown errors to AppError
  */
-export function toAppError(error: unknown, defaultMessage: string = 'An unexpected error occurred'): AppError {
+export function toAppError(
+  error: unknown,
+  defaultMessage: string = 'An unexpected error occurred'
+): CodedError {
   if (isAppError(error)) {
     return error;
   }
-  
+
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const context: Record<string, any> = {
+    originalError: error,
+  };
+
   if (error instanceof Error) {
-    return new InternalError(error.message);
+    context.stack = error.stack;
+    context.name = error.name;
   }
   
-  return new InternalError(defaultMessage);
+  return new InternalError(
+    errorMessage || defaultMessage,
+    context
+  );
 }
+
+// Re-export error codes for convenience
+export { ERROR_CODES } from '../utils/errors.js';
+
+export type { ErrorCode } from '../utils/errors.js';

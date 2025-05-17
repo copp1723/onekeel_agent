@@ -8,17 +8,14 @@
  * - Error handling and automatic retry mechanisms
  * - Status tracking and monitoring capabilities
  */
-
 import { db } from '../shared/db.js';
-import { schedules, type Schedule } from '../shared/schema.js';
+import { schedules } from '../shared/schema.js';
 import { emailIngestAndRunFlow } from '../agents/hybridIngestAndRunFlow.js';
-import { generateInsights } from '../services/enhancedInsightGenerator.js';
-import { distributeInsights } from '../services/insightDistributionService.js';
-import { eq, and, lt, gte } from 'drizzle-orm';
+import { eq, and, lt } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import * as cron from 'node-cron';
-import * as fs from 'fs';
-import * as path from 'path';
+import { getErrorMessage } from '../utils/errorUtils.js';
 
 // Maximum number of retries before marking a schedule as failed
 const MAX_RETRIES = 3;
@@ -29,6 +26,25 @@ const activeJobs = new Map<string, cron.ScheduledTask>();
 // Type for environment variables needed by schedule execution
 export interface EnvVars {
   [key: string]: string | undefined;
+}
+
+// No additional type definitions needed
+
+// Schedule type definition based on the database schema
+export interface Schedule {
+  id: string;
+  userId: string | null;
+  workflowId: string | null;
+  intent: string | null;
+  platform: string | null;
+  cron: string;
+  nextRunAt: Date | null;
+  lastRunAt: Date | null;
+  status: string;
+  retryCount: number;
+  enabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -58,8 +74,6 @@ function getNextRunTime(cronExpression: string): Date {
     // Use simple approximation for next run based on cron parts
     const minute = parts[0];
     const hour = parts[1];
-    const dayOfMonth = parts[2];
-    const month = parts[3];
 
     // For simple cases, make a reasonable guess
     if (minute.includes('*/')) {
@@ -72,7 +86,6 @@ function getNextRunTime(cronExpression: string): Date {
       // Specific time each day
       const minuteVal = parseInt(minute, 10);
       const hourVal = parseInt(hour, 10);
-
       nextDate.setHours(hourVal);
       nextDate.setMinutes(minuteVal);
       nextDate.setSeconds(0);
@@ -89,7 +102,7 @@ function getNextRunTime(cronExpression: string): Date {
 
     return nextDate;
   } catch (error) {
-    console.error('Error calculating next run time:', error);
+    console.error('Error calculating next run time:', getErrorMessage(error));
     // Default to 1 hour from now if parsing fails
     const fallbackDate = new Date();
     fallbackDate.setHours(fallbackDate.getHours() + 1);
@@ -106,11 +119,7 @@ export async function initializeScheduler(): Promise<void> {
     console.log('Initializing enhanced scheduler service...');
 
     // Load all active schedules
-    const activeSchedules = await db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.status, 'active'));
-
+    const activeSchedules = await db.select().from(schedules).where(eq(schedules.status, 'active'));
     console.log(`Found ${activeSchedules.length} active schedules`);
 
     // Start each schedule
@@ -118,7 +127,7 @@ export async function initializeScheduler(): Promise<void> {
       try {
         await startSchedule(schedule.id);
       } catch (error) {
-        console.error(`Failed to start schedule ${schedule.id}:`, error);
+        console.error(`Failed to start schedule ${schedule.id}:`, getErrorMessage(error));
 
         // Mark problematic schedules as failed
         await db
@@ -126,7 +135,6 @@ export async function initializeScheduler(): Promise<void> {
           .set({
             status: 'failed',
             updatedAt: new Date(),
-            lastError: error instanceof Error ? error.message : String(error) as string
           })
           .where(eq(schedules.id, schedule.id));
       }
@@ -140,7 +148,7 @@ export async function initializeScheduler(): Promise<void> {
 
     console.log('Scheduler initialization completed');
   } catch (error) {
-    console.error('Error initializing scheduler:', error);
+    console.error('Error initializing scheduler:', getErrorMessage(error));
     throw error;
   }
 }
@@ -156,12 +164,7 @@ async function checkSchedulesForExecution(): Promise<void> {
     const dueSchedules = await db
       .select()
       .from(schedules)
-      .where(
-        and(
-          eq(schedules.status, 'active'),
-          lt(schedules.nextRunAt, now)
-        )
-      );
+      .where(and(eq(schedules.status, 'active'), lt(schedules.nextRunAt, now)));
 
     if (dueSchedules.length > 0) {
       console.log(`Found ${dueSchedules.length} schedules due for execution`);
@@ -171,27 +174,25 @@ async function checkSchedulesForExecution(): Promise<void> {
           // Execute the schedule
           await executeSchedule(schedule.id);
         } catch (error) {
-          console.error(`Error executing schedule ${schedule.id}:`, error);
+          console.error(`Error executing schedule ${schedule.id}:`, getErrorMessage(error));
         }
       }
     }
   } catch (error) {
-    console.error('Error checking schedules for execution:', error);
+    console.error('Error checking schedules for execution:', getErrorMessage(error));
   }
 }
 
 /**
  * Create a new schedule
  */
-export async function createSchedule(
-  options: {
-    userId: string;
-    intent: string;
-    platform: string;
-    cronExpression: string;
-    workflowId?: string; // Optional, for backward compatibility
-  }
-): Promise<Schedule> {
+export async function createSchedule(options: {
+  userId: string;
+  intent: string;
+  platform: string;
+  cronExpression: string;
+  workflowId?: string; // Optional, for backward compatibility
+}): Promise<Schedule> {
   try {
     // Validate the cron expression
     if (!cron.validate(options.cronExpression)) {
@@ -206,30 +207,28 @@ export async function createSchedule(
       .insert(schedules)
       .values({
         id: uuidv4(),
-        userId: options.userId!,
-        intent: options.intent!,
-        platform: options.platform!,
-        workflowId: options.workflowId!,
+        userId: options.userId,
+        intent: options.intent,
+        platform: options.platform,
+        workflowId: options.workflowId,
         cron: options.cronExpression,
         nextRunAt,
         status: 'active',
         retryCount: 0,
         enabled: true, // For backward compatibility
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
 
     // Start the schedule
     await startSchedule(newSchedule.id);
-
     return newSchedule;
   } catch (error) {
-    console.error('Error creating schedule:', error);
+    console.error('Error creating schedule:', getErrorMessage(error));
     throw error;
   }
 }
-
 /**
  * Start a schedule by ID
  */
@@ -239,7 +238,7 @@ export async function startSchedule(scheduleId: string): Promise<void> {
     const [schedule] = await db
       .select()
       .from(schedules)
-      .where(eq(schedules.id, scheduleId));
+      .where(eq(schedules.id, scheduleId.toString()));
 
     if (!schedule) {
       throw new Error(`Schedule not found: ${scheduleId}`);
@@ -253,7 +252,7 @@ export async function startSchedule(scheduleId: string): Promise<void> {
       try {
         await executeSchedule(scheduleId);
       } catch (error) {
-        console.error(`Error executing scheduled job ${scheduleId}:`, error);
+        console.error(`Error executing scheduled job ${scheduleId}:`, getErrorMessage(error));
       }
     });
 
@@ -266,13 +265,13 @@ export async function startSchedule(scheduleId: string): Promise<void> {
       .set({
         status: 'active',
         nextRunAt: getNextRunTime(schedule.cron),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
-      .where(eq(schedules.id, scheduleId));
+      .where(eq(schedules.id, scheduleId.toString()));
 
     console.log(`Schedule ${scheduleId} started successfully`);
   } catch (error) {
-    console.error(`Error starting schedule ${scheduleId}:`, error);
+    console.error(`Error starting schedule ${scheduleId}:`, getErrorMessage(error));
     throw error;
   }
 }
@@ -284,16 +283,14 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
   try {
     // Get the active job
     const job = activeJobs.get(scheduleId);
-
     if (job) {
       // Stop the job
       job.stop();
       activeJobs.delete(scheduleId);
     }
-
     console.log(`Schedule ${scheduleId} stopped`);
   } catch (error) {
-    console.error(`Error stopping schedule ${scheduleId}:`, error);
+    console.error(`Error stopping schedule ${scheduleId}:`, getErrorMessage(error));
     throw error;
   }
 }
@@ -307,7 +304,7 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
     const [schedule] = await db
       .select()
       .from(schedules)
-      .where(eq(schedules.id, scheduleId));
+      .where(eq(schedules.id, scheduleId.toString()));
 
     if (!schedule) {
       throw new Error(`Schedule not found: ${scheduleId}`);
@@ -321,12 +318,9 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
       .set({
         lastRunAt: new Date(),
         nextRunAt: getNextRunTime(schedule.cron),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
-      .where(eq(schedules.id, scheduleId));
-
-    // Execute the task based on platform and intent
-    let result;
+      .where(eq(schedules.id, scheduleId.toString()));
 
     // Collect necessary environment variables
     const envVars: EnvVars = {
@@ -339,34 +333,31 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
       EMAIL_PASS: process.env.EMAIL_PASS,
       EMAIL_HOST: process.env.EMAIL_HOST,
       OTP_EMAIL_USER: process.env.OTP_EMAIL_USER,
-      OTP_EMAIL_PASS: process.env.OTP_EMAIL_PASS
+      OTP_EMAIL_PASS: process.env.OTP_EMAIL_PASS,
     };
 
     try {
       // Use email-only ingestion to fetch the report
-      const filePath = await emailIngestAndRunFlow(schedule.platform!, envVars as Record<string, string>);
-
-      // Generate insights from the fetched report
-      const insights = await generateInsights(
-        filePath,
-        schedule.platform!
+      const filePath = await emailIngestAndRunFlow(
+        schedule.platform!,
+        envVars as Record<string, string>
       );
 
-      // Distribute insights to stakeholders
-      await distributeInsights(insights, schedule.platform!);
+      // Log success
+      console.log(`Successfully ingested report from ${schedule.platform!}, file saved at: ${filePath}`);
 
       // Reset retry count on success
       await db
         .update(schedules)
         .set({
           retryCount: 0,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(schedules.id, scheduleId));
+        .where(eq(schedules.id, scheduleId.toString()));
 
       console.log(`Schedule ${scheduleId} executed successfully`);
     } catch (error) {
-      console.error(`Error executing schedule ${scheduleId}:`, error);
+      console.error(`Error executing schedule ${scheduleId}:`, getErrorMessage(error));
 
       // Increment retry count
       const newRetryCount = (schedule.retryCount || 0) + 1;
@@ -378,10 +369,9 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
         .set({
           retryCount: newRetryCount,
           status,
-          lastError: error instanceof Error ? error.message : String(error) as string,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(schedules.id, scheduleId));
+        .where(eq(schedules.id, scheduleId.toString()));
 
       if (status === 'failed') {
         // Stop the schedule if max retries exceeded
@@ -395,7 +385,7 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
           try {
             await executeSchedule(scheduleId);
           } catch (retryError) {
-            console.error(`Error during retry of schedule ${scheduleId}:`, retryError);
+            console.error(`Error during retry of schedule ${scheduleId}:`, getErrorMessage(retryError));
           }
         }, backoffTime);
       }
@@ -403,11 +393,10 @@ export async function executeSchedule(scheduleId: string): Promise<void> {
       throw error;
     }
   } catch (error) {
-    console.error(`Schedule execution failed ${scheduleId}:`, error);
+    console.error(`Schedule execution failed ${scheduleId}:`, getErrorMessage(error));
     throw error;
   }
 }
-
 /**
  * Get a schedule by ID
  */
@@ -416,11 +405,10 @@ export async function getSchedule(scheduleId: string): Promise<Schedule | undefi
     const [schedule] = await db
       .select()
       .from(schedules)
-      .where(eq(schedules.id, scheduleId));
-
+      .where(eq(schedules.id, scheduleId.toString()));
     return schedule;
   } catch (error) {
-    console.error(`Error getting schedule ${scheduleId}:`, error);
+    console.error(`Error getting schedule ${scheduleId}:`, getErrorMessage(error));
     throw error;
   }
 }
@@ -428,31 +416,33 @@ export async function getSchedule(scheduleId: string): Promise<Schedule | undefi
 /**
  * List schedules with filtering options
  */
-export async function listSchedules(options: {
-  userId?: string;
-  status?: string;
-  platform?: string;
-  intent?: string;
-  active?: boolean;
-} = {}): Promise<Schedule[]> {
+export async function listSchedules(
+  options: {
+    userId?: string;
+    status?: string;
+    platform?: string;
+    intent?: string;
+    active?: boolean;
+  } = {}
+): Promise<Schedule[]> {
   try {
     // Build query conditions
     const conditions = [];
 
-    if (options.userId!) {
-      conditions.push(eq(schedules.userId!, options.userId!));
+    if (options.userId) {
+      conditions.push(eq(schedules.userId!, options.userId));
     }
 
     if (options.status) {
       conditions.push(eq(schedules.status, options.status));
     }
 
-    if (options.platform!) {
-      conditions.push(eq(schedules.platform!, options.platform!));
+    if (options.platform) {
+      conditions.push(eq(schedules.platform!, options.platform));
     }
 
-    if (options.intent!) {
-      conditions.push(eq(schedules.intent!, options.intent!));
+    if (options.intent) {
+      conditions.push(eq(schedules.intent!, options.intent));
     }
 
     if (options.active !== undefined) {
@@ -460,18 +450,18 @@ export async function listSchedules(options: {
     }
 
     // Execute the query
-    let query = db.select().from(schedules);
-
-    if (conditions.length === 1) {
-      query = query.where(conditions[0]);
-    } else if (conditions.length > 1) {
-      query = query.where(and(...conditions));
+    let results;
+    if (conditions.length === 0) {
+      results = await db.select().from(schedules).orderBy(schedules.createdAt);
+    } else if (conditions.length === 1) {
+      results = await db.select().from(schedules).where(conditions[0]).orderBy(schedules.createdAt);
+    } else {
+      results = await db.select().from(schedules).where(and(...conditions)).orderBy(schedules.createdAt);
     }
 
-    const results = await query.orderBy(schedules.createdAt);
     return results;
   } catch (error) {
-    console.error('Error listing schedules:', error);
+    console.error('Error listing schedules:', getErrorMessage(error));
     throw error;
   }
 }
@@ -493,7 +483,7 @@ export async function updateSchedule(
     const [schedule] = await db
       .select()
       .from(schedules)
-      .where(eq(schedules.id, scheduleId));
+      .where(eq(schedules.id, scheduleId.toString()));
 
     if (!schedule) {
       throw new Error(`Schedule not found: ${scheduleId}`);
@@ -501,7 +491,7 @@ export async function updateSchedule(
 
     // Prepare updates
     const updateValues: any = {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     if (updates.cronExpression) {
@@ -509,7 +499,6 @@ export async function updateSchedule(
       if (!cron.validate(updates.cronExpression)) {
         throw new Error(`Invalid cron expression: ${updates.cronExpression}`);
       }
-
       updateValues.cron = updates.cronExpression;
       updateValues.nextRunAt = getNextRunTime(updates.cronExpression);
     }
@@ -518,19 +507,19 @@ export async function updateSchedule(
       updateValues.status = updates.status;
     }
 
-    if (updates.intent!) {
-      updateValues.intent! = updates.intent!;
+    if (updates.intent) {
+      updateValues.intent = updates.intent;
     }
 
-    if (updates.platform!) {
-      updateValues.platform! = updates.platform!;
+    if (updates.platform) {
+      updateValues.platform = updates.platform;
     }
 
     // Update the schedule
     const [updatedSchedule] = await db
       .update(schedules)
       .set(updateValues)
-      .where(eq(schedules.id, scheduleId))
+      .where(eq(schedules.id, scheduleId.toString()))
       .returning();
 
     if (!updatedSchedule) {
@@ -550,7 +539,7 @@ export async function updateSchedule(
 
     return updatedSchedule;
   } catch (error) {
-    console.error(`Error updating schedule ${scheduleId}:`, error);
+    console.error(`Error updating schedule ${scheduleId}:`, getErrorMessage(error));
     throw error;
   }
 }
@@ -566,16 +555,15 @@ export async function deleteSchedule(scheduleId: string): Promise<boolean> {
     // Delete from database
     const [deletedSchedule] = await db
       .delete(schedules)
-      .where(eq(schedules.id, scheduleId))
+      .where(eq(schedules.id, scheduleId.toString()))
       .returning();
 
     return !!deletedSchedule;
   } catch (error) {
-    console.error(`Error deleting schedule ${scheduleId}:`, error);
+    console.error(`Error deleting schedule ${scheduleId}:`, getErrorMessage(error));
     throw error;
   }
 }
-
 /**
  * Retry a failed schedule
  */
@@ -585,7 +573,7 @@ export async function retrySchedule(scheduleId: string): Promise<Schedule | unde
     const [schedule] = await db
       .select()
       .from(schedules)
-      .where(eq(schedules.id, scheduleId));
+      .where(eq(schedules.id, scheduleId.toString()));
 
     if (!schedule) {
       throw new Error(`Schedule not found: ${scheduleId}`);
@@ -598,9 +586,9 @@ export async function retrySchedule(scheduleId: string): Promise<Schedule | unde
         status: 'active',
         retryCount: 0,
         updatedAt: new Date(),
-        nextRunAt: new Date() // Schedule for immediate execution
+        nextRunAt: new Date(), // Schedule for immediate execution
       })
-      .where(eq(schedules.id, scheduleId))
+      .where(eq(schedules.id, scheduleId.toString()))
       .returning();
 
     // Start the schedule
@@ -611,7 +599,7 @@ export async function retrySchedule(scheduleId: string): Promise<Schedule | unde
 
     return updatedSchedule;
   } catch (error) {
-    console.error(`Error retrying schedule ${scheduleId}:`, error);
+    console.error(`Error retrying schedule ${scheduleId}:`, getErrorMessage(error));
     throw error;
   }
 }
@@ -625,4 +613,26 @@ export async function getScheduleLogs(scheduleId: string): Promise<any[]> {
   // This is a placeholder until we implement the schedule_runs table
   console.log(`Getting logs for schedule ${scheduleId}`);
   return [];
+}
+
+/**
+ * Update schedule status with error information
+ */
+export async function updateScheduleStatus(id: string, error: unknown): Promise<void> {
+  try {
+    const errorMessage = getErrorMessage(error);
+
+    await db
+      .update(schedules)
+      .set({
+        status: 'failed',
+        retryCount: sql`${schedules.retryCount} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(schedules.id, id.toString()));
+
+    console.log(`Updated schedule ${id} status to failed due to error: ${errorMessage}`);
+  } catch (updateError) {
+    console.error(`Failed to update schedule status for ${id}:`, getErrorMessage(updateError));
+  }
 }

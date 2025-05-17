@@ -32,3 +32,22 @@ jspm_packages/
 # Temporary files
 tmp/
 temp/
+
+# Next.js build output
+.next/
+
+# Frontend build artifacts
+frontend/.next/
+
+# Test results
+results/
+
+# Package manager files
+package-lock.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# PDF test files
+*.pdf

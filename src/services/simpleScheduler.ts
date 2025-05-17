@@ -3,17 +3,13 @@
  * A simplified version of the scheduler without node-cron dependency.
  * Uses setInterval for basic periodic scheduling.
  */
-
 import { db } from '../shared/db.js';
-import { schedules, taskLogs, type Schedule } from '../shared/schema.js';
+import { schedules, taskLogs } from '....js';
 import { runWorkflow, getWorkflow } from './workflowService.js';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { enqueueJob } from './jobQueue.js';
-
 // Map to keep track of active schedules and their intervals
 const activeSchedules = new Map<string, ReturnType<typeof setInterval>>();
-
 /**
  * Initialize the scheduler on application startup
  * Loads all enabled schedules from the database and starts them
@@ -21,38 +17,36 @@ const activeSchedules = new Map<string, ReturnType<typeof setInterval>>();
 export async function initializeScheduler(): Promise<void> {
   try {
     console.log('Initializing simple scheduler service...');
-
     // Load all enabled schedules
-    const enabledSchedules = await db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.enabled, true));
-
+    const enabledSchedules = await db.select().from(schedules).where(eq(schedules.enabled, true));
     console.log(`Found ${enabledSchedules.length} enabled schedules`);
-
     // Start each schedule with proper error handling
     const startupErrors = [];
-
     for (const schedule of enabledSchedules) {
       try {
         // Try to start the schedule with the simple scheduler
         await startSchedule(schedule);
       } catch (error) {
         console.error(`Failed to start schedule ${schedule.id}:`, error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error
+            ? error instanceof Error
+              ? error instanceof Error
+                ? (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))
+                : String(error)
+              : String(error)
+            : String(error);
         startupErrors.push(`Schedule ${schedule.id}: ${errorMessage}`);
-
         // Disable problematic schedules
         await db
           .update(schedules)
           .set({
             enabled: false,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(schedules.id, schedule.id));
       }
     }
-
     if (startupErrors.length > 0) {
       console.warn(`Scheduler initialized with ${startupErrors.length} errors:`, startupErrors);
     } else {
@@ -63,7 +57,6 @@ export async function initializeScheduler(): Promise<void> {
     throw error;
   }
 }
-
 /**
  * Parse numeric interval from cron expression (simplified)
  * This only handles basic interval patterns
@@ -72,13 +65,13 @@ function parseIntervalFromCron(cronExpression: string): number {
   try {
     // Default to checking every 5 minutes
     let intervalMinutes = 5;
-
     const parts = cronExpression.trim().split(' ');
     if (parts.length !== 5) {
-      console.warn(`Invalid cron expression format: ${cronExpression}, using default 5 minute interval`);
+      console.warn(
+        `Invalid cron expression format: ${cronExpression}, using default 5 minute interval`
+      );
       return intervalMinutes * 60 * 1000;
     }
-
     // Check for */n pattern in minutes field
     const minutesPart = parts[0];
     if (minutesPart.startsWith('*/')) {
@@ -98,7 +91,6 @@ function parseIntervalFromCron(cronExpression: string): number {
     else if (/^\d+$/.test(minutesPart) && /^\d+$/.test(parts[1]) && parts[2] === '*') {
       intervalMinutes = 24 * 60; // Once per day
     }
-
     console.log(`Parsed cron '${cronExpression}' to interval of ${intervalMinutes} minutes`);
     // Convert to milliseconds
     return intervalMinutes * 60 * 1000;
@@ -108,7 +100,6 @@ function parseIntervalFromCron(cronExpression: string): number {
     return 5 * 60 * 1000;
   }
 }
-
 /**
  * Create a new schedule for a workflow
  */
@@ -123,7 +114,6 @@ export async function createSchedule(
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
     }
-
     // Create the schedule
     const [newSchedule] = await db
       .insert(schedules)
@@ -133,22 +123,19 @@ export async function createSchedule(
         cron: cronExpression,
         enabled,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
-
     // If the schedule is enabled, start it right away
     if (enabled) {
       await startSchedule(newSchedule);
     }
-
     return newSchedule;
   } catch (error) {
     console.error('Error creating schedule:', error);
     throw error;
   }
 }
-
 /**
  * Start a schedule
  */
@@ -158,12 +145,9 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
     if (activeSchedules.has(schedule.id)) {
       await stopSchedule(schedule.id);
     }
-
     console.log(`Starting schedule ${schedule.id} with cron: ${schedule.cron}`);
-
     // Parse the interval from the cron expression
     const intervalMs = parseIntervalFromCron(schedule.cron);
-
     // Start an interval to execute the workflow periodically
     const intervalId = setInterval(() => {
       try {
@@ -172,17 +156,14 @@ export async function startSchedule(schedule: Schedule): Promise<void> {
         console.error(`Error executing scheduled workflow ${schedule.workflowId!}:`, error);
       }
     }, intervalMs);
-
     // Store the interval in our active schedules map
     activeSchedules.set(schedule.id, intervalId);
-
     console.log(`Schedule ${schedule.id} started successfully with ${intervalMs}ms interval`);
   } catch (error) {
     console.error(`Error starting schedule ${schedule.id}:`, error);
     throw error;
   }
 }
-
 /**
  * Stop a schedule
  */
@@ -199,23 +180,20 @@ export async function stopSchedule(scheduleId: string): Promise<void> {
     throw error;
   }
 }
-
 /**
  * Execute a scheduled workflow
  */
 async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
   try {
     console.log(`Executing scheduled workflow ${schedule.workflowId!}`);
-
     // Update the lastRunAt timestamp
     await db
       .update(schedules)
       .set({
         lastRunAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(schedules.id, schedule.id));
-
     // Create a task log entry
     const [taskLog] = await db
       .insert(taskLogs)
@@ -226,20 +204,17 @@ async function executeScheduledWorkflow(schedule: Schedule): Promise<void> {
         taskData: { scheduleId: schedule.id, workflowId: schedule.workflowId! },
         status: 'pending',
         createdAt: new Date(),
-        userId: null // Allow null for system-generated tasks
+        userId: null, // Allow null for system-generated tasks
       })
       .returning();
-
     // Run the workflow directly or enqueue it
     await executeWorkflowById(schedule.workflowId!);
-
     console.log(`Scheduled workflow ${schedule.workflowId!} executed successfully`);
   } catch (error) {
     console.error(`Error executing scheduled workflow ${schedule.workflowId!}:`, error);
     throw error;
   }
 }
-
 /**
  * Execute a scheduled workflow directly (called by job processor)
  */
@@ -251,7 +226,6 @@ export async function executeWorkflowById(workflowId: string): Promise<void> {
     throw error;
   }
 }
-
 /**
  * Get a schedule by ID
  */
@@ -260,32 +234,25 @@ export async function getSchedule(scheduleId: string): Promise<Schedule | undefi
     const [schedule] = await db
       .select()
       .from(schedules)
-      .where(eq(schedules.id, scheduleId));
-
+      .where(eq(schedules.id, scheduleId.toString()));
     return schedule;
   } catch (error) {
     console.error('Error getting schedule:', error);
     throw error;
   }
 }
-
 /**
  * List all schedules
  */
 export async function listSchedules(): Promise<Schedule[]> {
   try {
-    const allSchedules = await db
-      .select()
-      .from(schedules)
-      .orderBy(schedules.createdAt);
-
+    const allSchedules = await db.select().from(schedules).orderBy(schedules.createdAt);
     return allSchedules;
   } catch (error) {
     console.error('Error listing schedules:', error);
     throw error;
   }
 }
-
 /**
  * Update a schedule
  */
@@ -302,48 +269,39 @@ export async function updateSchedule(
     if (!currentSchedule) {
       throw new Error(`Schedule not found: ${scheduleId}`);
     }
-
     // Prepare updates
     const updateValues: Partial<Schedule> = {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
-
     if (updates.cronExpression) {
       updateValues.cron = updates.cronExpression;
     }
-
     if (updates.enabled !== undefined) {
       updateValues.enabled = updates.enabled;
     }
-
     // Update the schedule in the database
     const [updatedSchedule] = await db
       .update(schedules)
       .set(updateValues)
-      .where(eq(schedules.id, scheduleId))
+      .where(eq(schedules.id, scheduleId.toString()))
       .returning();
-
     if (!updatedSchedule) {
       throw new Error(`Failed to update schedule: ${scheduleId}`);
     }
-
     // Stop the existing schedule if it's active
     if (activeSchedules.has(scheduleId)) {
       await stopSchedule(scheduleId);
     }
-
     // Start the schedule if it's enabled
     if (updatedSchedule.enabled) {
       await startSchedule(updatedSchedule);
     }
-
     return updatedSchedule;
   } catch (error) {
     console.error(`Error updating schedule ${scheduleId}:`, error);
     throw error;
   }
 }
-
 /**
  * Delete a schedule
  */
@@ -353,55 +311,46 @@ export async function deleteSchedule(scheduleId: string): Promise<boolean> {
     if (activeSchedules.has(scheduleId)) {
       await stopSchedule(scheduleId);
     }
-
     // Delete the schedule from the database
     const [deletedSchedule] = await db
       .delete(schedules)
-      .where(eq(schedules.id, scheduleId))
+      .where(eq(schedules.id, scheduleId.toString()))
       .returning();
-
     return !!deletedSchedule;
   } catch (error) {
     console.error('Error deleting schedule:', error);
     throw error;
   }
 }
-
 function shouldRunNow(cronExpression: string, lastRunAt: Date | null): boolean {
   if (!lastRunAt) {
     return true; // If it has never run, run it now
   }
-
   const intervalMs = parseIntervalFromCron(cronExpression);
   const nextRunTime = lastRunAt.getTime() + intervalMs;
   const now = Date.now();
-
   return now >= nextRunTime;
 }
-
 async function updateScheduleLastRun(scheduleId: string): Promise<void> {
   try {
     await db
       .update(schedules)
       .set({
         lastRunAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
-      .where(eq(schedules.id, scheduleId));
+      .where(eq(schedules.id, scheduleId.toString()));
   } catch (error) {
     console.error(`Error updating lastRunAt for schedule ${scheduleId}:`, error);
     throw error;
   }
 }
-
 export async function listSchedules(enabledOnly: boolean = false): Promise<Schedule[]> {
   try {
     let query = db.select().from(schedules).orderBy(schedules.createdAt);
-
     if (enabledOnly) {
       query = query.where(eq(schedules.enabled, true));
     }
-
     const allSchedules = await query;
     return allSchedules;
   } catch (error) {
@@ -409,27 +358,26 @@ export async function listSchedules(enabledOnly: boolean = false): Promise<Sched
     throw error;
   }
 }
-
-export async function executeScheduledWorkflows(): Promise<{ success: boolean; executed: number; errors: number }> {
+export async function executeScheduledWorkflows(): Promise<{
+  success: boolean;
+  executed: number;
+  errors: number;
+}> {
   try {
     // Fetch all enabled schedules
     const schedules = await listSchedules(true);
-
     let executed = 0;
     let errors = 0;
-
     for (const schedule of schedules) {
       try {
         // Check if it's time to run based on cron schedule
         if (shouldRunNow(schedule.cron, schedule.lastRunAt)) {
           console.log(`Executing scheduled workflow: ${schedule.id}`);
-
           // Execute the associated workflow if workflowId exists
           if (schedule.workflowId!) {
             await executeWorkflowById(schedule.workflowId!);
             executed++;
           }
-
           // Update the lastRunAt timestamp
           await updateScheduleLastRun(schedule.id);
         }
@@ -438,7 +386,6 @@ export async function executeScheduledWorkflows(): Promise<{ success: boolean; e
         errors++;
       }
     }
-
     return { success: true, executed, errors };
   } catch (error) {
     console.error('Error executing scheduled workflows:', error);

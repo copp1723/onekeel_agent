@@ -1,17 +1,18 @@
 /**
  * Email Template Service
- * 
+ *
  * Service for managing and using email templates.
  */
-
-import { renderEmailTemplate, EmailTemplateOptions, EmailTemplateResult } from './emailTemplateEngine.js';
+import {
+  renderEmailTemplate,
+  EmailTemplateOptions,
+  EmailTemplateResult,
+} from './emailTemplateEngine.js';
 import { sendEmail } from './mailerService.js';
-
 /**
  * Email template types
  */
 export type EmailTemplateType = 'notification' | 'alert' | 'report' | string;
-
 /**
  * Email template data
  */
@@ -32,7 +33,6 @@ export interface EmailTemplateData {
   tableRows?: any[][];
   [key: string]: any;
 }
-
 /**
  * Email options
  */
@@ -43,10 +43,9 @@ export interface EmailOptions {
   templateType: EmailTemplateType;
   templateData: EmailTemplateData;
 }
-
 /**
  * Generate email content from a template
- * 
+ *
  * @param templateType - Type of template to use
  * @param templateData - Data to render in the template
  * @returns Rendered email content
@@ -61,50 +60,47 @@ export function generateEmailContent(
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
-  
   // Render the template
   const options: EmailTemplateOptions = {
     templateName: templateType,
     data: templateData,
-    format: 'both'
+    format: 'both',
   };
-  
   return renderEmailTemplate(options);
 }
-
 /**
  * Send an email using a template
- * 
+ *
  * @param options - Email options
  * @returns Result of sending the email
  */
 export async function sendTemplatedEmail(options: EmailOptions): Promise<any> {
   const { to, from, templateType, templateData } = options;
-  
   // Generate email content
   const content = generateEmailContent(templateType, templateData);
-  
   // Use template title as subject if not provided
   const subject = options.subject || templateData.title;
-  
   // Send the email
   return await sendEmail({
-    to: Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }],
+    from: {
+      email: process.env.DEFAULT_SENDER_EMAIL || 'noreply@example.com',
+      name: 'System Notification',
+    },
+    to: Array.isArray(to) ? to.map((email) => ({ email })) : [{ email: to }],
     from: from ? { email: from } : undefined,
     content: {
       subject,
       text: content.text,
-      html: content.html
-    }
+      html: content.html,
+    },
   });
 }
-
 /**
  * Send a notification email
- * 
+ *
  * @param to - Recipient email(s)
  * @param title - Notification title
  * @param message - Notification message
@@ -123,14 +119,13 @@ export async function sendNotificationEmail(
     templateData: {
       title,
       message,
-      ...options
-    }
+      ...options,
+    },
   });
 }
-
 /**
  * Send an alert email
- * 
+ *
  * @param to - Recipient email(s)
  * @param title - Alert title
  * @param message - Alert message
@@ -149,14 +144,13 @@ export async function sendAlertEmail(
     templateData: {
       title,
       message,
-      ...options
-    }
+      ...options,
+    },
   });
 }
-
 /**
  * Send a report email
- * 
+ *
  * @param to - Recipient email(s)
  * @param title - Report title
  * @param message - Report message
@@ -175,7 +169,7 @@ export async function sendReportEmail(
     templateData: {
       title,
       message,
-      ...options
-    }
+      ...options,
+    },
   });
 }

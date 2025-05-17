@@ -1,23 +1,22 @@
 /**
  * Prompt Router
- * 
+ *
  * This module provides a centralized way to select the appropriate system prompt
  * based on the task intent. As more prompt types are added, they can be registered
  * here for easy selection throughout the application.
  */
-
-import { automotiveAnalystSystemPrompt, promptVersion as autoPromptVersion } from './automotiveAnalystPrompt.js';
-
+import {
+  automotiveAnalystSystemPrompt,
+  promptVersion as autoPromptVersion,
+} from './automotiveAnalystPrompt.js';
 /**
  * Tracks the version of the prompt router itself
  */
 export const routerVersion = 'v1.0.0';
-
 /**
  * Intent type for more strongly typed prompt selection
  */
 export type PromptIntent = 'automotive_analysis' | 'default';
-
 /**
  * Prompt info including the text and version information
  */
@@ -26,7 +25,6 @@ export interface PromptInfo {
   version: string;
   intent: string;
 }
-
 /**
  * Returns the appropriate system prompt based on the specified intent
  * @param intent - The type of analysis or task to be performed
@@ -39,13 +37,12 @@ export function getPromptByIntent(intent: PromptIntent | string): PromptInfo {
       return {
         text: automotiveAnalystSystemPrompt,
         version: autoPromptVersion,
-        intent: 'automotive_analysis'
+        intent: 'automotive_analysis',
       };
     default:
       throw new Error(`No prompt defined for intent: ${intent}`);
   }
 }
-
 /**
  * Returns just the prompt text for backwards compatibility
  * @param intent - The type of analysis or task to be performed
@@ -55,7 +52,6 @@ export function getPromptByIntent(intent: PromptIntent | string): PromptInfo {
 export function getPromptTextByIntent(intent: PromptIntent | string): string {
   return getPromptByIntent(intent).text;
 }
-
 /**
  * Returns all available prompt intents for UI display or validation
  * @returns Array of supported prompt intents
@@ -63,7 +59,6 @@ export function getPromptTextByIntent(intent: PromptIntent | string): string {
 export function getAvailableIntents(): string[] {
   return ['automotive_analysis'];
 }
-
 /**
  * Validates if a given intent is supported
  * @param intent - The intent to validate

@@ -10,134 +10,138 @@ import path from 'path';
 import { parse as csvParse } from 'csv-parse/sync';
 import ExcelJS from 'exceljs';
 import pdfParse from 'pdf-parse';
+import os from 'os';
+import { logMetric } from '../performanceMetrics.js';
+
+// Simple in-memory cache for parsed files
+const parseCache = new Map();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function logResourceUsage(context = '') {
+  const mem = process.memoryUsage();
+  const cpu = process.cpuUsage();
+  console.log(`[${context}] Memory: RSS ${(mem.rss/1024/1024).toFixed(2)}MB, Heap ${(mem.heapUsed/1024/1024).toFixed(2)}MB, CPU: user ${(cpu.user/1000).toFixed(1)}ms, system ${(cpu.system/1000).toFixed(1)}ms`);
+}
+
+function cacheSet(key, value) {
+  parseCache.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
+}
+function cacheGet(key) {
+  const entry = parseCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expires) {
+    parseCache.delete(key);
+    return null;
+  }
+  return entry.value;
+}
+function cacheInvalidate(key) {
+  parseCache.delete(key);
+}
 
 /**
- * Parse CSV report file
- * 
- * @param {string} filePath - Path to the CSV file
- * @returns {Array} - Array of objects representing rows
+ * Parse CSV report file (streaming, memory-logged, cached)
+ * @param {string} filePath
+ * @returns {Promise<Array>}
  */
-export function parseCSV(filePath) {
-  try {
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    
-    // Parse CSV with header row
-    const records = csvParse(fileContent, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true
+export async function parseCSV(filePath) {
+  const cacheKey = `csv:${filePath}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+  logResourceUsage('parseCSV:before');
+  const start = Date.now();
+  const stats = fs.statSync(filePath);
+  if (stats.size > 50 * 1024 * 1024) throw new Error('CSV file too large (>50MB)');
+  const records = [];
+  let rowCount = 0;
+  // Streaming parse
+  await new Promise((resolve, reject) => {
+    const parser = fs.createReadStream(filePath)
+      .pipe(csvParse({ columns: true, skip_empty_lines: true, trim: true }));
+    parser.on('data', row => {
+      rowCount++;
+      if (rowCount > 100000) {
+        parser.destroy();
+        reject(new Error('CSV row limit exceeded (100k)'));
+      } else {
+        records.push(row);
+      }
     });
-    
-    console.log(`Parsed ${records.length} records from CSV file: ${path.basename(filePath)}`);
-    return records;
-  } catch (error) {
-    console.error(`Error parsing CSV file ${filePath}:`, error);
-    throw error;
-  }
+    parser.on('end', resolve);
+    parser.on('error', reject);
+  });
+  logResourceUsage('parseCSV:after');
+  const duration = Date.now() - start;
+  console.log(`Parsed ${records.length} records from CSV in ${duration}ms`);
+  logMetric('parseCSV', duration, { file: filePath, rows: records.length });
+  cacheSet(cacheKey, records);
+  return records;
 }
 
 /**
- * Parse Excel/XLSX report file
- * 
- * @param {string} filePath - Path to the Excel file
- * @param {Array} sheetNames - Optional array of sheet names to parse
- * @returns {Array} - Array of objects representing rows
+ * Parse Excel/XLSX report file (streaming, memory-logged, cached)
+ * @param {string} filePath
+ * @param {Array} sheetNames
+ * @returns {Promise<Array>}
  */
-export function parseExcel(filePath, sheetNames = null) {
-  try {
-    const workbook = new ExcelJS.Workbook();
-    const result = [];
-    
-    // Load workbook
-    return workbook.xlsx.readFile(filePath)
-      .then(() => {
-        // Determine which sheets to parse
-        let sheetsToProcess = [];
-        if (sheetNames && Array.isArray(sheetNames)) {
-          // Use specified sheets
-          sheetsToProcess = sheetNames.map(name => workbook.getWorksheet(name)).filter(Boolean);
-        } else {
-          // Use all sheets
-          sheetsToProcess = workbook.worksheets;
-        }
-        
-        // Process each sheet
-        sheetsToProcess.forEach(worksheet => {
-          console.log(`Processing sheet: ${worksheet.name}`);
-          
-          // Get headers from first row
-          const headers = [];
-          worksheet.getRow(1).eachCell((cell, colNumber) => {
-            headers[colNumber - 1] = cell.value ? cell.value.toString().trim() : `Column${colNumber}`;
-          });
-          
-          // Process data rows
-          worksheet.eachRow((row, rowNumber) => {
-            // Skip header row
-            if (rowNumber === 1) return;
-            
-            const record = {};
-            row.eachCell((cell, colNumber) => {
-              const header = headers[colNumber - 1];
-              if (!header) return;
-              
-              let value = cell.value;
-              
-              // Handle different cell types
-              if (cell.type === ExcelJS.ValueType.Date) {
-                value = cell.value.toISOString().split('T')[0];
-              } else if (typeof value === 'object' && value !== null) {
-                // Handle formula cells
-                if (value.result !== undefined) {
-                  value = value.result;
-                } else if (value.text !== undefined) {
-                  value = value.text;
-                } else if (value.richText !== undefined) {
-                  value = value.richText.map(rt => rt.text).join('');
-                }
-              }
-              
-              record[header] = value;
-            });
-            
-            // Only add records that have data
-            if (Object.keys(record).length > 0) {
-              result.push(record);
-            }
-          });
-        });
-        
-        console.log(`Parsed ${result.length} records from Excel file: ${path.basename(filePath)}`);
-        return result;
-      });
-  } catch (error) {
-    console.error(`Error parsing Excel file ${filePath}:`, error);
-    throw error;
+export async function parseExcel(filePath, sheetNames = null) {
+  const cacheKey = `excel:${filePath}:${sheetNames ? sheetNames.join(',') : 'all'}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+  logResourceUsage('parseExcel:before');
+  const start = Date.now();
+  const stats = fs.statSync(filePath);
+  if (stats.size > 100 * 1024 * 1024) throw new Error('Excel file too large (>100MB)');
+  const workbook = new ExcelJS.stream.xlsx.WorkbookReader(filePath);
+  const result = [];
+  let rowCount = 0;
+  for await (const worksheet of workbook) {
+    if (sheetNames && !sheetNames.includes(worksheet.name)) continue;
+    let headers = [];
+    for await (const row of worksheet) {
+      if (rowCount > 100000) throw new Error('Excel row limit exceeded (100k)');
+      if (row.number === 1) {
+        headers = row.values.slice(1).map(h => h ? h.toString().trim() : '');
+        continue;
+      }
+      const record = {};
+      row.values.slice(1).forEach((v, i) => { record[headers[i]] = v; });
+      if (Object.keys(record).length > 0) result.push(record);
+      rowCount++;
+    }
   }
+  logResourceUsage('parseExcel:after');
+  const duration = Date.now() - start;
+  console.log(`Parsed ${result.length} records from Excel in ${duration}ms`);
+  logMetric('parseExcel', duration, { file: filePath, rows: result.length, sheets: sheetNames });
+  cacheSet(cacheKey, result);
+  return result;
 }
 
 /**
- * Parse PDF report file
- * 
- * @param {string} filePath - Path to the PDF file
- * @returns {Array} - Array of objects representing extracted data
+ * Parse PDF report file (memory-logged, cached)
+ * @param {string} filePath
+ * @returns {Promise<Array>}
  */
 export async function parsePDF(filePath) {
-  try {
-    const dataBuffer = fs.readFileSync(filePath);
-    const pdfData = await pdfParse(dataBuffer);
-    
-    // Extract text content
-    const text = pdfData.text;
-    console.log(`Extracted ${text.length} characters from PDF file: ${path.basename(filePath)}`);
-    
-    // PDF parsing is more complex and vendor-specific
-    // This is a simplified implementation that extracts tabular data
-    return extractTabularDataFromPDF(text);
-  } catch (error) {
-    console.error(`Error parsing PDF file ${filePath}:`, error);
-    throw error;
-  }
+  const cacheKey = `pdf:${filePath}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+  logResourceUsage('parsePDF:before');
+  const start = Date.now();
+  const stats = fs.statSync(filePath);
+  if (stats.size > 30 * 1024 * 1024) throw new Error('PDF file too large (>30MB)');
+  const dataBuffer = fs.readFileSync(filePath);
+  const pdfData = await pdfParse(dataBuffer);
+  const text = pdfData.text;
+  const { records, confidence } = extractTabularDataFromPDFWithConfidence(text);
+  if (confidence < 0.8) throw new Error(`PDF parse confidence too low (${(confidence * 100).toFixed(1)}%)`);
+  logResourceUsage('parsePDF:after');
+  const duration = Date.now() - start;
+  console.log(`Parsed ${records.length} records from PDF in ${duration}ms`);
+  logMetric('parsePDF', duration, { file: filePath, rows: records.length, confidence });
+  cacheSet(cacheKey, { records, confidence });
+  return { records, confidence };
 }
 
 /**
@@ -206,6 +210,48 @@ function extractTabularDataFromPDF(text) {
   }
 }
 
+// Enhanced: Extract tabular data and compute confidence
+function extractTabularDataFromPDFWithConfidence(text) {
+  try {
+    const lines = text.split('\n').filter(line => line.trim().length > 0);
+    let headerLine = -1;
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+      const words = lines[i].split(/\s+/);
+      if (words.length >= 3 && words.filter(w => /^[A-Z]/.test(w)).length >= 3) {
+        headerLine = i;
+        break;
+      }
+    }
+    if (headerLine === -1) headerLine = 0;
+    const headers = lines[headerLine].split(/\s{2,}/).map(h => h.trim()).filter(h => h.length > 0);
+    const records = [];
+    let validRows = 0;
+    for (let i = headerLine + 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.length < 10) continue;
+      const values = line.split(/\s{2,}/).map(v => v.trim()).filter(v => v.length > 0);
+      if (values.length >= 3) {
+        const record = {};
+        for (let j = 0; j < Math.min(headers.length, values.length); j++) {
+          record[headers[j]] = values[j];
+        }
+        if (Object.keys(record).length >= 3) {
+          records.push(record);
+          validRows++;
+        }
+      }
+    }
+    // Confidence: ratio of valid data rows to total lines after header
+    const totalRows = Math.max(1, lines.length - (headerLine + 1));
+    const confidence = Math.min(1, validRows / totalRows);
+    console.log(`PDF parse confidence: ${(confidence * 100).toFixed(1)}%`);
+    return { records, confidence };
+  } catch (error) {
+    console.error('Error extracting tabular data from PDF:', error);
+    return { records: [], confidence: 0 };
+  }
+}
+
 /**
  * Detect the format of a file based on its extension
  * 
@@ -248,6 +294,10 @@ export async function autoDetectAndParseReport(filePath) {
       throw new Error(`Unsupported file format: ${format}`);
   }
 }
+
+/**
+ * Caching approach: In-memory cache (Map) keyed by file path and params, with TTL. Cache is invalidated on TTL expiry or explicit call. Not persistent across process restarts. For production, consider Redis or similar for distributed cache.
+ */
 
 export default {
   parseCSV,

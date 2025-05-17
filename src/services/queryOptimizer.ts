@@ -1,52 +1,41 @@
 /**
  * Query Optimizer Service
- * 
+ *
  * Service for optimizing specific database queries.
  */
-
 import { db } from '../shared/db.js';
-import { sql } from 'drizzle-orm';
 import { executeWithCache, CacheOptions } from './dbOptimizationService.js';
-import { 
-  taskLogs, 
-  workflows, 
-  emailQueue, 
-  emailLogs, 
-  healthChecks, 
-  healthLogs, 
-  dealerCredentials 
-} from '../shared/schema.js';
-import { eq, and, or, desc, asc, gte, lte, inArray } from 'drizzle-orm';
-
+import {
+  taskLogs,
+  workflows,
+  emailQueue,
+  emailLogs,
+  healthChecks,
+  dealerCredentials,
+} from '....js';
+import { eq, and, or, desc, asc } from '....js';
 /**
  * Get recent task logs with caching
- * 
+ *
  * @param limit - Maximum number of logs to return
  * @param options - Cache options
  * @returns Recent task logs
  */
-export async function getRecentTaskLogs(
-  limit: number = 100,
-  options: CacheOptions = {}
-) {
+export async function getRecentTaskLogs(limit: number = 100, options: CacheOptions = {}) {
   return executeWithCache(
     async () => {
-      return await db.select()
-        .from(taskLogs)
-        .orderBy(desc(taskLogs.createdAt))
-        .limit(limit);
+      return await db.select().from(taskLogs).orderBy(desc(taskLogs.createdAt)).limit(limit);
     },
     {
       key: `recent_task_logs_${limit}`,
       ttl: 60, // 1 minute TTL
-      ...options
+      ...options,
     }
   );
 }
-
 /**
  * Get task logs by status with caching
- * 
+ *
  * @param status - Status to filter by
  * @param limit - Maximum number of logs to return
  * @param options - Cache options
@@ -59,7 +48,8 @@ export async function getTaskLogsByStatus(
 ) {
   return executeWithCache(
     async () => {
-      return await db.select()
+      return await db
+        .select()
         .from(taskLogs)
         .where(eq(taskLogs.status, status))
         .orderBy(desc(taskLogs.createdAt))
@@ -68,14 +58,13 @@ export async function getTaskLogsByStatus(
     {
       key: `task_logs_status_${status}_${limit}`,
       ttl: 60, // 1 minute TTL
-      ...options
+      ...options,
     }
   );
 }
-
 /**
  * Get task logs by user with caching
- * 
+ *
  * @param userId - User ID to filter by
  * @param limit - Maximum number of logs to return
  * @param options - Cache options
@@ -88,7 +77,8 @@ export async function getTaskLogsByUser(
 ) {
   return executeWithCache(
     async () => {
-      return await db.select()
+      return await db
+        .select()
         .from(taskLogs)
         .where(eq(taskLogs.userId!, userId))
         .orderBy(desc(taskLogs.createdAt))
@@ -97,46 +87,37 @@ export async function getTaskLogsByUser(
     {
       key: `task_logs_user_${userId}_${limit}`,
       ttl: 300, // 5 minutes TTL
-      ...options
+      ...options,
     }
   );
 }
-
 /**
  * Get active workflows with caching
- * 
+ *
  * @param limit - Maximum number of workflows to return
  * @param options - Cache options
  * @returns Active workflows
  */
-export async function getActiveWorkflows(
-  limit: number = 100,
-  options: CacheOptions = {}
-) {
+export async function getActiveWorkflows(limit: number = 100, options: CacheOptions = {}) {
   return executeWithCache(
     async () => {
-      return await db.select()
+      return await db
+        .select()
         .from(workflows)
-        .where(
-          or(
-            eq(workflows.status, 'pending'),
-            eq(workflows.status, 'running')
-          )
-        )
+        .where(or(eq(workflows.status, 'pending'), eq(workflows.status, 'running')))
         .orderBy(desc(workflows.createdAt))
         .limit(limit);
     },
     {
       key: `active_workflows_${limit}`,
       ttl: 30, // 30 seconds TTL
-      ...options
+      ...options,
     }
   );
 }
-
 /**
  * Get workflows by user with caching
- * 
+ *
  * @param userId - User ID to filter by
  * @param limit - Maximum number of workflows to return
  * @param options - Cache options
@@ -149,7 +130,8 @@ export async function getWorkflowsByUser(
 ) {
   return executeWithCache(
     async () => {
-      return await db.select()
+      return await db
+        .select()
         .from(workflows)
         .where(eq(workflows.userId!, userId))
         .orderBy(desc(workflows.createdAt))
@@ -158,25 +140,22 @@ export async function getWorkflowsByUser(
     {
       key: `workflows_user_${userId}_${limit}`,
       ttl: 300, // 5 minutes TTL
-      ...options
+      ...options,
     }
   );
 }
-
 /**
  * Get pending emails with caching
- * 
+ *
  * @param limit - Maximum number of emails to return
  * @param options - Cache options
  * @returns Pending emails
  */
-export async function getPendingEmails(
-  limit: number = 100,
-  options: CacheOptions = {}
-) {
+export async function getPendingEmails(limit: number = 100, options: CacheOptions = {}) {
   return executeWithCache(
     async () => {
-      return await db.select()
+      return await db
+        .select()
         .from(emailQueue)
         .where(eq(emailQueue.status, 'pending'))
         .orderBy(asc(emailQueue.createdAt))
@@ -185,14 +164,13 @@ export async function getPendingEmails(
     {
       key: `pending_emails_${limit}`,
       ttl: 30, // 30 seconds TTL
-      ...options
+      ...options,
     }
   );
 }
-
 /**
  * Get email logs by recipient with caching
- * 
+ *
  * @param recipientEmail - Recipient email to filter by
  * @param limit - Maximum number of logs to return
  * @param options - Cache options
@@ -205,7 +183,8 @@ export async function getEmailLogsByRecipient(
 ) {
   return executeWithCache(
     async () => {
-      return await db.select()
+      return await db
+        .select()
         .from(emailLogs)
         .where(eq(emailLogs.recipientEmail, recipientEmail))
         .orderBy(desc(emailLogs.createdAt))
@@ -214,58 +193,47 @@ export async function getEmailLogsByRecipient(
     {
       key: `email_logs_recipient_${recipientEmail}_${limit}`,
       ttl: 300, // 5 minutes TTL
-      ...options
+      ...options,
     }
   );
 }
-
 /**
  * Get health check status with caching
- * 
+ *
  * @param options - Cache options
  * @returns Health check status
  */
 export async function getHealthCheckStatus(options: CacheOptions = {}) {
   return executeWithCache(
     async () => {
-      return await db.select()
-        .from(healthChecks)
-        .orderBy(desc(healthChecks.lastChecked));
+      return await db.select().from(healthChecks).orderBy(desc(healthChecks.lastChecked));
     },
     {
       key: 'health_check_status',
       ttl: 60, // 1 minute TTL
-      ...options
+      ...options,
     }
   );
 }
-
 /**
  * Get dealer credentials by dealer ID with caching
- * 
+ *
  * @param dealerId - Dealer ID to filter by
  * @param options - Cache options
  * @returns Dealer credentials for the specified dealer
  */
-export async function getDealerCredentialsByDealerId(
-  dealerId: string,
-  options: CacheOptions = {}
-) {
+export async function getDealerCredentialsByDealerId(dealerId: string, options: CacheOptions = {}) {
   return executeWithCache(
     async () => {
-      return await db.select()
+      return await db
+        .select()
         .from(dealerCredentials)
-        .where(
-          and(
-            eq(dealerCredentials.dealerId, dealerId),
-            eq(dealerCredentials.active, true)
-          )
-        );
+        .where(and(eq(dealerCredentials.dealerId!, dealerId), eq(dealerCredentials.active, true)));
     },
     {
       key: `dealer_credentials_${dealerId}`,
       ttl: 3600, // 1 hour TTL
-      ...options
+      ...options,
     }
   );
 }

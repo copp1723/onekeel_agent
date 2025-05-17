@@ -1,7 +1,6 @@
 /**
  * TypeScript type declarations for workflowEmailService.js
  */
-
 /**
  * Email notification settings result
  */
@@ -14,7 +13,6 @@ export interface EmailNotification {
   createdAt: Date;
   updatedAt: Date;
 }
-
 /**
  * Email log result
  */
@@ -30,7 +28,6 @@ export interface EmailLog {
   createdAt: Date;
   updatedAt: Date;
 }
-
 /**
  * Response from sending a workflow completion email
  */
@@ -40,7 +37,6 @@ export interface EmailSendResult {
   emailId?: string;
   error?: string;
 }
-
 /**
  * Response from configuring email notifications
  */
@@ -50,7 +46,6 @@ export interface EmailNotificationConfigResult {
   message: string;
   error?: string;
 }
-
 /**
  * Response from retrying a failed email
  */
@@ -60,7 +55,6 @@ export interface EmailRetryResult {
   emailLog?: EmailLog;
   error?: string;
 }
-
 /**
  * Send a workflow completion email
  * @param workflowId The ID of the completed workflow
@@ -68,10 +62,9 @@ export interface EmailRetryResult {
  * @returns Result of the email sending operation
  */
 export function sendWorkflowCompletionEmail(
-  workflowId: string, 
+  workflowId: string,
   recipientOverride?: string | string[]
 ): Promise<EmailSendResult>;
-
 /**
  * Configure email notifications for a workflow
  * @param workflowId The ID of the workflow
@@ -80,46 +73,34 @@ export function sendWorkflowCompletionEmail(
  * @returns The notification configuration
  */
 export function configureEmailNotifications(
-  workflowId: string, 
+  workflowId: string,
   recipientEmail: string,
   options?: {
     sendOnCompletion?: boolean;
     sendOnFailure?: boolean;
   }
 ): Promise<EmailNotificationConfigResult>;
-
 /**
  * Get email notification settings for a workflow
  * @param workflowId The ID of the workflow
  * @returns The notification settings or null if not found
  */
-export function getEmailNotificationSettings(
-  workflowId: string
-): Promise<EmailNotification | null>;
-
+export function getEmailNotificationSettings(workflowId: string): Promise<EmailNotification | null>;
 /**
  * Delete email notification settings for a workflow
  * @param workflowId The ID of the workflow
  * @returns True if successful
  */
-export function deleteEmailNotificationSettings(
-  workflowId: string
-): Promise<boolean>;
-
+export function deleteEmailNotificationSettings(workflowId: string): Promise<boolean>;
 /**
  * Get email logs for a workflow
  * @param workflowId The ID of the workflow
  * @returns Array of email logs
  */
-export function getEmailLogs(
-  workflowId: string
-): Promise<EmailLog[]>;
-
+export function getEmailLogs(workflowId: string): Promise<EmailLog[]>;
 /**
  * Retry failed email for a workflow
  * @param emailLogId The ID of the email log
  * @returns Result of the retry operation
  */
-export function retryFailedEmail(
-  emailLogId: string
-): Promise<EmailRetryResult>;
+export function retryFailedEmail(emailLogId: string): Promise<EmailRetryResult>;
