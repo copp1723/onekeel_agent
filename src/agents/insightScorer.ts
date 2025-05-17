@@ -6,8 +6,20 @@
  * versions and track insight quality over time.
  */
 import OpenAI from 'openai';
-import { isError } from '../utils/errorUtils.js';
 import { logger } from '../shared/logger.js';
+
+// Define the structure of an insight response
+interface InsightResponse {
+  summary: string;
+  details: string;
+  actionItems: string[];
+  dataPoints: Array<{
+    name: string;
+    value: number;
+    change?: number;
+    unit?: string;
+  }>;
+}
 /**
  * Structure for insight quality score and feedback
  */
@@ -79,43 +91,14 @@ export async function scoreInsightQuality(insight: InsightResponse): Promise<Ins
     });
     return result;
   } catch (error) {
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error);
-      // Use type-safe error handling
-      const errorMessage = isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
-        : String(error)
-      : String(error);
-    // Use type-safe error handling
-    const errorMessage = isError(error)
-      ? error instanceof Error
-        ? isError(error)
-          ? error instanceof Error
-            ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
-            : String(error)
-          : String(error)
-        : String(error)
-      : String(error);
+    // Type-safe error handling
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('Error scoring insight quality:', error);
+    
     // Return a default score on error
     return {
       score: -1,
-      feedback:
-        'Error scoring insight: ' +
-        (error instanceof Error
-          ? isError(error)
-            ? error instanceof Error
-              ? isError(error)
-                ? error instanceof Error
-                  ? isError(error) ? (error instanceof Error ? isError(error) ? (error instanceof Error ? error.message : String(error)) : String(error) : String(error)) : String(error)
-                  : String(error)
-                : String(error)
-              : String(error)
-            : String(error)
-          : String(error)),
+      feedback: `Error scoring insight: ${errorMessage}`,
       strengths: [],
       weaknesses: ['Could not be evaluated due to scoring error'],
       timestamp: new Date().toISOString(),
